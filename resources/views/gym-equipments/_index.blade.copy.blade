@@ -1,0 +1,158 @@
+@extends('layouts.adminlte')
+
+@section('content_body')
+    <div class="container-fluid">
+        <div class="card shadow">
+            <div class="card-header bg-navy d-flex justify-content-between align-items-center">
+                <h3 class="card-title">🏋️ Gym Equipments List</h3>
+                <button class="btn btn-success float-right" data-toggle="modal" data-target="#addEquipmentModal">
+                    <i class="fas fa-plus"></i> Add Equipment
+                </button>
+            </div>
+            <div class="card-body">
+                <table id="gymTable" class="table table-bordered table-striped w-100">
+                    <thead>
+                        <tr>
+                            <th>Item Code</th>
+                            <th>Equipment Name</th>
+                            <th>Quantity</th>
+                            <th>Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="addEquipmentModal" tabindex="-1">
+        <div class="modal-dialog">
+            <form id="addEquipmentForm">
+                @csrf
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add New Equipment</h5>
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Item Code</label>
+                            <input type="text" name="item_code" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Equipment Name</label>
+                            <input type="text" name="name" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Quantity</label>
+                            <input type="number" name="quantity" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Status</label>
+                            <select name="status" class="form-control">
+                                <option value="Available">Available</option>
+                                <option value="Under Maintenance">Under Maintenance</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" class="btn btn-primary">Save Equipment</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+@endsection
+
+@push('js')
+    <script>
+        $(document).ready(function() {
+            // Destroy existing DataTable if any
+            if ($.fn.DataTable.isDataTable('#gymTable')) {
+                $('#gymTable').DataTable().destroy();
+            }
+
+            // Initialize DataTable
+            let table = $('#gymTable').DataTable({
+                destroy: true, // Auto-destroy kung meron na
+                processing: true,
+                serverSide: true,
+                ajax: {
+                    url: "{{ route('gym.data') }}",
+                    error: function(xhr, error, thrown) {
+                        console.log('DataTables Error:', xhr.responseText);
+                        alert('Error loading data: ' + xhr.responseText);
+                    }
+                },
+                columns: [{
+                        data: 'item_code',
+                        name: 'item_code'
+                    },
+                    {
+                        data: 'name',
+                        name: 'name'
+                    },
+                    {
+                        data: 'quantity',
+                        name: 'quantity',
+                        className: 'text-center'
+                    },
+                    {
+                        data: 'status',
+                        name: 'status',
+                        className: 'text-center'
+                    },
+                    {
+                        data: 'action',
+                        name: 'action',
+                        orderable: false,
+                        searchable: false
+                    }
+                ]
+            });
+
+            // Submit Form via AJAX
+            $('#addEquipmentForm').on('submit', function(e) {
+                e.preventDefault();
+                $.ajax({
+                    url: "{{ route('gym.store') }}",
+                    method: "POST",
+                    data: $(this).serialize(),
+                    success: function(response) {
+                        $('#addEquipmentModal').modal('hide');
+                        $('#addEquipmentForm')[0].reset();
+                        Swal.fire('Success!', response.message, 'success');
+                        table.ajax.reload(null, false); // Refresh without resetting pagination
+                    },
+                    error: function(xhr) {
+                        console.log('Error:', xhr.responseText);
+                        Swal.fire('Error!', xhr.responseJSON?.message || 'Something went wrong',
+                            'error');
+                    }
+                });
+            });
+        });
+    </script>
+@endpush
+
+
+
+
+ <div class="summary-section">
+        <div class="summary-card">
+            <h3>📦 Total Equipment</h3>
+            <div class="count">{{ $equipments->count() }}</div>
+        </div>
+        <div class="summary-card green">
+            <h3>✅ Available</h3>
+            <div class="count">{{ $equipments->where('status', 'Available')->count() }}</div>
+        </div>
+        <div class="summary-card orange">
+            <h3>🔧 Under Maintenance</h3>
+            <div class="count">{{ $equipments->where('status', 'Under Maintenance')->count() }}</div>
+        </div>
+        <div class="summary-card red">
+            <h3>❌ Out of Order</h3>
+            <div class="count">{{ $equipments->where('status', 'Out of Order')->count() }}</div>
+        </div>
+    </div>

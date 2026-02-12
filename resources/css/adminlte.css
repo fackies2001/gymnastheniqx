@@ -1,0 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
+:root {
+    --font-fam-poppins: "Poppins", sans-serif;
+    --font-fam-montserrat: "Montserrat", sans-serif;
+}
+
+.font-montserrat {
+    font-family: var(--font-fam-montserrat)
+}
+
+.font-poppins {
+    font-family: var(--font-fam-poppins)
+}
+
+
+body {
+    font-family: var(--font-fam-poppins);
+    font-size: 12px;
+}
+
+/* aside a.brand-link img{
+    display: none;
+} */
+/* .main-sidebar {
+    background-color: #343a40 !important;
+} */
+
+th {
+    padding: 10px 5px !important;
+    text-align: center;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.nav-item .nav-link.active {
+    background-color: #6f42c1 !important;
+    color: #fff !important;
+}
+
+table td {
+    padding: 0px 5px;
+}
+
+#uploadArea {
+    border: 2px dashed #6c757d;
+    transition: border-color 0.3s ease, background-color 0.3s ease;
+    cursor: pointer;
+}
+
+#uploadArea.border-primary {
+    border-color: #007bff !important;
+    background-color: #e9f5ff;
+}
+
+/* Make modal-xxl bigger than modal-xl */
+.modal-dialog.modal-xxl {
+    max-width: 1400px;
+    /* adjust width as needed */
+    width: 90%;
+    /* optional: make it responsive */
+}
+
+.preview-container {
+    position: relative;
+    display: inline-block;
+    margin: 10px;
+}
+
+.preview-image {
+    width: 150px;
+    height: 150px;
+    object-fit: cover;
+    border: 1px solid #ccc;
+    border-radius: 0.25rem;
+}
+
+.remove-image-btn {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: rgba(255, 255, 255, 0.9);
+    border: none;
+    font-weight: bold;
+    border-radius: 50%;
+    padding: 0 8px;
+    cursor: pointer;
+    z-index: 1;
+}
+
+.pin-digit {
+    width: 4rem;
+    height: 4rem;
+    font-size: 1.5rem;
+    text-align: center;
+    border: 2px solid #ccc;
+    border-radius: 0.5rem;
+    outline: none;
+    /* Remove spinner arrows */
+    -moz-appearance: textfield;
+}
+
+.pin-digit::-webkit-outer-spin-button,
+.pin-digit::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Optional: focus style */
+.pin-digit:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}

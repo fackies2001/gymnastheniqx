@@ -1,0 +1,22 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('retailer_orders', function (Blueprint $table) {
+            $table->json('allocated_serial_numbers')->nullable();
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('retailer_orders', function (Blueprint $table) {
+            $table->dropColumn('allocated_serial_numbers');
+        });
+    }
+};
