@@ -5,46 +5,53 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\DB;
 
 class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Gawa muna tayo ng Employee Record
-        DB::table('employee')->updateOrInsert(
-            ['id' => 1],
-            [
-                'full_name' => 'Admin Account',
-                'email' => 'admin@test.com',
-                'username' => 'admin',
-                'status' => 'active',
-                'created_at' => now(),
-                'updated_at' => now()
-            ]
-        );
+        // ✅ STEP 1: Create roles FIRST
+        $this->call([
+            RoleSeeder::class,
+        ]);
 
-        // 2. Gawa tayo ng User Login Record
+        // ✅ STEP 2: Seed Source table
+        $this->call([
+            SourceSeeder::class,
+        ]);
+
+        // ✅ STEP 3: Seed Purchase Status Library
+        $this->call([
+            PurchaseStatusLibrarySeeder::class,
+        ]);
+
+        // ✅ STEP 4: Seed Product Statuses (fixes FK constraint on serialized_product.status)
+        $this->call([
+            ProductStatusSeeder::class,
+        ]);
+
+        // ✅ STEP 5: Seed Categories (fixes Consumables not showing in dropdown)
+        $this->call([
+            CategorySeeder::class,
+        ]);
+
+        // ✅ STEP 6: Create admin account
         User::updateOrCreate(
             ['email' => 'admin@test.com'],
             [
-                'employee_id' => 1,
-                'name' => 'Admin Account',
+                'full_name' => 'Admin Account',
+                'username' => 'admin',
                 'password' => Hash::make('password123'),
-                'is_student' => 0,
-                'pincode' => '1234'
+                'pin' => Hash::make('123456'),
+                'status' => 'active',
+                'role_id' => 1,
             ]
         );
 
-        echo "\n✅ SUCCESS: Pwede ka na mag-login! \n";
-
-        // 3. ✅ CALL OTHER SEEDERS (if needed)
-        $this->call([
-            // Uncomment kung gusto mo i-run yung specific seeders
-            // ProductStatusSeeder::class,
-            // SupplierProductSeeder::class,
-            // PurchaseOrderSeeder::class,
-            SerializedProductSeeder::class,  // ✅ ADD THIS
-        ]);
+        echo "\n✅ SUCCESS: Admin account created!\n";
+        echo "   Username: admin\n";
+        echo "   Email: admin@test.com\n";
+        echo "   Password: password123\n";
+        echo "   PIN: 123456\n\n";
     }
 }

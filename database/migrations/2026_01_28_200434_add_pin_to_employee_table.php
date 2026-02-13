@@ -21,7 +21,7 @@ return new class extends Migration
 
             // I-add ang pin kung wala pa
             if (!Schema::hasColumn('employee', 'pin')) {
-                $table->string('pin', 6)->nullable()->after('remember_token');
+                $table->string('pin', 255)->nullable()->after('remember_token'); // ✅ CHANGED from 6 to 255
             }
         });
     }

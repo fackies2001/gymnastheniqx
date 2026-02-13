@@ -6,18 +6,18 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('purchase_order', function (Blueprint $table) {
             $table->id();
-            $table->string('po_number')->unique(); // Auto-generated
+            $table->string('po_number')->unique();
             $table->foreignId('purchase_request_id')->constrained('purchase_request')->onDelete('cascade');
             $table->foreignId('supplier_id')->constrained('supplier')->onDelete('cascade');
-            $table->foreignId('approved_by')->constrained('user')->onDelete('cascade');
-            $table->foreignId('requested_by')->constrained('user')->onDelete('cascade');
+
+            // ✅ FIXED: Changed 'user' to 'employee'
+            $table->foreignId('approved_by')->constrained('employee')->onDelete('cascade');
+            $table->foreignId('requested_by')->constrained('employee')->onDelete('cascade');
+
             $table->date('order_date');
             $table->date('delivery_date');
             $table->enum('payment_terms', ['cash_on_delivery', 'bank_transfer']);
@@ -28,9 +28,6 @@ return new class extends Migration
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('purchase_order');

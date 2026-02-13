@@ -112,7 +112,7 @@ class PurchaseRequestController extends Controller
             $pr = PurchaseRequest::create([
                 'request_number' => $prNumber,
                 'user_id'        => $user->id,
-                'department_id'  => $user->department_id,
+                'department_id'  => $user->department_id ?? null,
                 'supplier_id'    => $validated['supplier_id'],
                 'status_id'      => 1,
                 'order_date'     => now(),

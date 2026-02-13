@@ -64,8 +64,9 @@
                         <input type="text" name="name" id="name" class="form-control" required>
                     </div>
                     <div class="mb-3 col-md-6">
-                        <label class="form-label font-weight-bold">Supplier SKU</label>
-                        <input type="text" name="sku" id="sku" class="form-control" required>
+                        <label class="form-label font-weight-bold">SKU</label>
+                        <input type="text" name="sku" id="sku_new" class="form-control" placeholder="e.g. SUP-001"
+                            required>
                     </div>
                     <div class="mb-3 col-md-6">
                         <label class="form-label font-weight-bold">Cost Price</label>
@@ -75,12 +76,15 @@
                         <label class="form-label font-weight-bold">Barcode</label>
                         <input type="text" name="barcode" id="barcode_new" class="form-control" required>
                     </div>
-                    <div class="mb-3 col-md-12">
+
+                    {{-- ✅ CONSUMABLE CHECKBOX - Always Visible --}}
+                    <div class="mb-3 col-md-12" id="consumable-container" style="display: block !important;">
                         <div class="custom-control custom-checkbox">
                             <input type="checkbox" class="custom-control-input" id="is_consumable" name="is_consumable"
                                 value="1">
-                            <label class="custom-control-label" for="is_consumable">Mark as Consumable (No Serial
-                                Required)</label>
+                            <label class="custom-control-label font-weight-bold" for="is_consumable">
+                                Mark as Consumable (No Serial Required)
+                            </label>
                         </div>
                     </div>
                 </div>
@@ -92,6 +96,19 @@
         </form>
     @endnot_api
 @endsection
+
+@push('css')
+    <style>
+        /* ✅ Force consumable checkbox to always be visible */
+        #consumable-container,
+        #is_consumable,
+        #is_consumable+label {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+    </style>
+@endpush
 
 @push('js')
     <script>
@@ -143,12 +160,33 @@
                 }
             });
 
-            // 2. Modal focus logic
+            // 2. Modal open - ensure checkbox is visible
             $('#createProductModal').on('shown.bs.modal', function() {
-                $(this).find('input[name="name"]').focus();
+                $('#name').focus();
+
+                // ✅ Force checkbox visibility
+                $('#consumable-container').show().css({
+                    'display': 'block',
+                    'visibility': 'visible',
+                    'opacity': '1'
+                });
+
+                console.log('Modal opened, checkbox visible:', $('#is_consumable').is(':visible'));
             });
 
-            // 3. Submit Button Logic (Cleaned up)
+            // 3. ✅ Prevent category change from hiding checkbox
+            $('#category_id').on('change select2:select', function() {
+                setTimeout(function() {
+                    $('#consumable-container').show().css({
+                        'display': 'block',
+                        'visibility': 'visible',
+                        'opacity': '1'
+                    });
+                    console.log('Category changed, checkbox still visible');
+                }, 100);
+            });
+
+            // 4. Submit Button Logic
             $(document).off('click', '#submitProductBtn').on('click', '#submitProductBtn', function(e) {
                 e.preventDefault();
 
@@ -157,7 +195,7 @@
                 var form = $('#createProductForm');
                 var submitBtn = $(this);
 
-                // Simple validation check
+                // Validation
                 if (!form[0].checkValidity()) {
                     form[0].reportValidity();
                     return false;
@@ -176,15 +214,20 @@
                     success: function(response) {
                         console.log('Success:', response);
 
-                        // Isara ang modal
+                        // Close modal
                         $('#createProductModal').modal('hide');
 
                         // Reset form
                         form[0].reset();
                         $('.select2').val(null).trigger('change');
 
-                        // RELOAD TABLE (Direct call to variable)
+                        // Reload table
                         table.ajax.reload(null, false);
+
+                        // Success message
+                        if (response.message) {
+                            alert(response.message);
+                        }
                     },
                     error: function(xhr) {
                         console.error('Error Details:', xhr);
@@ -192,7 +235,6 @@
                             'Failed to save product'));
                     },
                     complete: function() {
-                        // Anti-double click delay
                         setTimeout(function() {
                             isSubmitting = false;
                             submitBtn.prop('disabled', false).html('Save Product');
@@ -200,6 +242,16 @@
                     }
                 });
             });
+
+            // 5. ✅ Debug helper - check if checkbox is being hidden by external scripts
+            setInterval(function() {
+                if ($('#createProductModal').hasClass('show')) {
+                    if (!$('#is_consumable').is(':visible')) {
+                        console.warn('⚠️ Checkbox was hidden! Forcing visibility...');
+                        $('#consumable-container').show().css('display', 'block');
+                    }
+                }
+            }, 500);
         });
     </script>
 @endpush
