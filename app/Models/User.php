@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class User extends Authenticatable
 {
@@ -29,7 +30,7 @@ class User extends Authenticatable
         'profile_photo',
         'status',
         'assigned_at',
-        'pin',  // ✅ IMPORTANT: PIN field
+        'pin',
     ];
 
     protected $hidden = [
@@ -52,6 +53,20 @@ class User extends Authenticatable
         return $this->full_name ?? 'Unknown User';
     }
 
+    // ✅ FIXED: Proper employee relationship (returns HasOne instead of $this)
+    public function employee(): HasOne
+    {
+        // Since User IS Employee, create a self-referencing relationship
+        // This allows auth()->user()->employee->id to work
+        return $this->hasOne(self::class, 'id', 'id');
+    }
+
+    // ✅ Alternative: Add a direct property accessor
+    public function getEmployeeIdAttribute()
+    {
+        return $this->id; // User ID = Employee ID
+    }
+
     // ✅ AdminLTE profile image
     public function adminlte_image()
     {
@@ -62,30 +77,26 @@ class User extends Authenticatable
             }
         }
 
-        // ✅ Fallback - Use FULL NAME para consistent "JO"
-        $name = $this->full_name ?? 'User';
+        $nameParts = explode(' ', trim($this->full_name ?? 'User'));
+        $name = implode(' ', array_slice($nameParts, 0, 2));
         return 'https://ui-avatars.com/api/?name=' . urlencode($name) . '&background=6777ef&color=fff&size=128';
     }
 
-    // ✅ AdminLTE description (shows below name in dropdown)
     public function adminlte_desc()
     {
         return 'Member since ' . $this->created_at->format('M Y');
     }
 
-    // ✅ AdminLTE role display (for sidebar)
     public function adminlte_role()
     {
         return $this->role?->role_name ?? 'No Role';
     }
 
-    // ✅ AdminLTE warehouse display
     public function adminlte_warehouse()
     {
         return $this->warehouse?->name ?? 'No Warehouse';
     }
 
-    // ✅ AdminLTE profile URL
     public function adminlte_profile_url()
     {
         return route('profile.edit');

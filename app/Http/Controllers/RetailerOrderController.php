@@ -1,6 +1,6 @@
 <?php
 // 📁 app/Http/Controllers/RetailerOrderController.php
-// ✅ FIXED: Correct notification parameters
+// ✅ COMPLETE WITH DATE FILTERING + ALL ORIGINAL METHODS
 
 namespace App\Http\Controllers;
 
@@ -27,18 +27,107 @@ class RetailerOrderController extends Controller
         })->get();
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $retailer_orders = RetailerOrder::orderByRaw("
+        // ============================================================
+        // ✅ BUILD DATE FILTER CONDITIONS
+        // ============================================================
+        $dateConditions = function ($query) use ($request) {
+            if ($request->filled('filter_type')) {
+                $filterType = $request->filter_type;
+                $today = now()->startOfDay();
+
+                switch ($filterType) {
+                    case 'today':
+                        $query->whereDate('created_at', $today);
+                        break;
+
+                    case 'yesterday':
+                        $query->whereDate('created_at', $today->copy()->subDay());
+                        break;
+
+                    case 'last_7_days':
+                        $query->whereBetween('created_at', [
+                            $today->copy()->subDays(6)->startOfDay(),
+                            now()->endOfDay()
+                        ]);
+                        break;
+
+                    case 'last_30_days':
+                        $query->whereBetween('created_at', [
+                            $today->copy()->subDays(29)->startOfDay(),
+                            now()->endOfDay()
+                        ]);
+                        break;
+
+                    case 'this_month':
+                        $query->whereMonth('created_at', now()->month)
+                            ->whereYear('created_at', now()->year);
+                        break;
+
+                    case 'last_month':
+                        $lastMonth = now()->subMonth();
+                        $query->whereMonth('created_at', $lastMonth->month)
+                            ->whereYear('created_at', $lastMonth->year);
+                        break;
+
+                    case 'this_year':
+                        $query->whereYear('created_at', now()->year);
+                        break;
+
+                    case 'custom':
+                        if ($request->filled('start_date') && $request->filled('end_date')) {
+                            $query->whereBetween('created_at', [
+                                $request->start_date . ' 00:00:00',
+                                $request->end_date . ' 23:59:59'
+                            ]);
+                        }
+                        break;
+                }
+            }
+        };
+
+        // ============================================================
+        // ✅ GET FILTERED ORDERS FOR TABLE
+        // ============================================================
+        $retailer_orders = RetailerOrder::query()
+            ->where($dateConditions)
+            ->orderByRaw("
             CASE 
                 WHEN status = 'Pending'  THEN 1
                 WHEN status = 'Approved' THEN 2
-                WHEN status = 'Rejected' THEN 3
+                WHEN status = 'Completed' THEN 3
+                WHEN status = 'Rejected' THEN 4
             END
         ")
             ->orderBy('created_at', 'desc')
             ->get();
 
+        // ============================================================
+        // ✅ CALCULATE METRICS WITH SEPARATE QUERIES
+        // ============================================================
+
+        // Total Sales = Approved + Completed orders
+        $totalSales = RetailerOrder::query()
+            ->where($dateConditions)
+            ->whereIn('status', ['Approved', 'Completed'])
+            ->sum('total_amount');
+
+        // Pending Orders count
+        $pendingOrders = RetailerOrder::query()
+            ->where($dateConditions)
+            ->where('status', 'Pending')
+            ->count();
+
+        // Completed Transactions count (only Completed status)
+        $completedOrders = RetailerOrder::query()
+            ->where($dateConditions)
+            ->where('status', 'Completed')
+            ->count();
+
+        // ============================================================
+        // ✅ GET WAREHOUSE PRODUCTS
+        // ============================================================
         $warehouse_products = SupplierProduct::select(
             'supplier_product.*',
             DB::raw('COUNT(CASE WHEN serialized_product.status = 1 THEN 1 END) as available_quantity')
@@ -47,13 +136,19 @@ class RetailerOrderController extends Controller
             ->groupBy('supplier_product.id')
             ->get();
 
-        $totalSales       = RetailerOrder::where('status', 'Approved')->sum('total_amount');
-        $pendingOrders    = RetailerOrder::where('status', 'Pending')->count();
-        $completedOrders  = RetailerOrder::where('status', 'Approved')->count();
-
-        return view('orders.index', compact('retailer_orders', 'warehouse_products', 'totalSales', 'pendingOrders', 'completedOrders'));
+        return view('orders.index', compact(
+            'retailer_orders',
+            'warehouse_products',
+            'totalSales',
+            'pendingOrders',
+            'completedOrders'
+        ));
     }
 
+
+    // ============================================================
+    // ✅ STORE METHOD
+    // ============================================================
     public function store(Request $request)
     {
         $request->validate([
@@ -79,9 +174,7 @@ class RetailerOrderController extends Controller
             'user_role'     => Auth::user()->role?->role_name ?? 'No Role',
         ]);
 
-        // ============================================================
-        // ✅ NOTIFY ALL ADMINS: New Retailer Order
-        // ============================================================
+        // Notify admins
         try {
             $admins = $this->getAdmins();
 
@@ -89,9 +182,9 @@ class RetailerOrderController extends Controller
                 if ($admin->id !== Auth::id()) {
                     $admin->notify(new RetailerOrderNotification(
                         'created',
-                        'ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT), // ✅ Order Number
+                        'ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT),
                         $request->retailer_name,
-                        (int) $order->id  // ✅ Order ID as integer
+                        (int) $order->id
                     ));
                 }
             }
@@ -108,6 +201,9 @@ class RetailerOrderController extends Controller
         return back()->with('success', 'Order submitted successfully! Awaiting admin approval.');
     }
 
+    // ============================================================
+    // ✅ APPROVE METHOD
+    // ============================================================
     public function approve($id)
     {
         $userRole = Auth::user()->role?->role_name;
@@ -160,18 +256,15 @@ class RetailerOrderController extends Controller
 
             DB::commit();
 
-            // ============================================================
-            // ✅ NOTIFY THE CREATOR that order was approved
-            // ============================================================
+            // Notify creator
             try {
-                // Find user by created_by name (best effort)
                 $creator = User::where('full_name', $order->created_by)->first();
                 if ($creator) {
                     $creator->notify(new RetailerOrderNotification(
                         'approved',
-                        'ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT), // ✅ Order Number
+                        'ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT),
                         $order->retailer_name,
-                        (int) $order->id  // ✅ Order ID as integer
+                        (int) $order->id
                     ));
                 }
             } catch (\Exception $e) {
@@ -192,6 +285,9 @@ class RetailerOrderController extends Controller
         }
     }
 
+    // ============================================================
+    // ✅ REJECT METHOD
+    // ============================================================
     public function reject($id)
     {
         $userRole = Auth::user()->role?->role_name;
@@ -206,17 +302,15 @@ class RetailerOrderController extends Controller
             'rejected_at' => now(),
         ]);
 
-        // ============================================================
-        // ✅ NOTIFY CREATOR: Order rejected
-        // ============================================================
+        // Notify creator
         try {
             $creator = User::where('full_name', $order->created_by)->first();
             if ($creator) {
                 $creator->notify(new RetailerOrderNotification(
                     'rejected',
-                    'ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT), // ✅ Order Number
+                    'ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT),
                     $order->retailer_name,
-                    (int) $order->id  // ✅ Order ID as integer
+                    (int) $order->id
                 ));
             }
         } catch (\Exception $e) {
@@ -226,6 +320,9 @@ class RetailerOrderController extends Controller
         return back()->with('info', 'Order rejected.');
     }
 
+    // ============================================================
+    // ✅ COMPLETE METHOD
+    // ============================================================
     public function complete($id)
     {
         $userRole = Auth::user()->role?->role_name;
@@ -291,17 +388,15 @@ class RetailerOrderController extends Controller
 
             DB::commit();
 
-            // ============================================================
-            // ✅ NOTIFY CREATOR: Order shipped/completed
-            // ============================================================
+            // Notify creator
             try {
                 $creator = User::where('full_name', $order->created_by)->first();
                 if ($creator) {
                     $creator->notify(new RetailerOrderNotification(
                         'completed',
-                        'ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT), // ✅ Order Number
+                        'ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT),
                         $order->retailer_name,
-                        (int) $order->id  // ✅ Order ID as integer
+                        (int) $order->id
                     ));
                 }
             } catch (\Exception $e) {

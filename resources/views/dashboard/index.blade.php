@@ -1,4 +1,4 @@
-{{-- 📁 resources/views/dashboard/index.blade.php --}}
+{{-- 📁 resources/views/dashboard/index.blade.php - FIXED VERSION --}}
 @extends('layouts.adminlte')
 
 @section('subtitle', 'Dashboard')
@@ -10,13 +10,20 @@
     $monthly_products_in = $bar['monthly_products_in'];
     $low_stock_products = $low_stock_products ?? [];
     $recent_activities = $recent_activities ?? [];
+
+    // ✅ PIN MODAL DEBUG (Remove after confirming it works)
+    Log::info('🎯 Dashboard Rendered', [
+        'show_pin_modal' => session('show_pin_modal'),
+        'pin_mode' => session('pin_mode'),
+        'pin_verified' => session('pin_verified'),
+    ]);
 @endphp
 
 @push('css')
     <style>
         /* ============================================
-                               SMALL STAT BOXES
-                            ============================================ */
+                                           SMALL STAT BOXES
+                                        ============================================ */
         .stat-box {
             border-radius: 10px;
             padding: 20px 18px 14px;
@@ -94,8 +101,8 @@
         }
 
         /* ============================================
-                               ACTIVITY FEED
-                            ============================================ */
+                                           ACTIVITY FEED
+                                        ============================================ */
         .activity-item {
             padding: 10px 12px;
             border-left: 3px solid #667eea;
@@ -128,8 +135,8 @@
         }
 
         /* ============================================
-                               FILTER BUTTONS
-                            ============================================ */
+                                           FILTER BUTTONS
+                                        ============================================ */
         .filter-btn-group .btn {
             border-radius: 20px;
             padding: 5px 14px;
@@ -143,8 +150,8 @@
         }
 
         /* ============================================
-                               DARK MODE TOGGLE
-                            ============================================ */
+                                           DARK MODE TOGGLE
+                                        ============================================ */
         .dark-mode-toggle {
             position: fixed;
             bottom: 20px;
@@ -173,11 +180,30 @@
             color: white;
             transition: transform 0.3s ease;
         }
+
+        /* ============================================
+               PIN MODAL CRITICAL STYLES
+            ============================================ */
+        #pincodeModal {
+            z-index: 99999 !important;
+        }
+
+        #pincodeModal .modal-dialog {
+            z-index: 100000 !important;
+        }
+
+        .modal-backdrop.show {
+            opacity: 0.7 !important;
+            z-index: 99998 !important;
+        }
+
+        body.pin-modal-active {
+            overflow: hidden !important;
+        }
     </style>
 @endpush
 
 @section('content_body')
-
 
     {{-- ============================================
          DARK MODE TOGGLE
@@ -187,48 +213,121 @@
     </button>
 
     {{-- ============================================
-         DATE FILTER BAR
-    ============================================ --}}
-    <div class="row mb-3">
-        <div class="col-12">
-            <div class="card mb-0">
-                <div class="card-body py-2">
-                    <div class="d-flex align-items-center flex-wrap" style="gap:10px;">
-                        <span class="font-weight-bold">
-                            <i class="fas fa-calendar-alt mr-1 text-primary"></i> Date Filter:
-                        </span>
-                        <div class="filter-btn-group btn-group" role="group">
-                            <button type="button" class="btn btn-outline-primary active" data-filter="today">
-                                <i class="fas fa-calendar-day"></i> Today
-                            </button>
-                            <button type="button" class="btn btn-outline-primary" data-filter="week">
-                                <i class="fas fa-calendar-week"></i> This Week
-                            </button>
-                            <button type="button" class="btn btn-outline-primary" data-filter="month">
-                                <i class="fas fa-calendar-alt"></i> This Month
-                            </button>
-                            <button type="button" class="btn btn-outline-primary" data-filter="custom">
-                                <i class="fas fa-calendar"></i> Custom
-                            </button>
-                        </div>
+     DATE FILTER BAR (SAME AS RETAILER ORDERS)
+============================================ --}}
+    <div class="card shadow mb-4 no-print">
+        <div class="card-header bg-gradient-primary">
+            <h3 class="card-title font-weight-bold text-white">
+                <i class="fas fa-filter"></i> FILTER BY DATE
+            </h3>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ route('dashboard') }}" id="dateFilterForm">
+                <div class="row">
+                    {{-- Filter Dropdown --}}
+                    <div class="col-lg-5 col-md-6 mb-3">
+                        <label class="font-weight-bold">
+                            <i class="fas fa-calendar text-primary"></i> Select Time Period
+                        </label>
+                        <select name="filter_type" id="filterType" class="form-control form-control-lg shadow-sm">
+                            <option value="">All Time Records</option>
+                            <option value="today" {{ request('filter_type') == 'today' ? 'selected' : '' }}>Today</option>
+                            <option value="yesterday" {{ request('filter_type') == 'yesterday' ? 'selected' : '' }}>
+                                Yesterday</option>
+                            <option value="last_7_days" {{ request('filter_type') == 'last_7_days' ? 'selected' : '' }}>Last
+                                7 Days</option>
+                            <option value="last_30_days" {{ request('filter_type') == 'last_30_days' ? 'selected' : '' }}>
+                                Last 30 Days</option>
+                            <option value="this_month" {{ request('filter_type') == 'this_month' ? 'selected' : '' }}>This
+                                Month</option>
+                            <option value="last_month" {{ request('filter_type') == 'last_month' ? 'selected' : '' }}>Last
+                                Month</option>
+                            <option value="this_year" {{ request('filter_type') == 'this_year' ? 'selected' : '' }}>This
+                                Year</option>
+                            <option value="custom" {{ request('filter_type') == 'custom' ? 'selected' : '' }}>Custom Range
+                            </option>
+                        </select>
                     </div>
 
-                    {{-- Custom Date Range --}}
-                    <div id="customDateRange" class="mt-2" style="display:none;">
-                        <div class="row">
-                            <div class="col-md-3">
-                                <input type="date" class="form-control form-control-sm" id="startDate">
-                            </div>
-                            <div class="col-md-3">
-                                <input type="date" class="form-control form-control-sm" id="endDate">
-                            </div>
-                            <div class="col-md-2">
-                                <button class="btn btn-sm btn-primary w-100" id="applyCustomFilter">Apply</button>
-                            </div>
+                    {{-- Custom Start Date --}}
+                    <div class="col-lg-2 col-md-6 mb-3" id="customDateRange"
+                        style="display: {{ request('filter_type') == 'custom' ? 'block' : 'none' }};">
+                        <label class="font-weight-bold">
+                            <i class="fas fa-calendar-day text-success"></i> From
+                        </label>
+                        <input type="date" name="start_date" id="startDate"
+                            class="form-control form-control-lg shadow-sm" value="{{ request('start_date') }}">
+                    </div>
+
+                    {{-- Custom End Date --}}
+                    <div class="col-lg-2 col-md-6 mb-3" id="customDateRangeEnd"
+                        style="display: {{ request('filter_type') == 'custom' ? 'block' : 'none' }};">
+                        <label class="font-weight-bold">
+                            <i class="fas fa-calendar-check text-danger"></i> To
+                        </label>
+                        <input type="date" name="end_date" id="endDate" class="form-control form-control-lg shadow-sm"
+                            value="{{ request('end_date') }}">
+                    </div>
+
+                    {{-- Action Buttons --}}
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <label class="d-block">&nbsp;</label>
+                        <div class="btn-group btn-block">
+                            <button type="submit" class="btn btn-primary btn-lg shadow">
+                                <i class="fas fa-search"></i> Apply
+                            </button>
+                            <a href="{{ route('dashboard') }}" class="btn btn-secondary btn-lg shadow">
+                                <i class="fas fa-redo"></i> Reset
+                            </a>
                         </div>
                     </div>
                 </div>
-            </div>
+
+                {{-- Active Filter Badge --}}
+                @if (request('filter_type'))
+                    <div class="alert alert-info mt-3 mb-0">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <i class="fas fa-info-circle"></i>
+                                <strong>Active Filter:</strong>
+                                @switch(request('filter_type'))
+                                    @case('today')
+                                        Today's Records
+                                    @break
+
+                                    @case('yesterday')
+                                        Yesterday's Records
+                                    @break
+
+                                    @case('last_7_days')
+                                        Last 7 Days
+                                    @break
+
+                                    @case('last_30_days')
+                                        Last 30 Days
+                                    @break
+
+                                    @case('this_month')
+                                        This Month
+                                    @break
+
+                                    @case('last_month')
+                                        Last Month
+                                    @break
+
+                                    @case('this_year')
+                                        This Year
+                                    @break
+
+                                    @case('custom')
+                                        {{ request('start_date') }} to {{ request('end_date') }}
+                                    @break
+                                @endswitch
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            </form>
         </div>
     </div>
 
@@ -498,16 +597,15 @@
     </div>
 
     {{-- ============================================
-         PIN CODE MODAL (Only show if session set)
+         ✅ PIN CODE MODAL - ALWAYS INCLUDED
     ============================================ --}}
-    @if (session('show_pin_modal'))
-        @include('components.bootstrap.pincode')
-    @endif
+    @include('components.bootstrap.pincode')
 
 @stop
 
 @push('js')
     @vite(['resources/js/reports.js'])
+
     {{-- ============================================
          GLOBAL DATA FOR CHARTS
     ============================================ --}}
@@ -523,128 +621,140 @@
     @vite(['resources/js/dashboard.js'])
 
     {{-- ============================================
-         PIN MODAL HANDLER
+         ✅ FIXED PIN MODAL HANDLER
     ============================================ --}}
     <script>
         $(document).ready(function() {
             console.log('🚀 Dashboard Initialized');
 
-            @if (session('show_pin_modal'))
-                console.log('🔐 PIN Modal Required');
-                console.log('   Mode:', '{{ session('pin_mode') }}');
-                console.log('   Verified:', {{ session('pin_verified') ? 'true' : 'false' }});
+            // ✅ PIN Modal Configuration
+            const pinConfig = {
+                shouldShow: {{ session('show_pin_modal') ? 'true' : 'false' }},
+                mode: '{{ session('pin_mode') ?? '' }}',
+                verified: {{ session('pin_verified') ? 'true' : 'false' }}
+            };
 
-                // ✅ Show PIN Modal
+            console.log('🔐 PIN Configuration:', pinConfig);
+
+            // ============================================
+            // ✅ PIN MODAL INITIALIZATION
+            // ============================================
+            if (pinConfig.shouldShow) {
+                console.log('⚠️ PIN Modal Required - Mode:', pinConfig.mode);
+
+                // ✅ Wait for DOM to be fully ready
                 setTimeout(function() {
-                    if ($('#pincodeModal').length) {
-                        console.log('✅ PIN Modal Found - Showing...');
+                    const $modal = $('#pincodeModal');
 
-                        $('#pincodeModal').modal({
-                            backdrop: 'static',
-                            keyboard: false,
-                            show: true
-                        });
+                    if ($modal.length === 0) {
+                        console.error('❌ CRITICAL: #pincodeModal not found in DOM!');
+                        console.log('Available elements:', $('[id*="code"]').map((i, el) => el.id).get());
+                        return;
+                    }
 
-                        // ✅ Prevent modal from closing
-                        $('#pincodeModal').on('hide.bs.modal', function(e) {
-                            console.log('⚠️ Modal close blocked');
+                    console.log('✅ PIN Modal Found - Initializing...');
+
+                    // ✅ Add body class for scroll prevention
+                    $('body').addClass('pin-modal-active modal-open');
+
+                    // ✅ Show modal with locked settings
+                    $modal.modal({
+                        backdrop: 'static',
+                        keyboard: false,
+                        show: true,
+                        focus: true
+                    });
+
+                    // ✅ Force display (sometimes Bootstrap needs this)
+                    $modal.addClass('show').css('display', 'block');
+
+                    // ✅ Ensure backdrop exists
+                    if ($('.modal-backdrop').length === 0) {
+                        $('<div class="modal-backdrop fade show"></div>').appendTo('body');
+                    }
+
+                    // ✅ CRITICAL: Prevent modal closing by ANY method
+                    $modal.on('hide.bs.modal', function(e) {
+                        console.log('⚠️ Blocked attempt to close PIN modal');
+                        e.preventDefault();
+                        e.stopPropagation();
+                        e.stopImmediatePropagation();
+                        return false;
+                    });
+
+                    // ✅ Disable ESC key globally
+                    $(document).on('keydown.pinmodal', function(e) {
+                        if (e.key === 'Escape' || e.keyCode === 27) {
+                            console.log('⚠️ ESC key blocked');
                             e.preventDefault();
                             e.stopPropagation();
                             return false;
-                        });
+                        }
+                    });
 
-                        // ✅ Disable ESC key
-                        $(document).on('keydown', function(e) {
-                            if (e.key === 'Escape' || e.keyCode === 27) {
-                                e.preventDefault();
-                                return false;
-                            }
-                        });
-
-                        // ✅ Auto-focus first PIN input
-                        setTimeout(function() {
-                            $('.pin-digit').first().focus();
-                        }, 600);
-
-                        // ✅ PIN digit auto-navigation
-                        $(document).on('input', '.pin-digit', function() {
-                            const val = $(this).val();
-                            if (val.length === 1 && /\d/.test(val)) {
-                                $(this).next('.pin-digit').focus();
-                            }
-                        });
-
-                        // ✅ Backspace navigation
-                        $(document).on('keydown', '.pin-digit', function(e) {
-                            if (e.key === 'Backspace' && $(this).val() === '') {
-                                $(this).prev('.pin-digit').focus();
-                            }
-                        });
-
-                        console.log('✅ PIN Modal Fully Initialized');
-                    } else {
-                        console.error('❌ ERROR: #pincodeModal not found!');
+                    // ✅ Prevent browser back button
+                    if (window.history && window.history.pushState) {
+                        window.history.pushState(null, '', window.location.href);
+                        window.onpopstate = function() {
+                            console.log('⚠️ Back button blocked');
+                            window.history.pushState(null, '', window.location.href);
+                        };
                     }
-                }, 400);
-            @else
+
+                    // ✅ Auto-focus first PIN input
+                    setTimeout(function() {
+                        const $firstInput = $('.pin-digit').first();
+                        if ($firstInput.length) {
+                            $firstInput.focus();
+                            console.log('✅ First PIN input focused');
+                        }
+                    }, 500);
+
+                    console.log('✅ PIN Modal Fully Locked & Displayed');
+
+                }, 250); // Small delay ensures DOM is ready
+
+            } else {
                 console.log('ℹ️ No PIN verification required');
-            @endif
+            }
 
             // ============================================
             // DATE FILTER FUNCTIONALITY
             // ============================================
-            const urlParams = new URLSearchParams(window.location.search);
-            const activeFilter = urlParams.get('filter') || 'today';
-
-            // Set active filter button
-            $('.filter-btn-group .btn').removeClass('active');
-            $(`.filter-btn-group .btn[data-filter="${activeFilter}"]`).addClass('active');
-
-            // Show custom date range if needed
-            if (activeFilter === 'custom') {
-                $('#customDateRange').show();
-            }
-
-            // Filter button click handler
-            $('.filter-btn-group .btn').on('click', function() {
-                $('.filter-btn-group .btn').removeClass('active');
-                $(this).addClass('active');
-
-                const filter = $(this).data('filter');
-
-                if (filter === 'custom') {
-                    $('#customDateRange').slideDown();
+            $('#filterType').on('change', function() {
+                if ($(this).val() === 'custom') {
+                    $('#customDateRange, #customDateRangeEnd').slideDown();
                 } else {
-                    $('#customDateRange').slideUp();
-                    applyDateFilter(filter);
+                    $('#customDateRange, #customDateRangeEnd').slideUp();
+                    if ($(this).val() !== '') {
+                        $('#dateFilterForm').submit();
+                    }
                 }
             });
 
-            // Apply custom date filter
-            $('#applyCustomFilter').on('click', function() {
-                const startDate = $('#startDate').val();
-                const endDate = $('#endDate').val();
+            // Date range validation
+            $('#startDate, #endDate').on('change', function() {
+                const startDate = new Date($('#startDate').val());
+                const endDate = new Date($('#endDate').val());
 
-                if (startDate && endDate) {
-                    applyDateFilter('custom', startDate, endDate);
-                } else {
-                    alert('Please select both start and end dates');
+                if (startDate && endDate && startDate > endDate) {
+                    alert('Start date cannot be after end date!');
+                    $(this).val('');
                 }
             });
 
-            // Date filter application function
-            function applyDateFilter(filter, startDate = null, endDate = null) {
-                const params = new URLSearchParams({
-                    filter
-                });
-
-                if (startDate) params.append('start_date', startDate);
-                if (endDate) params.append('end_date', endDate);
-
-                window.location.href = '{{ route('dashboard') }}?' + params.toString();
+            // Auto-reset at midnight
+            function checkMidnightReset() {
+                const now = new Date();
+                if (now.getHours() === 0 && now.getMinutes() === 0) {
+                    const currentFilter = $('#filterType').val();
+                    if (currentFilter === 'today') {
+                        console.log('🌙 Midnight detected! Auto-refreshing...');
+                        location.reload();
+                    }
+                }
             }
-
-            console.log('✅ Dashboard Ready');
+            setInterval(checkMidnightReset, 60000);
         });
     </script>
 @endpush

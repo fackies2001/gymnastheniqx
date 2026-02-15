@@ -24,7 +24,8 @@ class StoreSupplierRequest extends FormRequest
     {
         $rules = [
             'name' => 'required|string|max:255',
-            'phone' => 'nullable|string|max:20',
+            'contact_person' => 'nullable|string|max:255',      // ✅ ADDED
+            'contact_number' => 'nullable|string|max:50',       // ✅ CHANGED FROM 'phone'
             'email' => 'nullable|email|max:255',
             'address' => 'nullable|string|max:500',
         ];
@@ -36,5 +37,17 @@ class StoreSupplierRequest extends FormRequest
         }
 
         return $rules;
+    }
+
+    /**
+     * Get custom error messages for validation rules.
+     */
+    public function messages()
+    {
+        return [
+            'name.required' => 'Supplier name is required.',
+            'email.email' => 'Please provide a valid email address.',
+            'contact_number.max' => 'Contact number cannot exceed 50 characters.',
+        ];
     }
 }

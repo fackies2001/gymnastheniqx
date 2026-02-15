@@ -7,7 +7,6 @@
 @section('content_body')
 
     <div class="mb-3">
-        {{-- ✅ TAMA: Babalik sa Layer 1 (Summary) --}}
         <a href="{{ route('serialized_products.index') }}" class="btn btn-default shadow-sm">
             <i class="fas fa-arrow-left"></i> Back to Products
         </a>
@@ -37,7 +36,6 @@
             </div>
         </div>
     </div>
-    </div>
 @stop
 
 @section('js')
@@ -46,23 +44,23 @@
             let token = "{{ session('sanctum_token') }}";
             let productId = "{{ $supplier_product_id }}";
 
-            // 1. CLEAN UP: Iwas sa DataTables warning at re-init error
+            // Clean up existing DataTable
             if ($.fn.DataTable.isDataTable('#specific_product_table')) {
                 $('#specific_product_table').DataTable().destroy();
             }
 
-            // 2. DATA ROUTE: Safe replacement ng ID
+            // Safe URL replacement
             let url = "{{ route('serialized_products.showTable', ['id' => ':id']) }}";
             url = url.replace(':id', productId);
 
-            // 3. INITIALIZATION: With Sorting Arrows and Responsive fix
+            // Initialize DataTable
             $('#specific_product_table').DataTable({
                 processing: true,
                 serverSide: true,
                 responsive: true,
                 autoWidth: false,
-                destroy: true, // Importante para sa Layer navigation
-                ordering: true, // Para sa Sorting Arrows
+                destroy: true,
+                ordering: true,
                 ajax: {
                     url: url,
                     type: 'GET',
@@ -70,7 +68,6 @@
                         'Authorization': 'Bearer ' + token
                     },
                     error: function(xhr) {
-                        // Check if 'status' column error exists in Backend Controller
                         console.error("Fetch error:", xhr.responseText);
                     }
                 },
@@ -85,30 +82,48 @@
                     {
                         data: 'scanned_by',
                         name: 'scanned_by',
-                        className: 'text-center'
+                        className: 'text-center',
+                        // ✅ FIXED: Show employee name instead of "System"
+                        render: function(data) {
+                            return data || 'N/A';
+                        }
                     },
                     {
                         data: 'order_date',
-                        name: 'order_date'
+                        name: 'order_date',
+                        // ✅ FIXED: Remove time, show date only
+                        render: function(data) {
+                            if (!data || data === '-') return '-';
+                            return moment(data).format('MMM D, YYYY');
+                        }
                     },
                     {
                         data: 'delivery_date',
-                        name: 'delivery_date'
+                        name: 'delivery_date',
+                        // ✅ FIXED: Remove time, show date only
+                        render: function(data) {
+                            if (!data || data === '-') return '-';
+                            return moment(data).format('MMM D, YYYY');
+                        }
                     },
                     {
-                        data: 'scanned_date',
-                        name: 'scanned_date'
+                        data: 'scanned_at',
+                        name: 'scanned_at',
+                        // ✅ FIXED: Show actual scanned date/time
+                        render: function(data) {
+                            if (!data || data === '-') return '-';
+                            return moment(data).format('MMM D, YYYY h:mm A');
+                        }
                     },
                     {
                         data: 'action',
                         name: 'action',
-                        visible: false, // Itago natin dahil plain text lang ito
+                        visible: false,
                         searchable: false
                     }
                 ],
                 rowCallback: function(row, data) {
                     $(row).css('cursor', 'pointer').off('click').on('click', function() {
-                        // 'data.action' ngayon ay yung $row->serial_number na plain text
                         if (data.action) {
                             window.location.href =
                                 `/serialized_products/overview/${encodeURIComponent(data.action)}`;
@@ -119,3 +134,7 @@
         });
     </script>
 @stop
+
+@push('js')
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+@endpush

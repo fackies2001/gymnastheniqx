@@ -9,34 +9,43 @@ use OwenIt\Auditing\Contracts\Auditable;
 
 class SerialNumber extends Model implements Auditable
 {
-    //
     use HasFactory, \OwenIt\Auditing\Auditable;
 
-    protected $table = 'serial_number';
+    protected $table = 'serialized_product';
 
-    public $timestamps = true; // this is actually the default
+    public $timestamps = true;
 
     protected $fillable = [
-        'sku_id',
-        'serial_number',
+        'product_id',
         'purchase_order_id',
-        'product_status_id',
-        'warehouse_id',
+        'barcode',
+        'serial_number',
+        'status',
         'scanned_by',
-    ];
-    protected $casts = [
-        'images' => 'array',
+        'scanned_at',
+        'warehouse_id',
+        'remarks'
     ];
 
+    protected $casts = [
+        'images' => 'array',
+        'scanned_at' => 'datetime',
+    ];
+
+    // ✅ FIXED: scannedBy points to User (which is employee table)
+    public function scannedBy()
+    {
+        return $this->belongsTo(User::class, 'scanned_by', 'id');
+    }
 
     public function supplierProducts()
     {
-        return $this->belongsTo(SupplierProduct::class, 'sku_id');
+        return $this->belongsTo(SupplierProduct::class, 'product_id', 'id');
     }
 
     public function productStatus()
     {
-        return $this->belongsTo(ProductStatus::class, 'product_status_id');
+        return $this->belongsTo(ProductStatus::class, 'status', 'id');
     }
 
     public function purchaseOrder()
@@ -49,14 +58,6 @@ class SerialNumber extends Model implements Auditable
         return $this->belongsTo(Warehouse::class, 'warehouse_id');
     }
 
-    // app/Models/SerialNumbers.php
-
-    public function scannedBy()
-    {
-        // Palitan ang 'user_id' ng 'scanned_by'
-        return $this->belongsTo(User::class, 'scanned_by');
-    }
-
     public static function monthlyProductScannedIn()
     {
         return self::selectRaw('COUNT(id) as total, MONTH(created_at) as month')
@@ -66,9 +67,8 @@ class SerialNumber extends Model implements Auditable
     public static function countsPerStatus()
     {
         return self::with('productStatus')
-            // FIX: Siguraduhin na 'serial_number' (singular) ang table name dito
-            ->join('product_status as ps', 'serial_number.product_status_id', '=', 'ps.id')
-            ->selectRaw('ps.name as product_status_name, COUNT(serial_number.id) as total')
+            ->join('product_status as ps', 'serialized_product.status', '=', 'ps.id')
+            ->selectRaw('ps.name as product_status_name, COUNT(serialized_product.id) as total')
             ->groupBy('ps.name');
     }
 
@@ -84,13 +84,13 @@ class SerialNumber extends Model implements Auditable
                 'c.name as category_name',
                 's.id as supplier_id',
                 's.name as supplier_name',
-                DB::raw('COUNT(serial_number.id) as quantity')
+                DB::raw('COUNT(serialized_product.id) as quantity')
             )
-            ->join('supplier_product as sp', 'serial_number.sku_id', '=', 'sp.id')
+            ->join('supplier_product as sp', 'serialized_product.product_id', '=', 'sp.id')
             ->join('supplier as s', 'sp.supplier_id', '=', 's.id')
-            ->join('product_status as ps', 'serial_number.product_status_id', '=', 'ps.id')
-            ->join('purchase_order as po', 'serial_number.purchase_order_id', '=', 'po.id')
-            ->join('employee as e', 'serial_number.scanned_by', '=', 'e.id')
+            ->join('product_status as ps', 'serialized_product.status', '=', 'ps.id')
+            ->join('purchase_order as po', 'serialized_product.purchase_order_id', '=', 'po.id')
+            ->join('employee as e', 'serialized_product.scanned_by', '=', 'e.id')
             ->join('category as c', 'sp.category_id', '=', 'c.id')
             ->groupBy(
                 'sp.id',
@@ -106,16 +106,12 @@ class SerialNumber extends Model implements Auditable
 
     public function scopeFilterByStudent($query)
     {
-        // if (!auth()->check()) return $query;
-        // 'scannedBy' lang dapat, wag nang 'scannedBy.user'
         return $query;
     }
-
 
     public function scopeFilterByWarehouse($query)
     {
         if (!auth()->check()) return $query;
-        // Gamitin ang department_id ng logged-in user
         $deptId = auth()->user()->department_id;
         return $query->whereRelation('scannedBy', 'department_id', $deptId);
     }

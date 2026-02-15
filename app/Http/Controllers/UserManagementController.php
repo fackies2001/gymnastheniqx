@@ -17,12 +17,12 @@ class UserManagementController extends Controller
      */
     public function index()
     {
-        $employees = User::with(['role', 'warehouse'])->get();
+        $employees = User::with(['role', 'warehouse', 'department'])->get();
         $roles = Role::all();
         $warehouses = Warehouse::all();
+        $departments = \App\Models\Department::all(); // ✅ Dagdag
 
-        // ✅ CORRECT PATH based sa folder structure mo
-        return view('settings.user-management.index', compact('employees', 'roles', 'warehouses'));
+        return view('settings.user-management.index', compact('employees', 'roles', 'warehouses', 'departments'));
     }
 
     /**
@@ -34,7 +34,8 @@ class UserManagementController extends Controller
             'full_name' => 'required|string|max:255',
             'email' => 'required|email|unique:employee,email',
             'username' => 'required|string|unique:employee,username',
-            'role_id' => 'required|exists:role,id',  // ✅ FIXED: 'role' not 'roles'
+            'role_id' => 'required|exists:role,id',
+            'department_id' => 'nullable|exists:department,id', // ✅ Dagdag
             'assigned_at' => 'nullable|exists:warehouse,id',
             'contact_number' => 'nullable|string',
             'address' => 'nullable|string',
@@ -71,7 +72,8 @@ class UserManagementController extends Controller
             'full_name' => 'required|string|max:255',
             'email' => 'required|email|unique:employee,email,' . $id,
             'username' => 'required|string|unique:employee,username,' . $id,
-            'role_id' => 'required|exists:role,id',  // ✅ FIXED: 'role' not 'roles'
+            'role_id' => 'required|exists:role,id',
+            'department_id' => 'nullable|exists:department,id', // ✅ Dagdag
             'assigned_at' => 'nullable|exists:warehouse,id',
             'contact_number' => 'nullable|string',
             'address' => 'nullable|string',

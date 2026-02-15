@@ -103,7 +103,7 @@ class PurchaseRequest extends Model
 
     public function purchaseOrder()
     {
-        return $this->hasOne(PurchaseOrder::class, 'request_id');
+        return $this->hasOne(PurchaseOrder::class, 'purchase_request_id'); // ✅ TAMA
     }
 
     public function warehouse(): BelongsTo

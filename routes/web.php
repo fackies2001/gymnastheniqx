@@ -186,7 +186,7 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
         Route::get('/daily-reports', 'dailyIndex')->name('reports.daily');
         Route::get('/reports/daily/data', 'getDailyData')->name('reports.daily.data');
         Route::get('/reports/daily/export', 'exportDaily')->name('reports.daily.export');
-        Route::get('/weekly-reports', 'weeklyIndex')->name('reports.weekly');
+        Route::get('/weekly-reports', 'weeklyIndex')->name('reports.weekly');   
         Route::get('/weekly-reports/get-data', 'getWeeklyData')->name('reports.weekly.data');
         Route::get('/weekly-reports/export', 'exportWeekly')->name('reports.weekly.export');
         Route::post('/reports/approve/{id}/{type}', 'approve')->name('reports.approve');

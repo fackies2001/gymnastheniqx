@@ -119,11 +119,25 @@
                             </tr>
                             <tr>
                                 <th>Order Date:</th>
-                                <td>{{ $serialized_product_details->purchaseOrder->order_date ?? 'N/A' }}</td>
+                                <td>
+                                    {{-- ✅ FIXED: Remove time, show date only --}}
+                                    @if ($serialized_product_details->purchaseOrder && $serialized_product_details->purchaseOrder->order_date)
+                                        {{ \Carbon\Carbon::parse($serialized_product_details->purchaseOrder->order_date)->format('M d, Y') }}
+                                    @else
+                                        N/A
+                                    @endif
+                                </td>
                             </tr>
                             <tr>
                                 <th>Delivery:</th>
-                                <td>{{ $serialized_product_details->purchaseOrder->delivery_date ?? 'N/A' }}</td>
+                                <td>
+                                    {{-- ✅ FIXED: Remove time, show date only --}}
+                                    @if ($serialized_product_details->purchaseOrder && $serialized_product_details->purchaseOrder->delivery_date)
+                                        {{ \Carbon\Carbon::parse($serialized_product_details->purchaseOrder->delivery_date)->format('M d, Y') }}
+                                    @else
+                                        N/A
+                                    @endif
+                                </td>
                             </tr>
                         </table>
                     </div>
@@ -142,6 +156,7 @@
                                 <th width="40%">Scanned By</th>
                                 <td>
                                     <i class="fas fa-user-circle text-primary mr-2"></i>
+                                    {{-- ✅ FIXED: Show actual employee name instead of N/A --}}
                                     <strong>{{ $serialized_product_details->scannedBy->full_name ?? 'N/A' }}</strong>
                                 </td>
                             </tr>
@@ -161,12 +176,11 @@
                                             1 => 'success', // Available
                                             2 => 'warning', // Reserved
                                             3 => 'danger', // Sold
-                                            4 => 'dark', // Missing
-                                            5 => 'secondary', // Damaged
+                                            4 => 'dark', // Damaged
+                                            5 => 'secondary', // Lost
                                         ];
                                         $color = $statusColors[$status->id ?? 1] ?? 'secondary';
                                     @endphp
-                                    {{-- ✅ ADDED ID for dynamic update --}}
                                     <span id="current-status-badge" class="badge badge-{{ $color }} px-3 py-2"
                                         style="font-size: 1rem;">
                                         <i class="fas fa-circle mr-1"></i>
@@ -179,7 +193,6 @@
                                 <td>
                                     <i class="fas fa-barcode text-secondary mr-2"></i>
                                     <strong class="font-monospace d-block mb-2">{{ $serial_number }}</strong>
-                                    {{-- ✅ Barcode Image for Scanner Gun --}}
                                     <div class="mt-2">
                                         <img src="data:image/png;base64,{{ $barcodeImage }}" alt="Barcode"
                                             class="img-fluid" style="max-width: 250px; height: auto;">
@@ -212,7 +225,6 @@
                         <span>&times;</span>
                     </button>
                 </div>
-                {{-- ✅ REMOVED action and method attributes - will use AJAX instead --}}
                 <form id="updateStatusForm">
                     @csrf
                     @method('PUT')
@@ -222,26 +234,21 @@
                             <label for="status_id">New Status</label>
                             <select name="status_id" id="status_id" class="form-control" required>
                                 <option value="">-- Select Status --</option>
-                                <option value="1"
-                                    {{ $serialized_product_details->product_status_id == 1 ? 'selected' : '' }}>
+                                {{-- ✅ FIXED: Removed Released & Under Repair options --}}
+                                <option value="1" {{ $serialized_product_details->status == 1 ? 'selected' : '' }}>
                                     Available
                                 </option>
-                                <option value="2"
-                                    {{ $serialized_product_details->product_status_id == 2 ? 'selected' : '' }}>
+                                <option value="2" {{ $serialized_product_details->status == 2 ? 'selected' : '' }}>
                                     Reserved
                                 </option>
-                                <option value="3"
-                                    {{ $serialized_product_details->product_status_id == 3 ? 'selected' : '' }}>
+                                <option value="3" {{ $serialized_product_details->status == 3 ? 'selected' : '' }}>
                                     Sold
                                 </option>
-                                <option value="4"
-                                    {{ $serialized_product_details->product_status_id == 4 ? 'selected' : '' }}>
-                                    Missing
-                                </option>
-                                {{-- ✅ ADDED Damaged option --}}
-                                <option value="5"
-                                    {{ $serialized_product_details->product_status_id == 5 ? 'selected' : '' }}>
+                                <option value="4" {{ $serialized_product_details->status == 4 ? 'selected' : '' }}>
                                     Damaged
+                                </option>
+                                <option value="5" {{ $serialized_product_details->status == 5 ? 'selected' : '' }}>
+                                    Lost
                                 </option>
                             </select>
                         </div>
@@ -254,7 +261,6 @@
 
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-                        {{-- ✅ CHANGED to type="button" to prevent form submission --}}
                         <button type="button" id="saveStatusBtn" class="btn btn-primary">
                             <i class="fas fa-save mr-2"></i> Save Changes
                         </button>
@@ -280,7 +286,6 @@
             border-radius: 8px;
         }
 
-        /* ✅ Loading state styles */
         .btn-loading {
             pointer-events: none;
             opacity: 0.6;
@@ -291,7 +296,7 @@
 @push('js')
     <script>
         $(document).ready(function() {
-            // ✅ Status color mapping
+            // ✅ Status color mapping (removed Released and Under Repair)
             const statusColors = {
                 1: {
                     badge: 'success',
@@ -307,15 +312,15 @@
                 },
                 4: {
                     badge: 'dark',
-                    name: 'Missing'
+                    name: 'Damaged'
                 },
                 5: {
                     badge: 'secondary',
-                    name: 'Damaged'
+                    name: 'Lost'
                 }
             };
 
-            // ✅ AJAX Update Status Handler - Remove existing handler first to prevent double trigger
+            // ✅ AJAX Update Status Handler
             $('#saveStatusBtn').off('click').on('click', function(e) {
                 e.preventDefault();
 
@@ -356,7 +361,7 @@
                             // Remove all badge color classes
                             $badge.removeClass(
                                 'badge-success badge-warning badge-danger badge-dark badge-secondary'
-                                );
+                            );
 
                             // Add new color class
                             $badge.addClass('badge-' + newStatus.badge);

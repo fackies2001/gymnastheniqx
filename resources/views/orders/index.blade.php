@@ -34,6 +34,127 @@
             </div>
         </div>
     </div>
+    {{-- ✅ 2. CLEANER DATE FILTER --}}
+    <div class="card shadow mb-4 no-print">
+        <div class="card-header bg-gradient-primary">
+            <h3 class="card-title font-weight-bold text-white">
+                <i class="fas fa-filter"></i> FILTER BY DATE
+            </h3>
+        </div>
+        <div class="card-body">
+            <form method="GET" action="{{ route('retailer.orders.index') }}" id="dateFilterForm">
+                <div class="row">
+                    {{-- Filter Dropdown --}}
+                    <div class="col-lg-5 col-md-6 mb-3">
+                        <label class="font-weight-bold">
+                            <i class="fas fa-calendar text-primary"></i> Select Time Period
+                        </label>
+                        <select name="filter_type" id="filterType" class="form-control form-control-lg shadow-sm">
+                            <option value="">All Time Records</option>
+                            <option value="today" {{ request('filter_type') == 'today' ? 'selected' : '' }}>Today</option>
+                            <option value="yesterday" {{ request('filter_type') == 'yesterday' ? 'selected' : '' }}>
+                                Yesterday</option>
+                            <option value="last_7_days" {{ request('filter_type') == 'last_7_days' ? 'selected' : '' }}>Last
+                                7 Days</option>
+                            <option value="last_30_days" {{ request('filter_type') == 'last_30_days' ? 'selected' : '' }}>
+                                Last 30 Days</option>
+                            <option value="this_month" {{ request('filter_type') == 'this_month' ? 'selected' : '' }}>This
+                                Month</option>
+                            <option value="last_month" {{ request('filter_type') == 'last_month' ? 'selected' : '' }}>Last
+                                Month</option>
+                            <option value="this_year" {{ request('filter_type') == 'this_year' ? 'selected' : '' }}>This
+                                Year</option>
+                            <option value="custom" {{ request('filter_type') == 'custom' ? 'selected' : '' }}>Custom Range
+                            </option>
+                        </select>
+                    </div>
+
+                    {{-- Custom Start Date --}}
+                    <div class="col-lg-2 col-md-6 mb-3" id="customDateRange"
+                        style="display: {{ request('filter_type') == 'custom' ? 'block' : 'none' }};">
+                        <label class="font-weight-bold">
+                            <i class="fas fa-calendar-day text-success"></i> From
+                        </label>
+                        <input type="date" name="start_date" id="startDate"
+                            class="form-control form-control-lg shadow-sm" value="{{ request('start_date') }}">
+                    </div>
+
+                    {{-- Custom End Date --}}
+                    <div class="col-lg-2 col-md-6 mb-3" id="customDateRangeEnd"
+                        style="display: {{ request('filter_type') == 'custom' ? 'block' : 'none' }};">
+                        <label class="font-weight-bold">
+                            <i class="fas fa-calendar-check text-danger"></i> To
+                        </label>
+                        <input type="date" name="end_date" id="endDate" class="form-control form-control-lg shadow-sm"
+                            value="{{ request('end_date') }}">
+                    </div>
+
+                    {{-- Action Buttons --}}
+                    <div class="col-lg-3 col-md-6 mb-3">
+                        <label class="d-block">&nbsp;</label>
+                        <div class="btn-group btn-block">
+                            <button type="submit" class="btn btn-primary btn-lg shadow">
+                                <i class="fas fa-search"></i> Apply
+                            </button>
+                            <a href="{{ route('retailer.orders.index') }}" class="btn btn-secondary btn-lg shadow">
+                                <i class="fas fa-redo"></i> Reset
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Active Filter Badge --}}
+                @if (request('filter_type'))
+                    <div class="alert alert-info mt-3 mb-0">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <i class="fas fa-info-circle"></i>
+                                <strong>Active Filter:</strong>
+                                @switch(request('filter_type'))
+                                    @case('today')
+                                        Today's Records
+                                    @break
+
+                                    @case('yesterday')
+                                        Yesterday's Records
+                                    @break
+
+                                    @case('last_7_days')
+                                        Last 7 Days
+                                    @break
+
+                                    @case('last_30_days')
+                                        Last 30 Days
+                                    @break
+
+                                    @case('this_month')
+                                        This Month
+                                    @break
+
+                                    @case('last_month')
+                                        Last Month
+                                    @break
+
+                                    @case('this_year')
+                                        This Year
+                                    @break
+
+                                    @case('custom')
+                                        {{ request('start_date') }} to {{ request('end_date') }}
+                                    @break
+                                @endswitch
+                            </div>
+                            <span class="badge badge-primary badge-lg">
+                                {{ $retailer_orders->count() }} records
+                            </span>
+                        </div>
+                    </div>
+                @endif
+            </form>
+        </div>
+    </div>
+
+
 
     {{-- 2. TABLE CARD --}}
     <div class="card card-outline card-primary shadow">
@@ -110,7 +231,8 @@
                                         <br>
                                         <button class="btn btn-sm btn-primary mt-2 ship-order-btn"
                                             data-order-id="{{ $order->id }}"
-                                            data-retailer="{{ $order->retailer_name }}" data-qty="{{ $order->quantity }}">
+                                            data-retailer="{{ $order->retailer_name }}"
+                                            data-qty="{{ $order->quantity }}">
                                             <i class="fas fa-shipping-fast"></i> Ship Order
                                         </button>
                                     @endif
@@ -170,7 +292,8 @@
                 </div>
                 <div class="modal-body p-4">
                     <div class="alert alert-info">
-                        <i class="fas fa-info-circle"></i> Review the order details carefully before approving or rejecting.
+                        <i class="fas fa-info-circle"></i> Review the order details carefully before approving or
+                        rejecting.
                     </div>
 
                     {{-- Retailer Info --}}
@@ -364,6 +487,30 @@
             transform: scale(1.02);
             transition: all 0.2s;
         }
+
+        .bg-gradient-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        .form-control-lg {
+            height: 48px;
+            font-size: 1rem;
+        }
+
+        .btn-lg {
+            padding: 12px 24px;
+            font-size: 1rem;
+        }
+
+        .badge-lg {
+            font-size: 1rem;
+            padding: 8px 15px;
+        }
+
+        #customDateRange,
+        #customDateRangeEnd {
+            transition: all 0.3s ease-in-out;
+        }
     </style>
 @endpush
 
@@ -428,8 +575,18 @@
                 "autoWidth": false,
                 "destroy": true,
                 "order": [
-                    [5, "asc"]
-                ]
+                    [0, "asc"]
+                ],
+                "pageLength": 10,
+                "language": {
+                    "emptyTable": "No records found for the selected period"
+                },
+                // ✅ DISABLE SORTING ON ACTION COLUMN (Last column)
+                "columnDefs": [{
+                    "targets": -1, // Last column (Action)
+                    "orderable": false, // Disable sorting
+                    "searchable": false // Also disable search on this column
+                }]
             });
 
             // ✅ AUTO-COMPUTE LOGIC
@@ -587,6 +744,83 @@
                         });
                     }
                 });
+            });
+
+
+            // ============================================================
+            // ✅ DATE FILTER HANDLERS
+            // ============================================================
+
+            // Show/hide custom date range inputs
+            $('#filterType').on('change', function() {
+                if ($(this).val() === 'custom') {
+                    $('#customDateRange, #customDateRangeEnd').show();
+                } else {
+                    $('#customDateRange, #customDateRangeEnd').hide();
+                }
+            });
+
+            // ============================================================
+            // ✅ AUTO-RESET AT MIDNIGHT (12:00 AM)
+            // ============================================================
+            function checkMidnightReset() {
+                const now = new Date();
+                const hours = now.getHours();
+                const minutes = now.getMinutes();
+
+                // If it's 12:00 AM and filter is set to "today", auto-refresh
+                if (hours === 0 && minutes === 0) {
+                    const currentFilter = $('#filterType').val();
+                    if (currentFilter === 'today') {
+                        console.log('🌙 Midnight detected! Auto-refreshing for new day...');
+                        location.reload();
+                    }
+                }
+            }
+
+            // Check every minute for midnight
+            setInterval(checkMidnightReset, 60000);
+
+            // ============================================================
+            // ✅ SMART DATE RANGE VALIDATION
+            // ============================================================
+            $('#startDate, #endDate').on('change', function() {
+                const startDate = new Date($('#startDate').val());
+                const endDate = new Date($('#endDate').val());
+
+                if (startDate && endDate && startDate > endDate) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Invalid Date Range',
+                        text: 'Start date cannot be after end date!',
+                        confirmButtonColor: '#d33'
+                    });
+                    $(this).val('');
+                }
+            });
+
+            // ============================================================
+            // ✅ KEYBOARD SHORTCUT: Press "F" to focus filter
+            // ============================================================
+            $(document).on('keypress', function(e) {
+                if (e.key === 'f' || e.key === 'F') {
+                    if (!$('input, textarea').is(':focus')) {
+                        e.preventDefault();
+                        $('#filterType').focus();
+                    }
+                }
+            });
+
+            // ============================================================
+            // ✅ AUTO-SUBMIT ON PRESET SELECTION (Optional)
+            // ============================================================
+            $('#filterType').on('change', function() {
+                const selectedValue = $(this).val();
+
+                // Auto-submit for non-custom filters
+                if (selectedValue !== 'custom' && selectedValue !== '') {
+                    $('#dateFilterForm').submit();
+                }
             });
 
         });

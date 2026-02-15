@@ -67,6 +67,9 @@ class PurchaseRequestController extends Controller
                 ->addColumn('id', function ($pr) {
                     return $pr->id;
                 })
+                ->addColumn('status_id', function ($pr) {  // ✅ DAGDAG ITO
+                    return $pr->status_id;
+                })
                 ->editColumn('created_at', function ($pr) {
                     return $pr->created_at->format('M d, Y');
                 })
@@ -112,7 +115,7 @@ class PurchaseRequestController extends Controller
             $pr = PurchaseRequest::create([
                 'request_number' => $prNumber,
                 'user_id'        => $user->id,
-                'department_id'  => $user->department_id ?? null,
+                'department_id' => $user->department_id ?? $user->department?->id ?? null,
                 'supplier_id'    => $validated['supplier_id'],
                 'status_id'      => 1,
                 'order_date'     => now(),
@@ -203,7 +206,12 @@ class PurchaseRequestController extends Controller
                 }
             }
 
-            if (!$pr->department && $pr->user && $pr->user->department) {
+            // BAGO - ensure department is always resolved
+            if (!$pr->department_id && $pr->user && $pr->user->department_id) {
+                // If PR has no department, inherit from user
+                $pr->department_id = $pr->user->department_id;
+                $pr->setRelation('department', $pr->user->department);
+            } elseif (!$pr->department && $pr->user && $pr->user->department) {
                 $pr->setRelation('department', $pr->user->department);
             }
 
@@ -213,7 +221,14 @@ class PurchaseRequestController extends Controller
                 $pr->supplier_contact_person = $pr->supplier->contact_person ?? 'N/A';
                 $pr->supplier_contact_number = $pr->supplier->contact_number  ?? 'N/A';
                 $pr->supplier_email          = $pr->supplier->email           ?? 'N/A';
+                $pr->supplier_address        = $pr->supplier->address        ?? 'N/A';
             }
+
+            // ✅ Direct query gamit ang tamang foreign key: purchase_request_id
+            $po = \App\Models\PurchaseOrder::where('purchase_request_id', $pr->id)->first();
+            $pr->po_delivery_date = $po?->delivery_date?->format('Y-m-d') ?? null;
+            $pr->po_payment_terms = $po?->payment_terms ?? null;
+            $pr->po_number_linked = $po?->po_number ?? null;
 
             return response()->json($pr);
         } catch (\Exception $e) {

@@ -42,28 +42,24 @@ class SerializedProductsController extends Controller
         return view('serialized_products._index');
     }
 
-
-    /**
-     * ✅ FIXED: Count items per status
-     */
     public function indexTable()
     {
         $query = SupplierProduct::with(['supplier'])
             ->withCount([
                 'serializedProducts as available_count' => function ($query) {
-                    $query->where('status', 1); // Available only
+                    $query->where('status', 1);
                 },
                 'serializedProducts as reserved_count' => function ($query) {
-                    $query->where('status', 2); // Reserved
+                    $query->where('status', 2);
                 },
                 'serializedProducts as sold_count' => function ($query) {
-                    $query->where('status', 3); // Sold
+                    $query->where('status', 3);
                 },
                 'serializedProducts as damaged_count' => function ($query) {
-                    $query->where('status', 4); // Damaged
+                    $query->where('status', 4);
                 },
                 'serializedProducts as lost_count' => function ($query) {
-                    $query->where('status', 5); // Lost
+                    $query->where('status', 5);
                 }
             ]);
 
@@ -86,14 +82,15 @@ class SerializedProductsController extends Controller
     }
 
     /**
-     * ✅ UPDATED: Store with inventory increment
+     * ✅ FINAL FIX: Use auth()->id() directly (User ID = Employee ID)
      */
     public function store(StoreSerializationRequest $request)
     {
         $validated = $request->validated();
         $Abbrv = 'SRN';
 
-        $warehouseId = $validated['warehouse_id'] ?? auth()->user()->employee->assigned_at;
+        // ✅ Get warehouse from user's assigned_at field
+        $warehouseId = $validated['warehouse_id'] ?? auth()->user()->assigned_at;
 
         if (!$warehouseId) {
             return response()->json([
@@ -106,23 +103,37 @@ class SerializedProductsController extends Controller
             $bulkRecords = [];
             $baseSku = SkuHelper::generateSystemSku($Abbrv);
 
+            // ✅ SIMPLE: auth()->id() returns the employee ID directly
+            $scannedBy = auth()->id(); // This is 2 for John Vincent Fabay
+            $scannedAt = now();
+
+            // ✅ Debug log
+            \Log::info('Product Serialization', [
+                'user_id' => auth()->id(),
+                'user_name' => auth()->user()->full_name,
+                'scanned_by' => $scannedBy,
+                'warehouse_id' => $warehouseId,
+                'timestamp' => $scannedAt
+            ]);
+
             foreach ($validated['sku_id'] as $sku) {
-                // ✅ NEW: Update inventory quantity
                 $product = SupplierProduct::find($sku['id']);
                 if ($product) {
-                    $product->increment('quantity', $sku['qty']); // Add to inventory
+                    $product->increment('quantity', $sku['qty']);
                 }
 
                 for ($i = 0; $i < $sku['qty']; $i++) {
                     $uniqueSerial = $baseSku . '-' . strtoupper(substr(uniqid(), -5)) . '-' . $i;
 
                     $bulkRecords[] = [
-                        'sku_id'            => $sku['id'],
+                        'product_id'        => $sku['id'],
                         'serial_number'     => $uniqueSerial,
+                        'barcode'           => $uniqueSerial,
                         'purchase_order_id' => $validated['purchase_order_id'],
-                        'product_status_id' => $validated['product_status_id'],
+                        'status'            => $validated['product_status_id'] ?? 1,
                         'warehouse_id'      => $warehouseId,
-                        'scanned_by'        => auth()->user()->employee->id,
+                        'scanned_by'        => $scannedBy,  // ✅ Direct user/employee ID
+                        'scanned_at'        => $scannedAt,
                         'created_at'        => now(),
                         'updated_at'        => now(),
                     ];
@@ -143,8 +154,7 @@ class SerializedProductsController extends Controller
     }
 
     /**
-     * ✅ UPDATED: Overview with barcode generation and complete relationships
-     * Now queries from serialized_product table
+     * ✅ Overview with proper relationships
      */
     public function overview($serial_number = null)
     {
@@ -153,13 +163,12 @@ class SerializedProductsController extends Controller
                 ->with('error', 'Paki-scan o i-type ang Serial Number.');
         }
 
-        // ✅ CHANGED: Use SerializedProduct model with ALL relationships
         $serialized_product_details = \App\Models\SerializedProduct::with([
             'supplierProducts.supplier',
             'productStatus',
             'purchaseOrder',
-            'scannedBy',      // ✅ ADDED: For "Scanned By" name
-            'warehouse'       // ✅ ADDED: For "Location" name
+            'scannedBy',
+            'warehouse'
         ])
             ->where('serial_number', $serial_number)
             ->first();
@@ -169,16 +178,12 @@ class SerializedProductsController extends Controller
                 ->with('error', "Serial Number [ $serial_number ] hindi nahanap sa system.");
         }
 
-        // ✅ NEW: Generate barcode image
         $generator = new BarcodeGeneratorPNG();
         $barcodeImage = base64_encode(
             $generator->getBarcode($serial_number, $generator::TYPE_CODE_128, 3, 80)
         );
 
-        // ✅ SAFE ACCESS: Check if supplierProducts exists before accessing name
         $productName = $serialized_product_details->supplierProducts->name ?? 'Unknown Product';
-
-        // ✅ NEW: Get product image (placeholder or AI-generated)
         $productImage = $serialized_product_details->supplierProducts->image_url ?? null;
 
         if (!$productImage) {
@@ -193,28 +198,19 @@ class SerializedProductsController extends Controller
         ));
     }
 
-    /**
-     * ✅ UPGRADED: Generate product image (AI or placeholder)
-     */
     private function generateProductPlaceholder($productName)
     {
-        // Option 1: Use OpenAI DALL-E if API key exists
         if (env('OPENAI_API_KEY')) {
             return $this->generateAIImage($productName);
         }
 
-        // Option 2: Fallback to free placeholder
         $encodedName = urlencode($productName);
         return "https://ui-avatars.com/api/?name={$encodedName}&size=400&background=random&color=fff&bold=true&format=png";
     }
 
-    /**
-     * ✅ NEW: Generate real AI image using DALL-E
-     */
     private function generateAIImage($productName)
     {
         try {
-            // 1. Check if image already exists
             $sanitizedName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $productName);
             $filename = "{$sanitizedName}.png";
             $storagePath = "products/{$filename}";
@@ -223,7 +219,6 @@ class SerializedProductsController extends Controller
                 return asset("storage/{$storagePath}");
             }
 
-            // 2. Generate image using OpenAI DALL-E
             $client = OpenAI::client(env('OPENAI_API_KEY'));
 
             $response = $client->images()->create([
@@ -235,15 +230,11 @@ class SerializedProductsController extends Controller
             ]);
 
             $imageUrl = $response->data[0]->url;
-
-            // 3. Download and save image
             $imageContent = file_get_contents($imageUrl);
             Storage::disk('public')->put($storagePath, $imageContent);
 
-            // 4. Return public URL
             return asset("storage/{$storagePath}");
         } catch (\Exception $e) {
-            // 5. Fallback to placeholder on error
             \Log::error('OpenAI Image Generation Error: ' . $e->getMessage());
 
             $encodedName = urlencode($productName);
@@ -261,28 +252,22 @@ class SerializedProductsController extends Controller
         return $this->datatableServices->get_serialized_product_table($id);
     }
 
-    /**
-     * ✅ UPDATED: Update status with Sweet Alert response
-     */
     public function updateStatus(Request $request, $id)
     {
         try {
-            // ✅ VALIDATE status_id
             $request->validate([
                 'status_id' => 'required|exists:product_status,id'
             ]);
 
             $item = \App\Models\SerializedProduct::findOrFail($id);
 
-            // ✅ LOG BEFORE UPDATE (para makita mo kung ano ang status before/after)
             \Log::info("Status Update Request", [
                 'product_id' => $id,
                 'old_status' => $item->status,
                 'new_status_id' => $request->status_id,
-                'requested_by' => auth()->user()->name ?? 'Unknown'
+                'requested_by' => auth()->user()->full_name ?? 'Unknown'
             ]);
 
-            // ✅ VERIFY STATUS EXISTS
             $statusExists = \App\Models\ProductStatus::find($request->status_id);
             if (!$statusExists) {
                 return response()->json([
@@ -291,7 +276,6 @@ class SerializedProductsController extends Controller
                 ], 400);
             }
 
-            // Update status
             $item->status = $request->status_id;
 
             if ($request->has('remarks')) {
@@ -299,18 +283,14 @@ class SerializedProductsController extends Controller
             }
 
             $item->save();
-
-            // ✅ REFRESH MODEL to get updated relationship
             $item->refresh();
 
-            // ✅ LOG AFTER UPDATE
             \Log::info("Status Updated Successfully", [
                 'product_id' => $id,
                 'new_status' => $item->status,
                 'status_name' => $item->productStatus->name ?? 'Unknown'
             ]);
 
-            // Decrease inventory when sold/damaged/lost
             if (in_array($request->status_id, [3, 4, 5])) {
                 $product = $item->supplierProducts;
                 if ($product && $product->stock > 0) {

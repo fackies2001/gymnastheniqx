@@ -385,7 +385,7 @@ class PurchaseOrderController extends Controller
     }
 
     /**
-     * Get PO details for modal
+     * ⭐ ENHANCED: Get PO details with COMPLETE supplier information
      */
     public function getDetailsJson($id)
     {
@@ -411,7 +411,9 @@ class PurchaseOrderController extends Controller
                 'supplier' => [
                     'name' => $po->supplier->name ?? 'N/A',
                     'contact_person' => $po->supplier->contact_person ?? 'N/A',
-                    'email' => $po->supplier->email ?? 'N/A'
+                    'contact_number' => $po->supplier->contact_number ?? 'N/A',
+                    'email' => $po->supplier->email ?? 'N/A',
+                    'address' => $po->supplier->address ?? 'N/A',
                 ],
                 'requested_by' => [
                     'name' => $po->requestedBy->full_name ?? 'N/A'

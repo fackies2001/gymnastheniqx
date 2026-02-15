@@ -85,7 +85,6 @@
                                     <h6 class="font-weight-bold text-info mb-3">
                                         <i class="fas fa-box-open mr-2"></i> 2. Available Products
                                     </h6>
-
                                     <div class="table-responsive border rounded"
                                         style="max-height: 400px; overflow-y: auto;">
                                         <table class="table table-sm table-hover mb-0" id="availableProductsTable">
@@ -114,7 +113,6 @@
                                     <h6 class="font-weight-bold text-success mb-3">
                                         <i class="fas fa-clipboard-check mr-2"></i> 3. Review Selected Items
                                     </h6>
-
                                     <div class="table-responsive border rounded"
                                         style="max-height: 440px; overflow-y: auto;">
                                         <table class="table table-sm mb-0" id="selectedItemsTable">
@@ -168,6 +166,7 @@
     <div class="modal fade" id="viewPRModal" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
+
                 {{-- Header --}}
                 <div class="modal-header bg-white border-bottom">
                     <h5 class="modal-title font-weight-bold text-dark">
@@ -180,6 +179,7 @@
 
                 {{-- Body --}}
                 <div class="modal-body p-4" style="background-color: #fafafa;">
+
                     {{-- Customer Name Header --}}
                     <div class="text-center mb-4 pb-3 border-bottom">
                         <p class="text-uppercase text-muted small mb-1" style="letter-spacing: 1px;">PURCHASE REQUEST OF
@@ -205,6 +205,7 @@
 
                     {{-- Dates and Supplier --}}
                     <div class="row mb-3">
+                        {{-- ✅ FIX 3: Dates table - FIXED duplicate </table> tag removed --}}
                         <div class="col-md-6">
                             <div class="bg-white p-3 rounded shadow-sm h-100">
                                 <h6 class="font-weight-bold text-info mb-2">
@@ -216,16 +217,26 @@
                                         <td class="small font-weight-bold" id="receipt_date_ordered">N/A</td>
                                     </tr>
                                     <tr>
-                                        <td class="text-muted small">Estimated Delivery:</td>
+                                        <td class="text-muted small">Est. Delivery:</td>
                                         <td class="small font-weight-bold" id="receipt_delivery_date">N/A</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted small">Payment Terms:</td>
+                                        <td class="small font-weight-bold" id="receipt_payment_terms">N/A</td>
                                     </tr>
                                     <tr>
                                         <td class="text-muted small">Date Created:</td>
                                         <td class="small font-weight-bold" id="receipt_requested_date">N/A</td>
                                     </tr>
+                                    <tr id="receipt_po_row" style="display:none;">
+                                        <td class="text-muted small">PO Number:</td>
+                                        <td class="small font-weight-bold text-primary" id="receipt_po_number">N/A</td>
+                                    </tr>
                                 </table>
                             </div>
                         </div>
+
+                        {{-- ✅ FIX 2: Supplier Details table - WITH Email row --}}
                         <div class="col-md-6">
                             <div class="bg-white p-3 rounded shadow-sm h-100">
                                 <h6 class="font-weight-bold text-success mb-2">
@@ -239,6 +250,10 @@
                                     <tr>
                                         <td class="text-muted small">Contact:</td>
                                         <td class="small" id="receipt_supplier_contact">N/A</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted small">Email:</td>
+                                        <td class="small" id="receipt_supplier_email">N/A</td>
                                     </tr>
                                     <tr>
                                         <td class="text-muted small">Address:</td>
@@ -293,24 +308,13 @@
                     </div>
                 </div>
 
-                {{-- ✅ FIX: Footer now has Approve/Reject buttons (hidden by default, shown for PENDING only) --}}
-                <div class="modal-footer bg-light d-flex justify-content-between">
-                    {{-- Left side: action buttons (only shown if status is PENDING) --}}
-                    <div id="viewPRActionButtons" style="display: none;">
-                        <button type="button" class="btn btn-danger btn-sm" id="viewModalRejectBtn">
-                            <i class="fas fa-times-circle mr-1"></i> Reject
-                        </button>
-                        <button type="button" class="btn btn-success btn-sm ml-2" id="viewModalApproveBtn">
-                            <i class="fas fa-check-circle mr-1"></i> Approve
-                        </button>
-                    </div>
-                    {{-- Right side: close --}}
-                    <div class="ml-auto">
-                        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">
-                            <i class="fas fa-times mr-1"></i> Close
-                        </button>
-                    </div>
+                {{-- ✅ FIX: Footer - FIXED double modal-footer, Close button lang (view-only) --}}
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">
+                        <i class="fas fa-times mr-1"></i> Close
+                    </button>
                 </div>
+
             </div>
         </div>
     </div>
@@ -462,7 +466,9 @@
         </div>
     </div>
 
+    {{-- ========================================================================== --}}
     {{-- REJECT CONFIRMATION MODAL --}}
+    {{-- ========================================================================== --}}
     <div class="modal fade" id="rejectConfirmModal" tabindex="-1" role="dialog">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -513,7 +519,6 @@
             let supplierProducts = [];
             let table;
 
-            // ✅ Track current PR ID and status for the view modal
             let currentViewPRId = null;
             let currentViewStatus = null;
 
@@ -572,14 +577,16 @@
             });
 
             // ============================================
-            // ✅ OPEN RECEIPT VIEW MODAL
+            // OPEN RECEIPT VIEW MODAL (view-only, for APPROVED/REJECTED)
             // ============================================
             function openPRDetailsModal(prId) {
+                // ✅ Guard: huwag mag-open kung may bukas nang modal
+                if ($('#approvePRModal').hasClass('show') || $('#rejectConfirmModal').hasClass('show')) {
+                    return;
+                }
+
                 currentViewPRId = prId;
                 currentViewStatus = null;
-
-                // Reset action buttons while loading
-                $('#viewPRActionButtons').hide();
 
                 $('#receipt_items_body').html(`
                     <tr>
@@ -595,7 +602,6 @@
                     url: `/purchase-request/${prId}`,
                     type: 'GET',
                     success: function(res) {
-                        // Store status for footer buttons
                         currentViewStatus = res.status_id;
 
                         // Customer name
@@ -623,47 +629,66 @@
                             .addClass(statusClass)
                             .text(statusText);
 
-                        // ✅ Show Approve/Reject buttons ONLY if status is PENDING (status_id == 1)
-                        if (res.status_id == 1) {
-                            $('#viewPRActionButtons').show();
-                        } else {
-                            $('#viewPRActionButtons').hide();
-                        }
-
-                        // Dates
+                        // ✅ FIX 5 - Dates: order date
                         $('#receipt_date_ordered').text(
                             res.order_date ?
                             new Date(res.order_date).toLocaleDateString('en-US', {
                                 year: 'numeric',
                                 month: 'short',
                                 day: '2-digit'
-                            }) :
-                            'N/A'
+                            }) : 'N/A'
                         );
+
+                        // ✅ FIX 5 - Estimated delivery mula sa linked PO
                         $('#receipt_delivery_date').text(
-                            res.estimated_delivery_date ?
-                            new Date(res.estimated_delivery_date).toLocaleDateString('en-US', {
+                            res.po_delivery_date ?
+                            new Date(res.po_delivery_date).toLocaleDateString('en-US', {
                                 year: 'numeric',
                                 month: 'short',
                                 day: '2-digit'
-                            }) :
-                            'N/A'
+                            }) : 'N/A'
                         );
+
+                        // ✅ FIX 5 - Payment Terms mula sa linked PO
+                        let paymentTermsDisplay = 'N/A';
+                        if (res.po_payment_terms) {
+                            paymentTermsDisplay = res.po_payment_terms === 'cash_on_delivery' ?
+                                'Cash on Delivery' :
+                                res.po_payment_terms === 'bank_transfer' ?
+                                'Bank Transfer' :
+                                res.po_payment_terms;
+                        }
+                        $('#receipt_payment_terms').text(paymentTermsDisplay);
+
+                        // Date Created
                         $('#receipt_requested_date').text(
                             res.created_at ?
                             new Date(res.created_at).toLocaleDateString('en-US', {
                                 year: 'numeric',
                                 month: 'short',
                                 day: '2-digit'
-                            }) :
-                            'N/A'
+                            }) : 'N/A'
                         );
 
-                        // Supplier
+                        // ✅ FIX 5 - PO Number (show only if approved)
+                        if (res.po_number_linked) {
+                            $('#receipt_po_number').text(res.po_number_linked);
+                            $('#receipt_po_row').show();
+                        } else {
+                            $('#receipt_po_row').hide();
+                        }
+
+                        // ✅ FIX 4 - Supplier complete details
                         $('#receipt_supplier_name').text(res.supplier?.name || 'N/A');
-                        $('#receipt_supplier_contact').text(res.supplier?.contact_number || res.supplier
-                            ?.contact_person || 'N/A');
-                        $('#receipt_supplier_address').text(res.supplier?.address || 'N/A');
+                        $('#receipt_supplier_contact').text(
+                            res.supplier?.contact_number || res.supplier?.contact_person || 'N/A'
+                        );
+                        $('#receipt_supplier_email').text(
+                            res.supplier_email || res.supplier?.email || 'N/A'
+                        );
+                        $('#receipt_supplier_address').text(
+                            res.supplier_address || res.supplier?.address || 'N/A'
+                        );
 
                         // Remarks
                         $('#receipt_remarks').text(res.remarks || 'No remarks provided');
@@ -688,14 +713,16 @@
                                     <tr>
                                         <td class="small text-muted">${sku}</td>
                                         <td class="small font-weight-bold">${productName}</td>
-                                        <td class="small text-center"><span class="badge badge-info badge-pill">${item.quantity || 0}</span></td>
+                                        <td class="small text-center">
+                                            <span class="badge badge-info badge-pill">${item.quantity || 0}</span>
+                                        </td>
                                         <td class="small text-right">₱${parseFloat(item.unit_cost || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                         <td class="small text-right font-weight-bold text-success">₱${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                     </tr>`;
                             });
                         } else {
-                            itemsHtml =
-                                `<tr><td colspan="5" class="text-center text-muted py-4"><i class="fas fa-inbox mr-2"></i> No items found</td></tr>`;
+                            itemsHtml = `<tr><td colspan="5" class="text-center text-muted py-4">
+                                <i class="fas fa-inbox mr-2"></i> No items found</td></tr>`;
                         }
 
                         $('#receipt_items_body').html(itemsHtml);
@@ -716,53 +743,31 @@
             }
 
             // ============================================
-            // ✅ VIEW MODAL: APPROVE BUTTON → Open Approval Form
-            // ============================================
-            $('#viewModalApproveBtn').on('click', function() {
-                if (!currentViewPRId) return;
-                $('#viewPRModal').modal('hide');
-                // Small delay so modals don't overlap
-                setTimeout(function() {
-                    openApprovalModal(currentViewPRId);
-                }, 300);
-            });
-
-            // ============================================
-            // ✅ VIEW MODAL: REJECT BUTTON → Open Reject Confirm
-            // ============================================
-            $('#viewModalRejectBtn').on('click', function() {
-                if (!currentViewPRId) return;
-                let prNumber = $('#receipt_pr_number').text();
-                $('#viewPRModal').modal('hide');
-                setTimeout(function() {
-                    $('#reject_pr_id_confirm').val(currentViewPRId);
-                    $('#reject_pr_number_confirm').text(prNumber);
-                    $('#reject_remarks').val('');
-                    $('#rejectConfirmModal').modal('show');
-                }, 300);
-            });
-
-            // ============================================
             // TABLE ROW CLICK
             // ============================================
             $('#prTable tbody').on('click', 'tr', function(e) {
-                // Don't trigger if clicking the action column (index 4) or a button
-                if ($(e.target).closest('td').index() === 4 || $(e.target).is('button, a')) {
+                if ($(e.target).closest('td').index() === 4 || $(e.target).is('button, a, span')) {
                     return;
                 }
                 let data = table.row(this).data();
-                if (data && data.id) {
+                if (!data || !data.id) return;
+
+                // PENDING = Approval Modal, APPROVED/REJECTED = View Receipt Modal
+                if (data.status_id == 1) {
+                    openApprovalModal(data.id);
+                } else {
                     openPRDetailsModal(data.id);
                 }
             });
 
             // ============================================
-            // ACTION BUTTONS IN TABLE (view-pr-badge, approve-pr-btn)
+            // BADGE CLICK (PENDING badge sa table)
             // ============================================
             $(document).on('click', '.view-pr-badge, .view-pr-btn', function(e) {
+                e.preventDefault();
                 e.stopPropagation();
                 let prId = $(this).data('id');
-                if (prId) openPRDetailsModal(prId);
+                if (prId) openApprovalModal(prId);
             });
 
             $(document).on('click', '.approve-pr-btn', function(e) {
@@ -784,7 +789,7 @@
             });
 
             // ============================================
-            // OPEN APPROVAL MODAL (populates form)
+            // OPEN APPROVAL MODAL
             // ============================================
             function openApprovalModal(prId) {
                 $.ajax({
@@ -799,14 +804,17 @@
 
                         $('#approve_pr_number').text(res.request_number || 'N/A');
                         $('#approve_requestor').text(res.user?.full_name || 'N/A');
-                        $('#approve_department').text(res.department?.name || 'N/A');
-                        $('#approve_date_created').text(res.created_at ? new Date(res.created_at)
-                            .toLocaleDateString() : 'N/A');
+                        $('#approve_department').text(res.department_name || res.department?.name ||
+                            'N/A');
+                        $('#approve_date_created').text(
+                            res.created_at ? new Date(res.created_at).toLocaleDateString() : 'N/A'
+                        );
 
                         $('#approve_supplier').text(res.supplier?.name || 'N/A');
                         $('#approve_contact').text(res.supplier?.contact_number || 'N/A');
-                        $('#approve_email').text(res.supplier?.email || 'N/A');
-                        $('#approve_address').text(res.supplier?.address || 'N/A');
+                        $('#approve_email').text(res.supplier_email || res.supplier?.email || 'N/A');
+                        $('#approve_address').text(res.supplier_address || res.supplier?.address ||
+                            'N/A');
 
                         let itemsHtml = '';
                         let grandTotal = 0;
@@ -821,8 +829,13 @@
                                 itemsHtml += `
                                     <tr>
                                         <td class="text-center">${index + 1}</td>
-                                        <td><strong>${productName}</strong><br><small class="text-muted">SKU: ${sku}</small></td>
-                                        <td class="text-center"><span class="badge badge-info">${item.quantity}</span></td>
+                                        <td>
+                                            <strong>${productName}</strong>
+                                            <br><small class="text-muted">SKU: ${sku}</small>
+                                        </td>
+                                        <td class="text-center">
+                                            <span class="badge badge-info">${item.quantity}</span>
+                                        </td>
                                         <td class="text-right">₱${parseFloat(item.unit_cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                         <td class="text-right font-weight-bold">₱${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                                     </tr>`;
@@ -851,14 +864,24 @@
                 if (btn.prop('disabled')) return false;
 
                 btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Processing...');
+
                 $.ajax({
                     url: `/purchase-request/approve/${prId}`,
                     type: 'POST',
                     data: $(this).serialize(),
                     success: function(res) {
                         $('#approvePRModal').modal('hide');
-                        Swal.fire('Success!', res.message, 'success');
-                        table.ajax.reload();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Approved!',
+                            text: res.message,
+                            timer: 1500,
+                            showConfirmButton: false
+                        }).then(function() {
+                            // ✅ After approve, ipakita ang receipt modal (view-only)
+                            table.ajax.reload();
+                            openPRDetailsModal(prId);
+                        });
                     },
                     error: function(xhr) {
                         Swal.fire('Error', xhr.responseJSON?.message || 'Failed to approve PR',
@@ -866,13 +889,14 @@
                     },
                     complete: function() {
                         btn.prop('disabled', false).html(
-                            '<i class="fas fa-check-circle mr-1"></i> Approve Request');
+                            '<i class="fas fa-check-circle mr-1"></i> Approve Request'
+                        );
                     }
                 });
             });
 
             // ============================================
-            // REJECT BUTTON inside Approve Modal → goes to Reject Confirm
+            // REJECT BUTTON inside Approve Modal
             // ============================================
             $('#confirmRejectBtn').off('click').on('click', function() {
                 let prId = $('#approve_pr_id').val();
@@ -895,6 +919,7 @@
                 let btn = $('#confirmRejectSubmitBtn');
 
                 btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Processing...');
+
                 $.ajax({
                     url: `/purchase-request/reject/${prId}`,
                     type: 'POST',
@@ -910,7 +935,8 @@
                     },
                     complete: function() {
                         btn.prop('disabled', false).html(
-                            '<i class="fas fa-times-circle mr-1"></i> Confirm Rejection');
+                            '<i class="fas fa-times-circle mr-1"></i> Confirm Rejection'
+                        );
                     }
                 });
             });
@@ -967,11 +993,11 @@
                     let btn = isAdded ?
                         `<button class="btn btn-sm btn-secondary" disabled><i class="fas fa-check"></i> Added</button>` :
                         `<button class="btn btn-sm btn-primary add-product-btn"
-                            data-id="${product.id}"
-                            data-name="${product.name}"
-                            data-price="${product.cost_price}">
-                            <i class="fas fa-plus"></i> Add
-                        </button>`;
+                                data-id="${product.id}"
+                                data-name="${product.name}"
+                                data-price="${product.cost_price}">
+                                <i class="fas fa-plus"></i> Add
+                           </button>`;
                     html += `<tr>
                         <td class="small">${product.name}</td>
                         <td class="text-right">₱${parseFloat(product.cost_price).toFixed(2)}</td>
@@ -1017,11 +1043,21 @@
                     tbody.append(`
                         <tr>
                             <td class="small">${item.name}</td>
-                            <td><input type="number" name="products[${item.id}][unit_cost]" class="form-control form-control-sm text-center unit-cost-input" data-index="${index}" value="${item.price.toFixed(2)}" step="0.01" min="0"></td>
-                            <td><input type="number" name="products[${item.id}][quantity]" class="form-control form-control-sm text-center qty-input" data-index="${index}" value="${item.quantity}" min="1"></td>
+                            <td>
+                                <input type="number" name="products[${item.id}][unit_cost]"
+                                    class="form-control form-control-sm text-center unit-cost-input"
+                                    data-index="${index}" value="${item.price.toFixed(2)}"
+                                    step="0.01" min="0">
+                            </td>
+                            <td>
+                                <input type="number" name="products[${item.id}][quantity]"
+                                    class="form-control form-control-sm text-center qty-input"
+                                    data-index="${index}" value="${item.quantity}" min="1">
+                            </td>
                             <td class="text-center font-weight-bold">₱${item.subtotal.toFixed(2)}</td>
                             <td class="text-center">
-                                <button type="button" class="btn btn-sm btn-danger remove-item" data-index="${index}">
+                                <button type="button" class="btn btn-sm btn-danger remove-item"
+                                    data-index="${index}">
                                     <i class="fas fa-times"></i>
                                 </button>
                             </td>
@@ -1089,7 +1125,7 @@
                     complete: function() {
                         btn.prop('disabled', false).html(
                             '<i class="fas fa-check-circle mr-1"></i> Submit Purchase Request'
-                            );
+                        );
                     }
                 });
             });
@@ -1167,19 +1203,6 @@
             border-bottom: 2px solid #e9ecef;
             padding-bottom: 8px;
             margin-bottom: 15px;
-        }
-
-        /* ✅ Approve/Reject button area in view modal footer */
-        #viewPRModal .modal-footer {
-            align-items: center;
-        }
-
-        #viewModalApproveBtn {
-            min-width: 100px;
-        }
-
-        #viewModalRejectBtn {
-            min-width: 80px;
         }
 
         @media (max-width: 768px) {

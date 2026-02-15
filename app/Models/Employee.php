@@ -25,6 +25,9 @@ class Employee extends Model
         'status',
         'assigned_at',
         'pin',
+        'user_id',
+        'first_name',
+        'last_name',
     ];
 
     public function role()
@@ -42,14 +45,13 @@ class Employee extends Model
         return $this->belongsTo(Department::class, 'department_id');
     }
 
-    // ❌ REMOVE these relationships since User = Employee now
-    // public function user()
-    // {
-    //     return $this->hasOne(User::class, 'employee_id');
-    // }
+    public function getFullNameAttribute()
+    {
+        return "{$this->first_name} {$this->last_name}";
+    }
 
-    // public function account()
-    // {
-    // return $this->hasOne(User::class, 'employee_id');
-    // }
+    public function user()
+    {
+        return $this->belongsTo(User::class);
+    }
 }

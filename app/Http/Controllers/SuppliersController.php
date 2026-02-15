@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Models\SupplierProduct;
-use App\Models\Supplier; // ✅ TAMA NA - Supplier (walang S)
+use App\Models\Supplier;
 use App\Services\DatatableServices;
 use App\Services\SupplierProductServices;
 use Illuminate\Http\Request;
@@ -24,18 +24,51 @@ class SuppliersController extends Controller
         $this->datatableServices = $datatableServices;
     }
 
+    /**
+     * ⭐ ENHANCED: Display suppliers with product counts and search/sort
+     */
     public function index(Request $request)
     {
-        $query = $this->supplierProductServices->get_all_supplier_query();
+        // Get all suppliers with product counts
+        $query = Supplier::withCount('supplierProducts')
+            ->with(['createdBy.user', 'source']);
 
-        if ($request->filled('month') && $request->filled('year')) {
-            $query->whereMonth('created_at', $request->month)
-                ->whereYear('created_at', $request->year);
+        // Apply search filter
+        if ($request->has('search') && !empty($request->search)) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('contact_person', 'like', "%{$search}%")
+                    ->orWhere('contact_number', 'like', "%{$search}%");
+            });
+        }
+
+        // Apply sorting
+        $sortBy = $request->get('sort', 'name_asc'); // default: name A-Z
+        switch ($sortBy) {
+            case 'name_asc':
+                $query->orderBy('name', 'asc');
+                break;
+            case 'name_desc':
+                $query->orderBy('name', 'desc');
+                break;
+            case 'newest':
+                $query->orderBy('created_at', 'desc');
+                break;
+            case 'oldest':
+                $query->orderBy('created_at', 'asc');
+                break;
+            case 'most_products':
+                $query->orderBy('supplier_products_count', 'desc');
+                break;
+            default:
+                $query->orderBy('name', 'asc');
         }
 
         $suppliers = $query->get();
 
-        // ✅ TAMA NA - Supplier (walang S)
+        // Get unique years from suppliers (for filtering if needed later)
         $years = Supplier::selectRaw('YEAR(created_at) as year')
             ->distinct()
             ->orderBy('year', 'desc')

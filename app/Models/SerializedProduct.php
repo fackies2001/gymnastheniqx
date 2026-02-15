@@ -12,7 +12,6 @@ class SerializedProduct extends Model
 
     protected $table = 'serialized_product';
 
-    // ✅ BAGO - match sa actual DB columns
     protected $fillable = [
         'product_id',
         'purchase_order_id',
@@ -20,6 +19,7 @@ class SerializedProduct extends Model
         'serial_number',
         'status',
         'scanned_by',
+        'scanned_at',
         'warehouse_id',
         'remarks'
     ];
@@ -34,39 +34,27 @@ class SerializedProduct extends Model
        ✅ RELATIONSHIPS - FIXED
        ======================================== */
 
-    // ✅ BAGO - tamang FK base sa actual database
+    // ✅ FIXED: Points to User model (which is employee table)
+    public function scannedBy()
+    {
+        return $this->belongsTo(User::class, 'scanned_by', 'id');
+    }
+
     public function supplierProducts()
     {
         return $this->belongsTo(SupplierProduct::class, 'product_id', 'id');
     }
 
-    /**
-     * Relationship to PurchaseOrder
-     */
     public function purchaseOrder()
     {
         return $this->belongsTo(PurchaseOrder::class, 'purchase_order_id');
     }
 
-    /**
-     * Relationship to Employee who scanned
-     */
-    public function scannedBy()
-    {
-        return $this->belongsTo(Employee::class, 'scanned_by', 'id');
-    }
-
-    /**
-     * Relationship to Warehouse
-     */
     public function warehouse()
     {
         return $this->belongsTo(Warehouse::class, 'warehouse_id');
     }
 
-    /**
-     * ✅ FIXED: Changed foreign key from 'status' to 'product_status_id'
-     */
     public function productStatus()
     {
         return $this->belongsTo(ProductStatus::class, 'status', 'id');
@@ -76,19 +64,13 @@ class SerializedProduct extends Model
        ✅ SCOPES
        ======================================== */
 
-    /**
-     * ✅ Count by status
-     */
     public function scopeCountsPerStatus($query)
     {
-        return $query->join('product_status', 'serialized_product.product_status_id', '=', 'product_status.id')
+        return $query->join('product_status', 'serialized_product.status', '=', 'product_status.id')
             ->select('product_status.name as name', DB::raw('count(serialized_product.id) as total'))
             ->groupBy('product_status.name');
     }
 
-    /**
-     * ✅ Monthly scanned products
-     */
     public function scopeMonthlyProductScannedIn($query)
     {
         return $query->select(
