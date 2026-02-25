@@ -10,32 +10,15 @@ class DatabaseSeeder extends Seeder
 {
     public function run(): void
     {
-        // ✅ STEP 1: Create roles FIRST
         $this->call([
             RoleSeeder::class,
-        ]);
-
-        // ✅ STEP 2: Seed Source table
-        $this->call([
             SourceSeeder::class,
-        ]);
-
-        // ✅ STEP 3: Seed Purchase Status Library
-        $this->call([
             PurchaseStatusLibrarySeeder::class,
-        ]);
-
-        // ✅ STEP 4: Seed Product Statuses (fixes FK constraint on serialized_product.status)
-        $this->call([
             ProductStatusSeeder::class,
-        ]);
-
-        // ✅ STEP 5: Seed Categories (fixes Consumables not showing in dropdown)
-        $this->call([
             CategorySeeder::class,
+            DepartmentSeeder::class,
         ]);
 
-        // ✅ STEP 6: Create admin account
         User::updateOrCreate(
             ['email' => 'admin@test.com'],
             [
@@ -49,7 +32,6 @@ class DatabaseSeeder extends Seeder
         );
 
         echo "\n✅ SUCCESS: Admin account created!\n";
-        echo "   Username: admin\n";
         echo "   Email: admin@test.com\n";
         echo "   Password: password123\n";
         echo "   PIN: 123456\n\n";

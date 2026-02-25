@@ -9,7 +9,6 @@ class DepartmentSeeder extends Seeder
 {
     public function run(): void
     {
-        // Seed 5 default departments
         $departments = [
             ['name' => 'HR', 'description' => 'Human Resources Department'],
             ['name' => 'Finance', 'description' => 'Handles all financial matters'],
@@ -19,10 +18,7 @@ class DepartmentSeeder extends Seeder
         ];
 
         foreach ($departments as $data) {
-            Department::create($data);
+            Department::updateOrCreate(['name' => $data['name']], $data);
         }
-
-        // Optional: seed additional random departments
-        // Departments::factory()->count(5)->create();
     }
 }
