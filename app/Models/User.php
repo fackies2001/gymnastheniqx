@@ -47,27 +47,21 @@ class User extends Authenticatable
         ];
     }
 
-    // ✅ Laravel expects 'name' attribute for user display
     public function getNameAttribute()
     {
         return $this->full_name ?? 'Unknown User';
     }
 
-    // ✅ FIXED: Proper employee relationship (returns HasOne instead of $this)
     public function employee(): HasOne
     {
-        // Since User IS Employee, create a self-referencing relationship
-        // This allows auth()->user()->employee->id to work
         return $this->hasOne(self::class, 'id', 'id');
     }
 
-    // ✅ Alternative: Add a direct property accessor
     public function getEmployeeIdAttribute()
     {
-        return $this->id; // User ID = Employee ID
+        return $this->id;
     }
 
-    // ✅ AdminLTE profile image
     public function adminlte_image()
     {
         if ($this->profile_photo) {
@@ -102,7 +96,48 @@ class User extends Authenticatable
         return route('profile.edit');
     }
 
-    // ✅ Relationships
+    // ✅ NEW ROLE HELPER METHODS
+    /**
+     * Check if user is admin
+     */
+    public function isAdmin()
+    {
+        return $this->role?->role_name === 'admin';
+    }
+
+    /**
+     * Check if user is manager
+     */
+    public function isManager()
+    {
+        return $this->role?->role_name === 'manager';
+    }
+
+    /**
+     * Check if user is staff
+     */
+    public function isStaff()
+    {
+        return $this->role?->role_name === 'staff';
+    }
+
+    /**
+     * Check if user has specific role
+     */
+    public function hasRole($role)
+    {
+        return $this->role?->role_name === $role;
+    }
+
+    /**
+     * Check if user has any of the given roles
+     */
+    public function hasAnyRole(array $roles)
+    {
+        return in_array($this->role?->role_name, $roles);
+    }
+
+    // Relationships
     public function department()
     {
         return $this->belongsTo(Department::class, 'department_id');

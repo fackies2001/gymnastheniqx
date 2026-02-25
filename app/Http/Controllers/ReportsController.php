@@ -11,6 +11,7 @@ use App\Models\Supplier;
 use App\Models\SupplierProduct;
 use App\Models\ProductStatus;
 use App\Models\Sale;
+use App\Models\InventoryAudit;
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Facades\Excel;
@@ -430,22 +431,42 @@ class ReportsController extends Controller
         }
     }
 
-
     // ===== WEEKLY REPORT SECTION =====
     public function weeklyIndex(Request $request)
     {
-        $startDate = Carbon::now()->subDays(7)->startOfDay();
-        $endDate   = Carbon::now()->endOfDay();
+        $filterType  = $request->get('filter_type', 'last_7_days');
+        $customStart = $request->get('custom_start', null);
+        $customEnd   = $request->get('custom_end', null);
 
-        // ✅ FIX #1 — Top 5: Include BOTH 'Approved' AND 'Completed' statuses
-        // BEFORE (WRONG): ->where('status', 'Approved')
-        // AFTER  (FIXED): ->whereIn('status', ['Approved', 'Completed'])
+        switch ($filterType) {
+            case 'this_week':
+                $startDate = Carbon::now()->startOfWeek();
+                $endDate   = Carbon::now()->endOfWeek();
+                break;
+            case 'last_14_days':
+                $startDate = Carbon::now()->subDays(14)->startOfDay();
+                $endDate   = Carbon::now()->endOfDay();
+                break;
+            case 'this_month':
+                $startDate = Carbon::now()->startOfMonth();
+                $endDate   = Carbon::now()->endOfMonth();
+                break;
+            case 'custom':
+                $startDate = Carbon::parse($customStart)->startOfDay();
+                $endDate   = Carbon::parse($customEnd)->endOfDay();
+                break;
+            default: // last_7_days
+                $startDate = Carbon::now()->subDays(7)->startOfDay();
+                $endDate   = Carbon::now()->endOfDay();
+                break;
+        }
+
         $topProducts = RetailerOrder::select(
             'product_name',
             DB::raw('SUM(quantity) as total_sold'),
             DB::raw('SUM(total_amount) as total_revenue')
         )
-            ->whereIn('status', ['Approved', 'Completed'])  // ✅ FIXED
+            ->whereIn('status', ['Approved', 'Completed'])
             ->whereBetween('updated_at', [$startDate, $endDate])
             ->groupBy('product_name')
             ->orderByDesc('total_sold')
@@ -456,25 +477,12 @@ class ReportsController extends Controller
         $products = SupplierProduct::all();
 
         foreach ($products as $prod) {
-
-            // ✅ FIX #2 — current_stock: Count from serialized_product table
-            // BEFORE (WRONG): $currentStock = max(0, $prod->stock);
-            //   → 'stock' column does NOT exist on supplier_product table
-            //   → always returns 0, causing OUT OF STOCK and System Count = 0
-            //
-            // AFTER  (FIXED): Count serialized rows with status 'in_inventory'
-            //   Based on your migrations, status enum = 'in_inventory' for available stock
-            //   Based on daily report logic, status = 1 also means available/scanned
-            //   We check BOTH to be safe.
             $currentStock = SerializedProduct::where('product_id', $prod->id)
-                ->where('status', 1)   // ✅ status=1 = in_inventory/available
+                ->where('status', 1)
                 ->count();
 
-            // ✅ FIX #3 — Weekly sales: Include BOTH 'Approved' AND 'Completed'
-            // BEFORE (WRONG): ->where('status', 'Approved')
-            // AFTER  (FIXED): ->whereIn('status', ['Approved', 'Completed'])
             $weeklySales = RetailerOrder::where('product_name', $prod->name)
-                ->whereIn('status', ['Approved', 'Completed'])   // ✅ FIXED
+                ->whereIn('status', ['Approved', 'Completed'])
                 ->whereBetween('updated_at', [$startDate, $endDate])
                 ->sum('quantity');
 
@@ -508,7 +516,7 @@ class ReportsController extends Controller
             $inventoryAnalysis[] = [
                 'name'          => $prod->name,
                 'sku'           => $prod->system_sku ?? $prod->sku ?? 'N/A',
-                'current_stock' => $currentStock,   // ✅ Now correctly reflects real stock
+                'current_stock' => $currentStock,
                 'weekly_sales'  => $weeklySales,
                 'ratio'         => number_format($ratio, 2),
                 'status'        => $status,
@@ -516,46 +524,60 @@ class ReportsController extends Controller
             ];
         }
 
-        return view('reports.weekly', compact('topProducts', 'inventoryAnalysis', 'startDate', 'endDate'));
+        return view('reports.weekly', compact(
+            'topProducts',
+            'inventoryAnalysis',
+            'startDate',
+            'endDate',
+            'filterType'  // ✅ para ma-retain ang selected filter sa blade
+        ));
     }
 
     // ===== MONTHLY REPORT SECTION =====
 
     public function monthlyIndex(Request $request)
     {
-        $now              = Carbon::now();
-        $startOfMonth     = $now->copy()->startOfMonth();
-        $endOfMonth       = $now->copy()->endOfMonth();
-        $startOfLastMonth = $now->copy()->subMonth()->startOfMonth();
-        $endOfLastMonth   = $now->copy()->subMonth()->endOfMonth();
+        // ✅ FIX #1 — Month/Year Filter
+        // Get selected month and year from request, default to current month/year
+        $selectedMonth = $request->get('month', Carbon::now()->month);
+        $selectedYear  = $request->get('year', Carbon::now()->year);
 
-        // ✅ FIX #1 — Total Inventory Asset Value
-        // BEFORE (WRONG): $product->stock doesn't exist on supplier_product table
-        // AFTER  (FIXED): Count serialized_product rows with status = 1 (available)
+        // Build the selected date for display and range calculation
+        $selectedDate     = Carbon::create($selectedYear, $selectedMonth, 1);
+        $startOfMonth     = $selectedDate->copy()->startOfMonth();
+        $endOfMonth       = $selectedDate->copy()->endOfMonth();
+        $startOfLastMonth = $selectedDate->copy()->subMonth()->startOfMonth();
+        $endOfLastMonth   = $selectedDate->copy()->subMonth()->endOfMonth();
+
+        // Available years for the year dropdown (from oldest PO or RetailerOrder up to current year)
+        $oldestOrder  = RetailerOrder::min('created_at') ?? Carbon::now();
+        $startYear    = Carbon::parse($oldestOrder)->year;
+        $currentYear  = Carbon::now()->year;
+        $availableYears = range($currentYear, $startYear);
+
+        // ✅ Total Inventory Asset Value (real-time, not date-filtered — reflects current stock)
         $allProducts = SupplierProduct::all();
         $totalInventoryValue = 0;
 
         foreach ($allProducts as $product) {
             $stockCount = SerializedProduct::where('product_id', $product->id)
-                ->where('status', 1)   // ✅ status=1 = available/in_inventory
+                ->where('status', 1)
                 ->count();
 
             $totalInventoryValue += $stockCount * ($product->cost_price ?? 0);
         }
 
-        // ✅ FIX #2 — Current Month Sales: Include BOTH 'Approved' AND 'Completed'
-        // BEFORE (WRONG): ->where('status', 'Approved')
-        // AFTER  (FIXED): ->whereIn('status', ['Approved', 'Completed'])
+        // ✅ Current Month Sales (filtered by selected month)
         $currentMonthSales = RetailerOrder::whereIn('status', ['Approved', 'Completed'])
             ->whereBetween('updated_at', [$startOfMonth, $endOfMonth])
             ->sum('total_amount');
 
-        // ✅ FIX #3 — Last Month Sales: Same fix
+        // ✅ Last Month Sales (previous month relative to selected month)
         $lastMonthSales = RetailerOrder::whereIn('status', ['Approved', 'Completed'])
             ->whereBetween('updated_at', [$startOfLastMonth, $endOfLastMonth])
             ->sum('total_amount');
 
-        // Growth calculation (unchanged — logic was fine, just data was wrong)
+        // Growth calculation
         $growthPercentage = 0;
         $growthStatus     = 'stable';
 
@@ -571,22 +593,25 @@ class ReportsController extends Controller
             $growthStatus = 'decrease';
         }
 
-        // ✅ FIX #4 — Top 5 Revenue Generators: Same status fix
+        // ✅ Top 5 Revenue Generators (filtered by selected month)
         $topProducts = RetailerOrder::select(
             'product_name',
             DB::raw('SUM(quantity) as total_sold'),
             DB::raw('SUM(total_amount) as total_revenue')
         )
-            ->whereIn('status', ['Approved', 'Completed'])  // ✅ FIXED
+            ->whereIn('status', ['Approved', 'Completed'])
             ->whereBetween('updated_at', [$startOfMonth, $endOfMonth])
             ->groupBy('product_name')
             ->orderByDesc('total_revenue')
             ->take(5)
             ->get();
 
-        // Supplier Performance (unchanged — this was working fine already)
+        // ✅ FIX #3 — Supplier Performance scoped to selected month
+        // BEFORE (WRONG): No date filter — was showing all-time supplier data
+        // AFTER  (FIXED): whereBetween order_date scoped to selected month
         $supplierPerformance = PurchaseOrder::with('supplier')
             ->select('supplier_id', DB::raw('count(*) as total_pos'), DB::raw('sum(grand_total) as total_spent'))
+            ->whereBetween('order_date', [$startOfMonth, $endOfMonth])
             ->groupBy('supplier_id')
             ->orderByDesc('total_pos')
             ->get();
@@ -599,7 +624,8 @@ class ReportsController extends Controller
             'growthStatus',
             'topProducts',
             'supplierPerformance',
-            'now'
+            'selectedDate',   // ✅ replaces $now — carries selected month/year
+            'availableYears'  // ✅ for the year dropdown
         ));
     }
 
@@ -640,13 +666,10 @@ class ReportsController extends Controller
                 ->sum('total_amount');
 
             // Cost calculation (unchanged — queries purchase_order, was fine)
+            // ✅ FIXED — grand_total is directly on purchase_order table
             $cost = PurchaseOrder::whereYear('order_date', $selectedYear)
                 ->whereMonth('order_date', $m)
-                ->with('purchaseRequest')
-                ->get()
-                ->sum(function ($po) {
-                    return $po->purchaseRequest->total_amount ?? 0;
-                });
+                ->sum('grand_total');
 
             $monthlyRevenue[] = $revenue;
             $monthlyCost[]    = $cost;
@@ -776,5 +799,107 @@ class ReportsController extends Controller
         ]);
 
         return redirect()->back()->with('success', 'Product reported as damaged successfully.');
+    }
+
+
+    // ===== SAVE INVENTORY AUDIT =====
+    public function saveAudit(Request $request)
+    {
+        try {
+            $auditItems  = $request->input('audit_items', []);   // array of items
+            $auditPeriod = $request->input('audit_period', '');
+            $auditedBy   = auth()->user()->full_name ?? auth()->user()->name ?? 'Unknown';
+
+            if (empty($auditItems)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No audit data to save.'
+                ], 422);
+            }
+
+            $saved = 0;
+
+            foreach ($auditItems as $item) {
+                // Skip rows where actual_count was not filled in
+                if (!isset($item['actual_count']) || $item['actual_count'] === '' || $item['actual_count'] === null) {
+                    continue;
+                }
+
+                $systemCount = (int) $item['system_count'];
+                $actualCount = (int) $item['actual_count'];
+                $variance    = $actualCount - $systemCount;
+
+                if ($variance === 0) {
+                    $status = 'Match';
+                } elseif ($variance < 0) {
+                    $status = 'Missing';
+                } else {
+                    $status = 'Surplus';
+                }
+
+                InventoryAudit::create([
+                    'product_name' => $item['product_name'],
+                    'product_sku'  => $item['product_sku'] ?? null,
+                    'system_count' => $systemCount,
+                    'actual_count' => $actualCount,
+                    'variance'     => $variance,
+                    'status'       => $status,
+                    'audit_period' => $auditPeriod,
+                    'audited_by'   => $auditedBy,
+                ]);
+
+                $saved++;
+            }
+
+            if ($saved === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No rows were saved. Please enter at least one actual count.'
+                ], 422);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "Audit saved successfully! {$saved} item(s) recorded."
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Save Audit Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error saving audit: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // ===== VIEW AUDIT HISTORY =====
+    public function auditHistory(Request $request)
+    {
+        // Get distinct audit periods for the filter dropdown
+        $auditPeriods = InventoryAudit::select('audit_period', DB::raw('MAX(created_at) as latest'))
+            ->groupBy('audit_period')
+            ->orderByDesc('latest')
+            ->pluck('audit_period');
+
+        // Filter by selected period if provided
+        $selectedPeriod = $request->get('period', null);
+
+        $query = InventoryAudit::orderByDesc('created_at');
+
+        if ($selectedPeriod) {
+            $query->where('audit_period', $selectedPeriod);
+        }
+
+        $auditRecords = $query->get();
+
+        // Group by audit_period + audited_by + created_at date for display
+        $groupedAudits = $auditRecords->groupBy(function ($item) {
+            return $item->audit_period . '||' . $item->audited_by . '||' . $item->created_at->format('M d, Y h:i A');
+        });
+
+        return view('reports.audit-history', compact(
+            'groupedAudits',
+            'auditPeriods',
+            'selectedPeriod'
+        ));
     }
 }

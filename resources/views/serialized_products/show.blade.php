@@ -135,6 +135,6 @@
     </script>
 @stop
 
-@push('js')
+@prepend('js')
     <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
-@endpush
+@endprepend

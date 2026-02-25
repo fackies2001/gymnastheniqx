@@ -1,5 +1,7 @@
 <?php
 
+use Nette\Schema\Helpers;
+
 return [
 
     /*
@@ -305,7 +307,6 @@ return [
     | https://github.com/jeroennoten/Laravel-AdminLTE/wiki/Menu-Configuration
     |
     */
-
     'menu' => [
 
         [
@@ -315,23 +316,29 @@ return [
         [
             'type' => 'fullscreen-widget',
         ],
-        [
-            'text' => 'blog',
-            'url' => 'admin/blog',
-            'can' => 'manage-blog',
-        ],
 
+        // ==========================================
+        // DASHBOARD - ALL USERS
+        // ==========================================
         [
             'text' => 'Dashboard',
             'url' => 'dashboard',
             'icon' => 'fas fa-chart-line',
             'label_color' => 'success',
         ],
+
+        // ==========================================
+        // SCAN - ALL USERS
+        // ==========================================
         [
             'text' => 'Scan-in',
             'url' => 'scan',
             'icon' => 'fas fa-barcode',
         ],
+
+        // ==========================================
+        // OUR PRODUCTS - ALL USERS
+        // ==========================================
         [
             'text' => 'Our Products',
             'icon' => 'fab fa-product-hunt',
@@ -345,16 +352,24 @@ return [
             ],
         ],
 
+        // ==========================================
+        // WAREHOUSE - ADMIN ONLY
+        // ==========================================
         [
             'text' => 'Warehouse',
             'url' => 'warehouse',
             'icon' => 'fas fa-warehouse',
             'active' => ['warehouse*'],
+            'role' => 'admin', // ✅ Only admin can see
         ],
 
+        // ==========================================
+        // SUPPLIERS - ADMIN & MANAGER ONLY
+        // ==========================================
         [
             'text' => 'Suppliers',
             'icon' => 'fas fa-parachute-box',
+            'role' => ['admin', 'manager'], // ✅ Admin & Manager only
             'submenu' => [
                 [
                     'text' => 'View Supplier',
@@ -377,6 +392,9 @@ return [
             ],
         ],
 
+        // ==========================================
+        // PURCHASES - ALL USERS (different permissions inside)
+        // ==========================================
         [
             'text' => 'Purchases',
             'icon' => 'fas fa-comments-dollar',
@@ -385,15 +403,20 @@ return [
                     'text' => 'Purchase Request',
                     'url' => 'purchase-request',
                     'icon' => 'far fa-circle',
+                    // All users can access but with different permissions
                 ],
                 [
                     'text' => 'Purchase Order',
                     'url' => 'purchase-order',
                     'icon' => 'far fa-circle',
+                    'role' => ['admin', 'manager'], // ✅ Admin & Manager only
                 ],
             ],
         ],
 
+        // ==========================================
+        // RETAILERS - ALL USERS
+        // ==========================================
         [
             'text' => 'Retailers',
             'icon' => 'fas fa-print',
@@ -406,10 +429,14 @@ return [
             ],
         ],
 
+        // ==========================================
+        // REPORTS - ADMIN & MANAGER ONLY
+        // ==========================================
         [
             'text' => 'Reports',
             'url' => 'reports',
             'icon' => 'fas fa-file-export',
+            'role' => ['admin', 'manager'], // ✅ Admin & Manager only
             'submenu' => [
                 [
                     'text' => 'Daily Reports',
@@ -439,19 +466,30 @@ return [
             ],
         ],
 
+        // ==========================================
+        // SETTINGS SECTION
+        // ==========================================
         ['header' => 'Settings'],
+
+        // USER MANAGEMENT - ADMIN ONLY
         [
             'text' => 'User Management',
             'url' => 'user-management',
             'icon' => 'fas fa-fw fa-users-cog',
             'active' => ['user-management*'],
+            'role' => 'admin', // ✅ Only admin can see
         ],
+
+        // MANPOWER - ADMIN & MANAGER ONLY
         [
             'text' => 'Manpower',
             'url' => 'manpower',
             'icon' => 'fas fa-fw fa-id-card',
             'active' => ['manpower*'],
+            'role' => ['admin', 'manager'], // ✅ Admin & Manager only
         ],
+
+        // GYM EQUIPMENT - ALL USERS (view only for staff)
         [
             'text' => 'GymEquipment',
             'url' => 'gym-equipments',
@@ -481,6 +519,7 @@ return [
         JeroenNoten\LaravelAdminLte\Menu\Filters\ClassesFilter::class,
         JeroenNoten\LaravelAdminLte\Menu\Filters\LangFilter::class,
         JeroenNoten\LaravelAdminLte\Menu\Filters\DataFilter::class,
+        App\Helpers\RoleMenuFilter::class, // ✅ TAMA - backslashes, no spaces
     ],
 
     /*

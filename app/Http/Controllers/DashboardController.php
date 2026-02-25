@@ -246,24 +246,16 @@ class DashboardController extends Controller
     private function getLowStockProducts()
     {
         try {
-            $subquery = 'SELECT COUNT(*) FROM serialized_product WHERE serialized_product.product_id = supplier_product.id AND serialized_product.status = 1';
-
-            $allProductsWithCounts = SupplierProduct::select(
+            $lowStockProducts = SupplierProduct::select(
                 'supplier_product.id',
                 'supplier_product.name',
                 'supplier_product.system_sku',
-                DB::raw("({$subquery}) as available_count")
+                DB::raw("(SELECT COUNT(*) FROM serialized_product WHERE serialized_product.product_id = supplier_product.id AND serialized_product.status = 1) as available_count")
             )
+                ->having('available_count', '<', 20)
                 ->orderBy('available_count', 'asc')
+                ->limit(10)
                 ->get();
-
-            $lowStockProducts = $allProductsWithCounts->filter(function ($product) {
-                return $product->available_count < 20;
-            })->take(10);
-
-            if ($lowStockProducts->isEmpty()) {
-                return $allProductsWithCounts->take(10);
-            }
 
             return $lowStockProducts->values();
         } catch (\Exception $e) {
@@ -271,22 +263,20 @@ class DashboardController extends Controller
             return collect();
         }
     }
-
     // ============================================================
     // ✅ HELPER: Get recent activities
-    // ============================================================
     private function getRecentActivities()
     {
         $activities = collect();
 
         try {
             // Purchase Requests
-            $recentPR = PurchaseRequest::latest()->limit(3)->get();
+            $recentPR = PurchaseRequest::with(['user', 'supplier'])->latest()->limit(3)->get();
             foreach ($recentPR as $pr) {
                 $activities->push((object)[
-                    'user_name' => 'System',
-                    'description' => "Purchase Request created (ID: {$pr->id})",
-                    'time_ago' => $pr->created_at->diffForHumans(),
+                    'user_name' => $pr->user->full_name ?? 'System',
+                    'description' => "Created PR #" . ($pr->request_number ?? 'N/A') . " from " . ($pr->supplier->name ?? 'Unknown Supplier'),
+                    'time_ago' => (string) $pr->created_at->diffForHumans(),
                     'icon' => 'file-alt',
                     'type_color' => 'primary',
                     'created_at' => $pr->created_at,
@@ -294,12 +284,12 @@ class DashboardController extends Controller
             }
 
             // Purchase Orders
-            $recentPO = PurchaseOrder::latest()->limit(3)->get();
+            $recentPO = PurchaseOrder::with(['approvedBy', 'supplier'])->latest()->limit(3)->get();
             foreach ($recentPO as $po) {
                 $activities->push((object)[
-                    'user_name' => 'System',
-                    'description' => "Purchase Order created (ID: {$po->id})",
-                    'time_ago' => $po->created_at->diffForHumans(),
+                    'user_name' => $po->approvedBy->full_name ?? 'System',
+                    'description' => "Created PO #" . ($po->po_number ?? 'N/A') . " from " . ($po->supplier->name ?? 'Unknown Supplier'),
+                    'time_ago' => (string) $po->created_at->diffForHumans(),
                     'icon' => 'shopping-cart',
                     'type_color' => 'success',
                     'created_at' => $po->created_at,
@@ -307,13 +297,13 @@ class DashboardController extends Controller
             }
 
             // Serialized Products
-            $recentSP = SerializedProduct::latest()->limit(3)->get();
+            $recentSP = SerializedProduct::with(['scannedBy', 'supplierProducts'])->latest()->limit(3)->get();
             foreach ($recentSP as $sp) {
                 $serialNum = $sp->serial_number ?? $sp->id;
                 $activities->push((object)[
-                    'user_name' => 'System',
-                    'description' => "Product scanned (Serial: {$serialNum})",
-                    'time_ago' => $sp->created_at->diffForHumans(),
+                    'user_name' => $sp->scannedBy->full_name ?? 'System',
+                    'description' => "Scanned " . ($sp->supplierProducts->name ?? 'Unknown Product') . " (Serial: {$serialNum})",
+                    'time_ago' => (string) $sp->created_at->diffForHumans(),
                     'icon' => 'barcode',
                     'type_color' => 'info',
                     'created_at' => $sp->created_at,
@@ -326,7 +316,6 @@ class DashboardController extends Controller
             return collect();
         }
     }
-
     // ============================================================
     // ✅ EXPORT METHODS
     // ============================================================

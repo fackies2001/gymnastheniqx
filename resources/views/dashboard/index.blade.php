@@ -22,8 +22,8 @@
 @push('css')
     <style>
         /* ============================================
-                                           SMALL STAT BOXES
-                                        ============================================ */
+                                                   SMALL STAT BOXES
+                                                ============================================ */
         .stat-box {
             border-radius: 10px;
             padding: 20px 18px 14px;
@@ -101,8 +101,8 @@
         }
 
         /* ============================================
-                                           ACTIVITY FEED
-                                        ============================================ */
+                                                   ACTIVITY FEED
+                                                ============================================ */
         .activity-item {
             padding: 10px 12px;
             border-left: 3px solid #667eea;
@@ -135,8 +135,8 @@
         }
 
         /* ============================================
-                                           FILTER BUTTONS
-                                        ============================================ */
+                                                   FILTER BUTTONS
+                                                ============================================ */
         .filter-btn-group .btn {
             border-radius: 20px;
             padding: 5px 14px;
@@ -150,8 +150,8 @@
         }
 
         /* ============================================
-                                           DARK MODE TOGGLE
-                                        ============================================ */
+                                                   DARK MODE TOGGLE
+                                                ============================================ */
         .dark-mode-toggle {
             position: fixed;
             bottom: 20px;
@@ -182,8 +182,8 @@
         }
 
         /* ============================================
-               PIN MODAL CRITICAL STYLES
-            ============================================ */
+                       PIN MODAL CRITICAL STYLES
+                    ============================================ */
         #pincodeModal {
             z-index: 99999 !important;
         }
@@ -579,7 +579,7 @@
                                     </div>
                                     <div style="font-size:0.78rem;">{{ $activity->description }}</div>
                                     <div class="activity-time">
-                                        <i class="far fa-clock"></i> {{ $activity->time_ago }}
+                                        <i class="far fa-clock"></i> {{ $activity->time_ago ?? 'Just now' }}
                                     </div>
                                 </div>
                             </div>
@@ -604,8 +604,6 @@
 @stop
 
 @push('js')
-    @vite(['resources/js/reports.js'])
-
     {{-- ============================================
          GLOBAL DATA FOR CHARTS
     ============================================ --}}

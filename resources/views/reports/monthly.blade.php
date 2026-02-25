@@ -1,12 +1,12 @@
 @extends('layouts.adminlte')
 
 @section('content_header_title', 'Monthly Financial & Planning Report')
-@section('content_header_subtitle', 'Period: ' . $now->format('F Y'))
+@section('content_header_subtitle', 'Period: ' . $selectedDate->format('F Y'))
 
 @section('content_body')
     <div class="container-fluid">
 
-        {{-- BUTTONS (No Print) --}}
+        {{-- PRINT BUTTON (No Print) --}}
         <div class="row mb-3 no-print">
             <div class="col-12 text-right">
                 <button onclick="window.print()" class="btn btn-secondary shadow-sm">
@@ -15,12 +15,55 @@
             </div>
         </div>
 
+        {{-- FILTER BY DATE (No Print) — same style as Daily Report --}}
+        <div class="card card-primary shadow-sm mb-4 no-print">
+            <div class="card-header" style="background-color: #1a73e8;">
+                <h3 class="card-title font-weight-bold text-white">
+                    <i class="fas fa-filter mr-2"></i> FILTER BY DATE
+                </h3>
+            </div>
+            <div class="card-body">
+                <form method="GET" action="{{ url('/monthly-reports') }}">
+                    <div class="row align-items-end">
+                        <div class="col-md-2">
+                            <label class="font-weight-bold">
+                                <i class="fas fa-calendar-alt mr-1 text-primary"></i> Select Month
+                            </label>
+                            <select name="month" class="form-control">
+                                @foreach (range(1, 12) as $m)
+                                    <option value="{{ $m }}" {{ $selectedDate->month == $m ? 'selected' : '' }}>
+                                        {{ \Carbon\Carbon::create()->month($m)->format('F') }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="font-weight-bold">Select Year</label>
+                            <select name="year" class="form-control">
+                                @foreach ($availableYears as $y)
+                                    <option value="{{ $y }}" {{ $selectedDate->year == $y ? 'selected' : '' }}>
+                                        {{ $y }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <button type="submit" class="btn btn-primary mr-2">
+                                <i class="fas fa-search mr-1"></i> Apply
+                            </button>
+                            <a href="{{ url('/monthly-reports') }}" class="btn btn-secondary">
+                                <i class="fas fa-redo mr-1"></i> Reset
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
         {{-- PRINT HEADER (Hidden on Screen, Visible on Print) --}}
         <div class="d-none d-print-block text-center mb-4">
             <h1 class="font-weight-bold text-uppercase m-0">GYMNASTHENIQX WAREHOUSE</h1>
             <h4 class="text-uppercase">Monthly Financial & Planning Report</h4>
-            <p class="mb-0"><strong>Period:</strong> {{ $now->format('F Y') }}</p>
-            {{-- Realtime Date Generation --}}
+            <p class="mb-0"><strong>Period:</strong> {{ $selectedDate->format('F Y') }}</p>
             <p class="small text-muted">Generated on: {{ \Carbon\Carbon::now()->format('F d, Y h:i A') }}</p>
             <hr class="border-dark">
         </div>
@@ -29,7 +72,6 @@
         <div class="row">
             {{-- 1. TOTAL INVENTORY VALUE --}}
             <div class="col-md-6 col-12">
-                {{-- Added border for printing clarity --}}
                 <div class="small-box bg-gradient-primary shadow-sm print-box">
                     <div class="inner">
                         <h3>₱ {{ number_format($totalInventoryValue, 2) }}</h3>
@@ -58,6 +100,13 @@
                             Current: ₱{{ number_format($currentMonthSales, 2) }} vs
                             Last Month: ₱{{ number_format($lastMonthSales, 2) }}
                         </small>
+                        {{-- ✅ FIX #2: Disclaimer when no previous month data --}}
+                        @if ($lastMonthSales == 0 && $currentMonthSales > 0)
+                            <small class="d-block mt-1" style="opacity: 0.85;">
+                                <i class="fas fa-info-circle"></i>
+                                No data available for the previous month. Growth rate may not reflect actual performance.
+                            </small>
+                        @endif
                     </div>
                     <div class="icon">
                         <i class="fas fa-chart-line"></i>
@@ -68,7 +117,7 @@
 
         {{-- ROW 2: BEST SELLERS & SUPPLIER STATS --}}
         <div class="row">
-            {{-- TOP 5 BEST SELLERS (REVENUE) --}}
+            {{-- TOP 5 BEST SELLERS --}}
             <div class="col-md-6">
                 <div class="card card-outline card-warning h-100 shadow-sm print-card">
                     <div class="card-header">
@@ -112,6 +161,7 @@
                     <div class="card-header">
                         <h3 class="card-title font-weight-bold">
                             <i class="fas fa-truck text-info mr-2"></i> Top Suppliers (By Volume)
+                            <small class="text-muted font-weight-normal ml-1">— {{ $selectedDate->format('F Y') }}</small>
                         </h3>
                     </div>
                     <div class="card-body p-0">
@@ -134,7 +184,8 @@
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="3" class="text-muted">No purchase orders recorded.</td>
+                                        <td colspan="3" class="text-muted">No purchase orders recorded for this month.
+                                        </td>
                                     </tr>
                                 @endforelse
                             </tbody>
@@ -144,7 +195,7 @@
             </div>
         </div>
 
-        {{-- ANALYSIS / RECOMMENDATION SECTION (Visible on Print too) --}}
+        {{-- EXECUTIVE SUMMARY --}}
         <div class="row mt-4">
             <div class="col-12">
                 <div class="card shadow-sm border print-card">
@@ -152,22 +203,44 @@
                         <h5 class="font-weight-bold"><i class="fas fa-info-circle text-primary"></i> Executive Summary &
                             Analysis</h5>
                         <p class="text-muted mb-0" style="font-size: 14px;">
-                            • <strong>Inventory Value:</strong> Currently at ₱{{ number_format($totalInventoryValue, 2) }}.
-                            @if ($growthStatus == 'decrease')
-                                High inventory with declining sales may indicate overstocking.
-                            @endif
-                            <br>
-                            • <strong>Sales Growth:</strong>
-                            @if ($growthStatus == 'increase')
-                                Positive growth of {{ number_format($growthPercentage, 1) }}%. Strategy is effective.
-                            @elseif($growthStatus == 'decrease')
-                                Declined by {{ number_format(abs($growthPercentage), 1) }}%. Review marketing or pricing
-                                strategy.
+                            - <strong>Inventory Value:</strong> Currently at ₱{{ number_format($totalInventoryValue, 2) }}.
+                            @if ($growthStatus == 'decrease' && $totalInventoryValue > 10000)
+                                ⚠️ Overstocked alert! High inventory with declining sales. Consider reducing purchase
+                                orders.
+                            @elseif ($totalInventoryValue < 5000)
+                                🔴 Low inventory! Consider restocking immediately.
                             @else
-                                Stable performance.
+                                ✅ Inventory level is stable.
                             @endif
                             <br>
-                            • <strong>Supplier Strategy:</strong> Focus negotiations on top suppliers to improve margins.
+                            - <strong>Sales Growth:</strong>
+                            @if ($lastMonthSales == 0 && $currentMonthSales > 0)
+                                📊 No previous month data available for comparison. Current sales:
+                                ₱{{ number_format($currentMonthSales, 2) }}.
+                            @elseif ($growthStatus == 'increase' && $growthPercentage >= 50)
+                                🚀 Excellent performance! Sales grew by {{ number_format($growthPercentage, 1) }}%.
+                                Strategy is effective!
+                            @elseif ($growthStatus == 'increase')
+                                ✅ Positive growth of {{ number_format($growthPercentage, 1) }}%. Keep it up!
+                            @elseif ($growthStatus == 'decrease' && abs($growthPercentage) >= 50)
+                                🔴 Warning! Sales declined by {{ number_format(abs($growthPercentage), 1) }}%. Consider
+                                promotions or discounts immediately.
+                            @elseif ($growthStatus == 'decrease')
+                                ⚠️ Sales declined by {{ number_format(abs($growthPercentage), 1) }}%. Review marketing or
+                                pricing strategy.
+                            @else
+                                📊 Stable performance. No significant changes this month.
+                            @endif
+                            <br>
+                            - <strong>Supplier Strategy:</strong>
+                            @if ($supplierPerformance->count() > 0)
+                                Focus negotiations with
+                                <strong>{{ $supplierPerformance->first()->supplier->name ?? 'top supplier' }}</strong>
+                                who has <strong>{{ $supplierPerformance->first()->total_pos }}</strong> POs worth
+                                ₱{{ number_format($supplierPerformance->first()->total_spent, 2) }} to improve margins.
+                            @else
+                                No supplier activity recorded for {{ $selectedDate->format('F Y') }}.
+                            @endif
                         </p>
                     </div>
                 </div>
@@ -199,7 +272,6 @@
     <style>
         @media print {
 
-            /* Hide unwanted elements */
             .no-print,
             .main-footer,
             .navbar,
@@ -208,7 +280,6 @@
                 display: none !important;
             }
 
-            /* Layout Adjustments */
             .content-wrapper {
                 margin-left: 0 !important;
                 background: white !important;
@@ -220,14 +291,12 @@
                 font-size: 12pt;
             }
 
-            /* Ensure columns sit side-by-side */
             .col-md-6 {
                 width: 50% !important;
                 float: left !important;
                 padding: 0 10px !important;
             }
 
-            /* Styling for Cards/Boxes on Print */
             .print-box,
             .print-card {
                 border: 1px solid #000 !important;
@@ -236,7 +305,6 @@
                 color: black !important;
             }
 
-            /* Force Small Boxes to look cleaner on B&W print */
             .small-box {
                 color: black !important;
                 border: 1px solid #000 !important;
@@ -246,9 +314,6 @@
                 display: none !important;
             }
 
-            /* Hide big icons to save ink/space */
-
-            /* Table Styling */
             .table {
                 width: 100% !important;
                 background: white !important;
@@ -261,7 +326,6 @@
                 color: black !important;
             }
 
-            /* Badge/Colors adjust for print */
             .badge {
                 border: 1px solid #000;
                 color: black !important;
@@ -273,7 +337,6 @@
             .text-warning,
             .text-info {
                 color: black !important;
-                /* Force black text for readability */
             }
         }
     </style>

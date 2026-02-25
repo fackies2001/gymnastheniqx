@@ -19,11 +19,21 @@ class PurchaseOrderController extends Controller
      */
     public function index()
     {
+        $user     = Auth::user();
+        $userRole = strtolower($user->role?->role_name ?? '');
+        $isAdmin  = $userRole === 'admin';
+
         $purchaseOrders = PurchaseOrder::with([
             'supplier',
             'approvedBy',
             'requestedBy'
-        ])->orderBy('id', 'desc')->get();
+        ])
+            ->when(!$isAdmin, function ($query) use ($user) {
+                // Staff at Manager — sarili lang (requested_by = user_id)
+                $query->where('requested_by', $user->id);
+            })
+            ->orderBy('id', 'desc')
+            ->get();
 
         return view('purchase-order.index', compact('purchaseOrders'));
     }

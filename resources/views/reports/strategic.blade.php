@@ -64,6 +64,14 @@
                         <span class="info-box-number">
                             ₱ {{ number_format($totalYearlyRevenue - $totalYearlyCost, 2) }}
                         </span>
+                        {{-- ✅ Disclaimer: shown only when margin is negative --}}
+                        @if ($totalYearlyRevenue - $totalYearlyCost < 0)
+                            <small class="text-white d-block mt-1" style="font-size: 11px; opacity: 0.85;">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                Note: Acquisition cost reflects all-time purchases. Revenue reflects {{ $selectedYear }}
+                                only.
+                            </small>
+                        @endif
                     </div>
                 </div>
             </div>
@@ -102,12 +110,31 @@
                                 @foreach ($quarterlyData as $q => $data)
                                     <tr>
                                         <td class="font-weight-bold">Q{{ $q }}</td>
-                                        <td class="text-success small-text">₱{{ number_format($data['revenue']) }}</td>
-                                        <td class="text-danger small-text">₱{{ number_format($data['cost']) }}</td>
+                                        <td class="text-success small-text">
+                                            @if ($data['revenue'] > 0)
+                                                ₱{{ number_format($data['revenue']) }}
+                                            @else
+                                                <span class="text-muted">—</span>
+                                            @endif
+                                        </td>
+                                        <td class="text-danger small-text">
+                                            @if ($data['cost'] > 0)
+                                                ₱{{ number_format($data['cost']) }}
+                                            @else
+                                                <span class="text-muted">—</span>
+                                            @endif
+                                        </td>
                                     </tr>
                                 @endforeach
                             </tbody>
                         </table>
+                        {{-- ✅ Note for empty quarters --}}
+                        <div class="px-3 py-2">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                Quarters with no activity are shown as —
+                            </small>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -220,7 +247,7 @@
         $(function() {
             var ctx = document.getElementById('strategyChart').getContext('2d');
             var strategyChart = new Chart(ctx, {
-                type: 'line', // Line chart mas maganda for trends
+                type: 'line',
                 data: {
                     labels: @json($months),
                     datasets: [{
@@ -290,7 +317,6 @@
                 display: none !important;
             }
 
-            /* Hide icons to save ink */
             .info-box-content {
                 text-align: center;
             }

@@ -29,12 +29,12 @@
         </div>
     </div>
 @stop
+
 @push('js')
     <script>
         $(document).ready(function() {
             let token = "{{ session('sanctum_token') }}";
 
-            // --- DATATABLE LOGIC ---
             if ($.fn.DataTable.isDataTable('#summary_table')) {
                 $('#summary_table').DataTable().destroy();
             }
@@ -52,7 +52,7 @@
                     headers: {
                         'Authorization': 'Bearer ' + token
                     }
-                }, // <--- DITO DAPAT NAGSASARA ANG AJAX AT MAY COMMA
+                },
                 columns: [{
                         data: 'product_name',
                         name: 'name',
@@ -69,15 +69,11 @@
                         name: 'supplier.name'
                     },
                     {
-                        // _index.blade.php
-
                         data: 'quantity',
                         name: 'quantity',
                         className: 'text-center align-middle',
                         render: function(data) {
-                            // Ngayon, ang 'data' ay numero na (halimbawa: 10)
-                            let color = data <= 5 ? 'danger' : 'success';
-                            return `<span class="badge badge-${color} shadow-sm px-3 py-2" style="font-size: 0.9rem;">${data} Units</span>`;
+                            return data + ' Units';
                         }
                     },
                     {
@@ -92,8 +88,7 @@
                 rowCallback: function(row, data) {
                     $(row).css('cursor', 'pointer').off('click').on('click', function() {
                         if (data.action && data.action.id) {
-                            let safeName = encodeURIComponent(data.action.name).replace(
-                                /%2F/g,
+                            let safeName = encodeURIComponent(data.action.name).replace(/%2F/g,
                                 "");
                             window.location.href =
                                 `/serialized_products/show/${data.action.id}/${safeName}`;

@@ -14,8 +14,8 @@ class BarcodeScannerManager {
         this.totalOrdered = 0;
         this.totalScanned = 0;
         this.scanTimeout = null;
-        this.lastInputTime = 0;
-        this.isProcessing = false; // ✅ FIX: prevent duplicate submission
+        this.lastInputTime = Date.now();
+       // this.isProcessing = false; // ✅ FIX: prevent duplicate submission
         this.init();
     }
 
@@ -46,53 +46,44 @@ class BarcodeScannerManager {
         }
 
         // ✅ BARCODE INPUT
-        const barcodeInput = document.getElementById('barcodeInput');
-        if (barcodeInput) {
+       const barcodeInput = document.getElementById('barcodeInput');
+if (barcodeInput) {
 
-            // ENTER key = manual entry
-            barcodeInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    if (!this.isScanning) return;
+    // ENTER key = manual OR scanner gun (YHD-1100LW sends Enter after scan)
+    barcodeInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            if (!this.isScanning) return;
 
-                    const barcode = barcodeInput.value.trim();
-                    if (barcode.length === 0) return;
+            clearTimeout(this.scanTimeout);
+            const barcode = barcodeInput.value.trim();
+            if (barcode.length === 0) return;
 
-                    // ✅ FIX: Cancel any pending scanner-gun timeout
-                    clearTimeout(this.scanTimeout);
-                    this.scanTimeout = null;
+            console.log('⌨️ Enter triggered:', barcode);
+            this.processBarcode(barcode, barcodeInput);
+        }
+    });
 
-                    console.log('⌨️ Manual ENTER:', barcode);
+    // Scanner gun paste detection
+    barcodeInput.addEventListener('input', (e) => {
+        if (!this.isScanning) return;
+
+        clearTimeout(this.scanTimeout);
+
+        const charsAdded = e.data ? e.data.length : 0;
+
+        if (charsAdded > 1) {
+            // Scanner nagpaste ng maraming chars nang sabay
+            this.scanTimeout = setTimeout(() => {
+                const barcode = barcodeInput.value.trim();
+                if (barcode.length >= 3) {
+                    console.log('🔫 Scanner paste detected:', barcode);
                     this.processBarcode(barcode, barcodeInput);
                 }
-            });
-
-            // ✅ FIX: Scanner gun detection - improved timing
-            barcodeInput.addEventListener('input', (e) => {
-                if (!this.isScanning) return;
-
-                const currentTime = Date.now();
-                const timeDiff = currentTime - this.lastInputTime;
-                this.lastInputTime = currentTime;
-
-                clearTimeout(this.scanTimeout);
-
-                // Scanner guns typically send chars < 30ms apart AND send all at once
-                // We use a slightly longer window (100ms) to catch the full scan
-                const isScannerGun = timeDiff < 50 && barcodeInput.value.length > 1;
-
-                if (isScannerGun) {
-                    console.log('🔫 Scanner gun input detected, waiting for complete scan...');
-                    this.scanTimeout = setTimeout(() => {
-                        const barcode = barcodeInput.value.trim();
-                        if (barcode.length > 0) {
-                            console.log('🔫 Scanner gun final value:', barcode);
-                            this.processBarcode(barcode, barcodeInput);
-                        }
-                    }, 100); // ✅ FIX: reduced from 250ms → 100ms for faster response
-                }
-                // Manual typing: wait for ENTER key (no auto-trigger)
-            });
+            }, 50);
+        }
+        // Single char = manual typing, hintayin ang Enter
+    });
 
             // ✅ Keep input focused while scanning
             barcodeInput.addEventListener('blur', () => {

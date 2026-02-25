@@ -6,7 +6,6 @@
 
 @push('css')
     <style>
-        /* ⭐ ULTRA-MINIMAL CLEAN STYLING */
         .supplier-header {
             background: #2d3748;
             color: white;
@@ -68,18 +67,6 @@
 
         .supplier-card-header a:hover {
             opacity: 0.9;
-        }
-
-        .status-badge {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            background: #48bb78;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 0.65rem;
-            font-weight: 600;
         }
 
         .supplier-card-body {
@@ -170,7 +157,6 @@
 @endpush
 
 @section('content_body')
-    <!-- ⭐ SIMPLE HEADER -->
     <div class="supplier-header d-flex justify-content-between align-items-center">
         <div>
             <h3 class="mb-1" style="font-size: 1.4rem;">
@@ -184,7 +170,6 @@
         </a>
     </div>
 
-    <!-- ⭐ SEARCH AND SORT -->
     <div class="search-sort-container">
         <form method="GET" action="{{ route('suppliers.index') }}" id="filterForm">
             <div class="row">
@@ -212,7 +197,6 @@
         </form>
     </div>
 
-    <!-- ⭐ SUPPLIER CARDS -->
     @if ($suppliers->count() > 0)
         <div class="row" id="suppliersGrid">
             @foreach ($suppliers as $supplier)
@@ -223,16 +207,12 @@
                     <div class="card supplier-card"
                         onclick="window.location='{{ route('suppliers.show', $supplier->id) }}'">
                         <div class="supplier-card-header">
-                            <span class="status-badge">
-                                <i class="fas fa-circle" style="font-size: 0.5rem;"></i> Active
-                            </span>
                             <h5>
                                 <a href="{{ route('suppliers.show', $supplier->id) }}">
                                     {{ $supplier->name }}
                                 </a>
                             </h5>
                         </div>
-
                         <div class="supplier-card-body">
                             @if (!empty($supplier->contact_person))
                                 <div class="supplier-info">
@@ -240,21 +220,18 @@
                                     <span>{{ $supplier->contact_person }}</span>
                                 </div>
                             @endif
-
                             @if (!empty($supplier->email))
                                 <div class="supplier-info">
                                     <i class="fas fa-envelope"></i>
                                     <span>{{ Str::limit($supplier->email, 30) }}</span>
                                 </div>
                             @endif
-
                             @if (!empty($supplier->contact_number))
                                 <div class="supplier-info">
                                     <i class="fas fa-phone"></i>
                                     <span>{{ $supplier->contact_number }}</span>
                                 </div>
                             @endif
-
                             @if (!empty($supplier->address))
                                 <div class="supplier-info">
                                     <i class="fas fa-map-marker-alt"></i>
@@ -262,14 +239,24 @@
                                 </div>
                             @endif
                         </div>
-
                         <div class="supplier-footer">
                             <div class="product-count">
                                 <i class="fas fa-box"></i> {{ $supplier->supplier_products_count ?? 0 }}
                             </div>
-                            <div class="date-added">
-                                <i class="far fa-calendar"></i>
-                                {{ $supplier->created_at->diffForHumans() }}
+                            <div class="d-flex gap-1">
+                                <a href="{{ route('suppliers.edit', $supplier->id) }}" class="btn btn-sm btn-warning"
+                                    onclick="event.stopPropagation()">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <form action="{{ route('suppliers.destroy', $supplier->id) }}" method="POST"
+                                    onclick="event.stopPropagation()">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-danger"
+                                        onclick="return confirm('Are you sure you want to delete this supplier?')">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -295,13 +282,11 @@
         document.getElementById('searchInput').addEventListener('keyup', function(e) {
             const searchTerm = e.target.value.toLowerCase();
             const supplierItems = document.querySelectorAll('.supplier-item');
-
             supplierItems.forEach(item => {
                 const name = item.getAttribute('data-name');
                 const email = item.getAttribute('data-email');
                 const contact = item.getAttribute('data-contact');
                 const phone = item.getAttribute('data-phone');
-
                 if (name.includes(searchTerm) ||
                     email.includes(searchTerm) ||
                     contact.includes(searchTerm) ||

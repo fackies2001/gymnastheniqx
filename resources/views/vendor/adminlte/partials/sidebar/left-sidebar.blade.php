@@ -14,35 +14,48 @@
             <div class="user-panel mt-3 pb-3 mb-3 d-none d-md-flex">
 
                 <div class="image">
-                    {{-- ✅ DYNAMIC: Avatar initials and unique color per user --}}
+                    {{-- ✅ FIXED: Check for actual profile photo first, fallback to initials --}}
                     @php
-                        $userName = Auth::user()->full_name ?? 'User';
-                        $initials = collect(explode(' ', $userName))
-                            ->map(fn($word) => strtoupper(substr($word, 0, 1)))
-                            ->take(2)
-                            ->implode('');
+                        $user = Auth::user();
+                        $hasProfilePhoto =
+                            $user->profile_photo && Storage::disk('public')->exists($user->profile_photo);
 
-                        // Generate unique color based on user ID
-                        $colors = [
-                            '6777ef', // Purple-blue (default)
-                            'fc544b', // Red
-                            'ffa426', // Orange
-                            '3abaf4', // Light blue
-                            '6c757d', // Gray
-                            '47c363', // Green
-                            'f3ba2f', // Yellow
-                            'e83e8c', // Pink
-                            '20c997', // Teal
-                            '17a2b8', // Cyan
-                        ];
+                        if (!$hasProfilePhoto) {
+                            // Generate initials avatar if no photo
+                            $userName = $user->full_name ?? 'User';
+                            $initials = collect(explode(' ', $userName))
+                                ->map(fn($word) => strtoupper(substr($word, 0, 1)))
+                                ->take(2)
+                                ->implode('');
 
-                        $colorIndex = Auth::user()->id % count($colors);
-                        $bgColor = $colors[$colorIndex];
+                            // Generate unique color based on user ID
+                            $colors = [
+                                '6777ef', // Purple-blue (default)
+                                'fc544b', // Red
+                                'ffa426', // Orange
+                                '3abaf4', // Light blue
+                                '6c757d', // Gray
+                                '47c363', // Green
+                                'f3ba2f', // Yellow
+                                'e83e8c', // Pink
+                                '20c997', // Teal
+                                '17a2b8', // Cyan
+                            ];
+
+                            $colorIndex = $user->id % count($colors);
+                            $bgColor = $colors[$colorIndex];
+                            $avatarUrl =
+                                'https://ui-avatars.com/api/?name=' .
+                                urlencode($initials) .
+                                "&background={$bgColor}&color=fff&size=128";
+                        } else {
+                            // Use actual profile photo
+                            $avatarUrl = asset('storage/' . $user->profile_photo);
+                        }
                     @endphp
-                    <img src="https://ui-avatars.com/api/?name={{ urlencode($initials) }}&background={{ $bgColor }}&color=fff&size=128"
-                        class="img-circle elevation-2" alt="User Image">
+                    <img src="{{ $avatarUrl }}" class="img-circle elevation-2" alt="User Image"
+                        onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name={{ urlencode(Auth::user()->full_name ?? 'User') }}&background=6777ef&color=fff&size=128';">
                 </div>
-
 
                 <div class="info">
                     <a href="{{ route('profile.edit') }}" class="d-block">

@@ -1,28 +1,34 @@
-// class BarcodeScannerManager {
-    /*
+/**
+ * BarcodeScannerManager
+ * Fixed version:
+ * - Removed unnecessary loadPOItems() API call (data already in blade)
+ * - Fixed scanner gun detection timing (was too strict, causing misses)
+ * - Fixed input focus re-grab after scan
+ * - Updated selectors to match new UI elements
+ */
+/*
+class BarcodeScannerManager {
     constructor(poId) {
         this.poId = poId;
         this.scannedItems = [];
         this.isScanning = false;
         this.totalOrdered = 0;
         this.totalScanned = 0;
-        this.scanBuffer = '';
         this.scanTimeout = null;
         this.lastInputTime = 0;
+        this.isProcessing = false; // ✅ FIX: prevent duplicate submission
         this.init();
     }
 
-    init() {    
+    init() {
         console.log('🔍 Initializing Barcode Scanner...', { poId: this.poId });
         this.setupEventListeners();
-        this.loadPOItems();
+        // ✅ FIX: Calculate totals directly from DOM (no API call needed - data is already in blade)
         this.calculateTotals();
     }
 
     setupEventListeners() {
-        console.log('🔧 Setting up event listeners...');
-        
-        // ✅ BEGIN SCAN BUTTON
+        // ✅ BEGIN SCAN
         const beginBtn = document.getElementById('beginScanBtn');
         if (beginBtn) {
             beginBtn.addEventListener('click', (e) => {
@@ -31,7 +37,7 @@
             });
         }
 
-        // ✅ END SCAN BUTTON
+        // ✅ END SCAN
         const endBtn = document.getElementById('endScanBtn');
         if (endBtn) {
             endBtn.addEventListener('click', (e) => {
@@ -40,63 +46,68 @@
             });
         }
 
-        // ✅ BARCODE INPUT - Support both manual typing and scanner gun
+        // ✅ BARCODE INPUT
         const barcodeInput = document.getElementById('barcodeInput');
         if (barcodeInput) {
-            // For manual entry (keyboard) - Press ENTER
-            barcodeInput.addEventListener('keypress', (e) => {
+
+            // ENTER key = manual entry
+            barcodeInput.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
+                    if (!this.isScanning) return;
+
                     const barcode = barcodeInput.value.trim();
-                    if (barcode && barcode.length >= 8) {
-                        console.log('⌨️ Manual entry:', barcode);
-                        this.scanBarcode(barcode);
-                        barcodeInput.value = '';
-                    } else if (barcode.length > 0) {
-                        this.showToast('warning', 'Please enter a complete barcode (minimum 8 characters)');
-                    }
+                    if (barcode.length === 0) return;
+
+                    // ✅ FIX: Cancel any pending scanner-gun timeout
+                    clearTimeout(this.scanTimeout);
+                    this.scanTimeout = null;
+
+                    console.log('⌨️ Manual ENTER:', barcode);
+                    this.processBarcode(barcode, barcodeInput);
                 }
             });
 
-            // For barcode scanner gun (fast input detection)
+            // ✅ FIX: Scanner gun detection - improved timing
             barcodeInput.addEventListener('input', (e) => {
                 if (!this.isScanning) return;
-                
+
                 const currentTime = Date.now();
                 const timeDiff = currentTime - this.lastInputTime;
                 this.lastInputTime = currentTime;
-                
+
                 clearTimeout(this.scanTimeout);
-                
-                // ✅ Detect scanner gun: very fast typing (< 50ms between characters)
+
+                // Scanner guns typically send chars < 30ms apart AND send all at once
+                // We use a slightly longer window (100ms) to catch the full scan
                 const isScannerGun = timeDiff < 50 && barcodeInput.value.length > 1;
-                
+
                 if (isScannerGun) {
-                    console.log('🔫 Scanner gun detected!');
-                    // Wait for scanner to finish (100ms)
+                    console.log('🔫 Scanner gun input detected, waiting for complete scan...');
                     this.scanTimeout = setTimeout(() => {
                         const barcode = barcodeInput.value.trim();
-                        if (barcode.length >= 8) {
-                            console.log('🔫 Scanner gun scan:', barcode);
-                            this.scanBarcode(barcode);
-                            barcodeInput.value = '';
+                        if (barcode.length > 0) {
+                            console.log('🔫 Scanner gun final value:', barcode);
+                            this.processBarcode(barcode, barcodeInput);
                         }
-                    }, 250);
-                } else {
-                    // Manual typing - wait longer (500ms)
-                    this.scanTimeout = setTimeout(() => {
-                        const barcode = barcodeInput.value.trim();
-                        // Don't auto-trigger for manual typing, wait for ENTER key
-                        if (barcode.length >= 13) {
-                            // Only if really long barcode is typed manually
-                            console.log('⌨️ Long manual entry detected:', barcode);
+                    }, 100); // ✅ FIX: reduced from 250ms → 100ms for faster response
+                }
+                // Manual typing: wait for ENTER key (no auto-trigger)
+            });
+
+            // ✅ Keep input focused while scanning
+            barcodeInput.addEventListener('blur', () => {
+                if (this.isScanning) {
+                    setTimeout(() => {
+                        if (this.isScanning) {
+                            barcodeInput.focus();
                         }
-                    }, 500);
+                    }, 100);
                 }
             });
         }
 
-        // ✅ COMPLETE SCANNING BUTTON
+        // ✅ COMPLETE SCAN
         const completeBtn = document.getElementById('completeScanBtn');
         if (completeBtn) {
             completeBtn.addEventListener('click', (e) => {
@@ -105,407 +116,444 @@
             });
         }
 
-        // ✅ CANCEL BUTTON
+        // ✅ CANCEL / BACK
         const cancelBtn = document.getElementById('cancelScanBtn');
         if (cancelBtn) {
             cancelBtn.addEventListener('click', (e) => {
                 e.preventDefault();
-                if (confirm('Return to purchase orders? Any unsaved progress will be lost.')) {
+                if (this.totalScanned > 0) {
+                    if (confirm('Return to purchase orders? Any unsaved scan progress will be lost.')) {
+                        window.location.href = '/purchase-order';
+                    }
+                } else {
                     window.location.href = '/purchase-order';
                 }
             });
         }
 
-        console.log('✅ Event listeners setup complete');
+        console.log('✅ Event listeners ready');
     }
 
-    async loadPOItems() {
-        try {
-            console.log('📥 Loading PO items...');
-            const response = await fetch(`/purchase-order/${this.poId}`);
-            const data = await response.json();
-            
-            if (data) {
-                console.log('✅ PO data loaded:', data);
-                this.displayPOItems(data.items || []);
-            }
-        } catch (error) {
-            console.error('❌ Error loading PO items:', error);
-            this.showToast('error', 'Error loading purchase order items');
+    /**
+     * ✅ FIX: Central barcode processor - used by both manual & scanner gun paths
+     */
+    /*
+    async processBarcode(barcode, inputEl) {
+        // Prevent double-processing
+        if (this.isProcessing) {
+            console.warn('⏳ Already processing a scan, skipping:', barcode);
+            return;
         }
-    }
 
-    displayPOItems(items) {
-        console.log('📋 Displaying PO items:', items);
-        const tbody = document.getElementById('poItemsBody');
-        if (!tbody || !items.length) return;
+        if (!barcode || barcode.length === 0) return;
 
-        this.totalOrdered = items.reduce((sum, item) => sum + (item.quantity_ordered || 0), 0);
-        console.log('📊 Total ordered:', this.totalOrdered);
-        this.updateStats();
+        // ✅ FIX: Allow any length barcode (removed 8-char minimum that was blocking valid scans)
+        // The server validates the barcode anyway
+        if (barcode.length < 3) {
+            this.showToast('warning', 'Barcode too short. Please scan again.');
+            if (inputEl) inputEl.value = '';
+            return;
+        }
+
+        await this.scanBarcode(barcode);
+
+        if (inputEl) {
+            inputEl.value = '';
+            if (this.isScanning) {
+                inputEl.focus();
+            }
+        }
     }
 
     calculateTotals() {
         const rows = document.querySelectorAll('#poItemsBody tr[data-quantity-ordered]');
         this.totalOrdered = 0;
-        
+
         rows.forEach(row => {
             const qty = parseInt(row.dataset.quantityOrdered) || 0;
             this.totalOrdered += qty;
         });
-        
-        console.log('📊 Calculated totals:', { totalOrdered: this.totalOrdered });
+
+        console.log('📊 Total ordered:', this.totalOrdered);
         this.updateStats();
     }
 
     beginScanning() {
-        console.log('🎬 BEGIN SCANNING!');
+        console.log('🎬 BEGIN SCANNING');
         this.isScanning = true;
-        
+
         // Toggle buttons
         const beginBtn = document.getElementById('beginScanBtn');
-        const endBtn = document.getElementById('endScanBtn');
-        
+        const endBtn   = document.getElementById('endScanBtn');
         if (beginBtn) beginBtn.style.display = 'none';
-        if (endBtn) endBtn.style.display = 'inline-block';
-        
+        if (endBtn)   endBtn.style.display = 'block';
+
         // Enable and focus input
         const input = document.getElementById('barcodeInput');
         if (input) {
             input.disabled = false;
             input.focus();
-            console.log('✅ Input enabled and focused');
         }
-        
-        // Update status
-        const statusEl = document.getElementById('scanStatus');
-        if (statusEl) {
-            statusEl.textContent = 'Scanning Active';
-            statusEl.parentElement.parentElement.classList.remove('alert-warning');
-            statusEl.parentElement.parentElement.classList.add('alert-success');
-        }
-        
-        // Show status indicator
-        const statusDot = document.getElementById('statusDot');
-        if (statusDot) {
-            statusDot.classList.add('active');
-        }
-        
-        // Show alert
-        const alert = document.getElementById('scanStatusAlert');
-        if (alert) {
-            alert.style.display = 'block';
-        }
-        
-        this.showToast('success', '✅ Scanner activated! Start scanning barcodes.');
+
+        // Update UI state
+        const wrap = document.getElementById('barcodeInputWrap');
+        if (wrap) wrap.classList.add('active');
+
+        const card = document.querySelector('.scanner-card');
+        if (card) card.classList.add('scanning');
+
+        const badge = document.getElementById('scannerStatusBadge');
+        if (badge) badge.classList.add('active');
+
+        const badgeText = document.getElementById('statusBadgeText');
+        if (badgeText) badgeText.textContent = 'SCANNING';
+
+        const dot = document.getElementById('statusDotAnim');
+        if (dot) dot.classList.add('pulse');
+
+        const statusText = document.getElementById('scannerStatusText');
+        if (statusText) statusText.textContent = 'Scanner active — scan or type a barcode';
+
+        this.showToast('success', 'Scanner activated! Ready to scan barcodes.');
     }
 
     endScanning() {
-        console.log('🛑 END SCANNING!');
+        console.log('🛑 END SCANNING');
         this.isScanning = false;
-        
+        clearTimeout(this.scanTimeout);
+
         // Toggle buttons
         const beginBtn = document.getElementById('beginScanBtn');
-        const endBtn = document.getElementById('endScanBtn');
-        
-        if (beginBtn) beginBtn.style.display = 'inline-block';
-        if (endBtn) endBtn.style.display = 'none';
-        
+        const endBtn   = document.getElementById('endScanBtn');
+        if (beginBtn) beginBtn.style.display = 'block';
+        if (endBtn)   endBtn.style.display = 'none';
+
         // Disable input
         const input = document.getElementById('barcodeInput');
         if (input) {
             input.disabled = true;
             input.value = '';
+            input.blur();
         }
-        
-        // Update status
-        const statusEl = document.getElementById('scanStatus');
-        if (statusEl) {
-            statusEl.textContent = 'Ready to Scan';
-            statusEl.parentElement.parentElement.classList.remove('alert-success');
-            statusEl.parentElement.parentElement.classList.add('alert-warning');
-        }
-        
-        // Hide status indicator
-        const statusDot = document.getElementById('statusDot');
-        if (statusDot) {
-            statusDot.classList.remove('active');
-        }
-        
-        this.showToast('info', 'Scanner deactivated');
+
+        // Reset UI state
+        const wrap = document.getElementById('barcodeInputWrap');
+        if (wrap) wrap.classList.remove('active');
+
+        const card = document.querySelector('.scanner-card');
+        if (card) card.classList.remove('scanning');
+
+        const badge = document.getElementById('scannerStatusBadge');
+        if (badge) badge.classList.remove('active');
+
+        const badgeText = document.getElementById('statusBadgeText');
+        if (badgeText) badgeText.textContent = 'IDLE';
+
+        const dot = document.getElementById('statusDotAnim');
+        if (dot) dot.classList.remove('pulse');
+
+        const statusText = document.getElementById('scannerStatusText');
+        if (statusText) statusText.textContent = 'Press BEGIN SCAN to activate';
+
+        this.showToast('info', 'Scanner deactivated.');
     }
 
     async scanBarcode(barcode) {
-        console.log('🔍 Scanning:', { barcode, isScanning: this.isScanning });
-        
         if (!this.isScanning) {
             this.showToast('warning', 'Please click "BEGIN SCAN" first');
             return;
         }
+        if (!barcode || barcode.trim() === '') return;
 
-        if (!barcode || barcode.trim() === '') {
-            return;
-        }
+        this.isProcessing = true;
 
         try {
-            console.log('📡 Sending scan request...');
+            console.log('📡 Scanning barcode:', barcode);
+
+            const csrfToken = document.querySelector('meta[name="csrf-token"]');
+            if (!csrfToken) {
+                console.error('❌ CSRF token not found!');
+                this.showToast('error', 'CSRF token missing. Please refresh the page.');
+                this.isProcessing = false;
+                return;
+            }
+
             const response = await fetch(`/purchase-order/${this.poId}/scan-item`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    'X-CSRF-TOKEN': csrfToken.content,
+                    'Accept': 'application/json',
                 },
                 body: JSON.stringify({ barcode: barcode.trim() })
             });
 
             const data = await response.json();
-            console.log('📡 Scan response:', data);
-            
+            console.log('📡 Response:', data);
+
             if (data.success) {
-                console.log('✅ Scan successful!');
                 this.addScannedItem(data.product);
-                this.updateProgress(data.product);
+                this.updatePOItemProgress(data.product);
                 this.playSuccessSound();
-                this.showToast('success', `✓ ${data.product.name} scanned!`);
-                this.flashScanSuccess();
+                this.flashScan('success');
+                this.showToast('success', `✓ ${data.product.name} scanned! (${data.product.quantity_scanned}/${data.product.quantity_ordered})`);
             } else {
-                console.error('❌ Scan failed:', data.message);
                 this.playErrorSound();
-                this.showToast('error', data.message);
+                this.flashScan('error');
+                this.showToast('error', data.message || 'Scan failed');
             }
         } catch (error) {
-            console.error('❌ Error scanning barcode:', error);
+            console.error('❌ Scan error:', error);
             this.playErrorSound();
-            this.showToast('error', 'Error scanning item. Please try again.');
+            this.flashScan('error');
+            this.showToast('error', 'Network error. Please try again.');
+        } finally {
+            this.isProcessing = false;
         }
     }
 
     addScannedItem(product) {
-        console.log('➕ Adding scanned item:', product);
         const tbody = document.getElementById('scannedItemsBody');
-        
-        // Remove empty state
-        const emptyState = tbody.querySelector('.empty-state');
-        if (emptyState) {
-            emptyState.remove();
-        }
-        
-        // Check if product already in list
+        if (!tbody) return;
+
+        // Remove empty state row
+        const emptyRow = tbody.querySelector('.empty-state-row');
+        if (emptyRow) emptyRow.remove();
+
         let existingRow = tbody.querySelector(`tr[data-product-id="${product.id}"]`);
-        
+
         if (existingRow) {
-            // Update quantity
-            const qtyCell = existingRow.querySelector('.qty-cell');
+            // Update quantity and total for existing row
+            const qtyCell   = existingRow.querySelector('.qty-cell');
             const totalCell = existingRow.querySelector('.total-cell');
-            const currentQty = parseInt(qtyCell.textContent);
-            const newQty = currentQty + 1;
-            const total = newQty * product.unit_cost;
-            
-            qtyCell.textContent = newQty;
-            totalCell.textContent = `₱${total.toFixed(2)}`;
-            
-            // Highlight
-            existingRow.classList.add('table-success');
-            setTimeout(() => existingRow.classList.remove('table-success'), 1000);
+
+            const currentQty = parseInt(qtyCell.textContent) || 0;
+            const newQty     = currentQty + 1;
+            const newTotal   = newQty * parseFloat(product.unit_cost);
+
+            qtyCell.textContent   = newQty;
+            totalCell.textContent = `₱${newTotal.toFixed(2)}`;
+
+            // Flash highlight
+            existingRow.style.background = 'rgba(34,197,94,0.15)';
+            setTimeout(() => { existingRow.style.background = ''; }, 600);
+
         } else {
-            // Add new row
+            // New row
             const row = document.createElement('tr');
-            row.dataset.productId = product.id;
-            row.style.opacity = '0';
+            row.setAttribute('data-product-id', product.id);
+            row.classList.add('new-row-anim');
             row.innerHTML = `
-                <td><code class="text-primary">${product.barcode}</code></td>
+                <td><code>${product.barcode || '—'}</code></td>
                 <td><strong>${product.name}</strong></td>
-                <td class="text-center"><span class="badge badge-primary qty-cell">1</span></td>
-                <td class="text-right font-weight-bold total-cell">₱${parseFloat(product.unit_cost).toFixed(2)}</td>
+                <td class="text-center"><span class="qty-cell"
+                    style="background:rgba(61,142,248,0.15);color:#3d8ef8;font-family:'IBM Plex Mono',monospace;
+                           font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;">1</span></td>
+                <td class="text-right total-cell"
+                    style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7c8499;">
+                    ₱${parseFloat(product.unit_cost).toFixed(2)}
+                </td>
             `;
             tbody.insertBefore(row, tbody.firstChild);
-            
-            // Fade in animation
-            setTimeout(() => {
-                row.style.transition = 'opacity 0.3s';
-                row.style.opacity = '1';
-            }, 10);
         }
-        
+
         this.totalScanned++;
         this.updateGrandTotal();
         this.updateStats();
         this.updateScannedCount();
     }
 
-    updateProgress(product) {
-        const row = document.querySelector(`#poItemsBody tr[data-product-id="${product.id}"]`);
-        if (!row) return;
-        
-        const progressBar = row.querySelector('.progress-bar');
-        if (!progressBar) return;
-        
-        const progress = product.progress || 0;
-        
-        progressBar.style.width = `${progress}%`;
-        const progressText = progressBar.querySelector('.progress-text');
-        if (progressText) {
-            progressText.textContent = `${product.quantity_scanned}/${product.quantity_ordered}`;
+    updatePOItemProgress(product) {
+        const progress   = parseFloat(product.progress) || 0;
+        const scanned    = parseInt(product.quantity_scanned) || 0;
+        const ordered    = parseInt(product.quantity_ordered) || 0;
+        const productId  = product.id;
+
+        const progressBar = document.getElementById(`progress-${productId}`);
+        const countLabel  = document.getElementById(`pcount-${productId}`);
+        const pctLabel    = document.getElementById(`ppct-${productId}`);
+        const statusIcon  = document.getElementById(`icon-${productId}`);
+        const row         = document.querySelector(`#poItemsBody tr[data-product-id="${productId}"]`);
+
+        if (progressBar) {
+            progressBar.style.width = `${progress}%`;
         }
-        
-        // Update percentage
-        const progressDesc = progressBar.parentElement.nextElementSibling;
-        if (progressDesc) {
-            progressDesc.textContent = `${Math.round(progress)}% complete`;
+        if (countLabel) {
+            countLabel.textContent = `${scanned}/${ordered}`;
         }
-        
-        // Change color if complete
-        if (progress === 100) {
-            progressBar.classList.remove('bg-primary', 'progress-bar-animated');
-            progressBar.classList.add('bg-success');
-            row.classList.add('completed');
-            
-            const icon = row.querySelector('i');
-            if (icon) {
-                icon.classList.remove('far', 'fa-circle', 'text-muted');
-                icon.classList.add('fas', 'fa-check-circle', 'text-success');
+        if (pctLabel) {
+            pctLabel.textContent = `${Math.round(progress)}%`;
+        }
+
+        if (progress >= 100) {
+            if (progressBar) progressBar.classList.add('done');
+            if (statusIcon) {
+                statusIcon.classList.remove('pending');
+                statusIcon.classList.add('completed');
+                statusIcon.innerHTML = '<i class="fas fa-check-circle"></i>';
             }
+            if (row) row.classList.add('completed-row');
         }
     }
 
     updateGrandTotal() {
         const rows = document.querySelectorAll('#scannedItemsBody tr[data-product-id]');
         let total = 0;
-        
+
         rows.forEach(row => {
-            const totalText = row.querySelector('.total-cell').textContent;
-            const subtotal = parseFloat(totalText.replace('₱', '').replace(',', ''));
-            total += subtotal;
+            const totalText = row.querySelector('.total-cell')?.textContent || '0';
+            const amount = parseFloat(totalText.replace('₱', '').replace(/,/g, '')) || 0;
+            total += amount;
         });
-        
-        const grandTotalEl = document.getElementById('scanGrandTotal');
-        if (grandTotalEl) {
-            grandTotalEl.textContent = `₱${total.toFixed(2)}`;
-        }
+
+        const el = document.getElementById('scanGrandTotal');
+        if (el) el.textContent = `₱${total.toFixed(2)}`;
     }
 
     updateStats() {
-        const scannedEl = document.getElementById('totalScanned');
-        const orderedEl = document.getElementById('totalOrderedDisplay');
+        const scannedEl  = document.getElementById('totalScanned');
+        const orderedEl  = document.getElementById('totalOrderedDisplay');
         const progressEl = document.getElementById('scanProgress');
-        
+        const pctEl      = document.getElementById('progressPercent');
+        const barEl      = document.getElementById('overallProgressBar');
+
         if (scannedEl) scannedEl.textContent = this.totalScanned;
         if (orderedEl) orderedEl.textContent = this.totalOrdered;
-        
-        const progress = this.totalOrdered > 0 
-            ? Math.round((this.totalScanned / this.totalOrdered) * 100) 
+
+        const pct = this.totalOrdered > 0
+            ? Math.round((this.totalScanned / this.totalOrdered) * 100)
             : 0;
-        
-        if (progressEl) progressEl.textContent = `${progress}%`;
+
+        if (progressEl) progressEl.textContent = `${pct}%`;
+        if (pctEl)      pctEl.textContent = `${pct}%`;
+        if (barEl)      barEl.style.width = `${pct}%`;
     }
 
     updateScannedCount() {
-        const count = document.querySelectorAll('#scannedItemsBody tr[data-product-id]').length;
-        const badge = document.getElementById('scannedCount');
-        if (badge) {
-            badge.textContent = `${count} item${count !== 1 ? 's' : ''}`;
-        }
+        const count  = document.querySelectorAll('#scannedItemsBody tr[data-product-id]').length;
+        const badge  = document.getElementById('scannedCount');
+        if (badge) badge.textContent = `${count} item${count !== 1 ? 's' : ''}`;
     }
 
     async completeScanning() {
-        if (!confirm('Complete scanning? This will finalize the purchase order and create serialized products.')) {
+        if (this.totalScanned === 0) {
+            this.showToast('warning', 'No items have been scanned yet.');
             return;
         }
+
+        if (!confirm('Complete scanning? This will finalize the purchase order.')) return;
 
         try {
             const response = await fetch(`/purchase-order/${this.poId}/complete-scan`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json',
                 }
             });
 
             const data = await response.json();
-            
+
             if (data.success) {
-                this.showToast('success', 'Scanning completed successfully! Redirecting...');
-                setTimeout(() => {
-                    window.location.href = '/purchase-order';
-                }, 1500);
+                this.showToast('success', '✅ Scanning completed! Redirecting...');
+                setTimeout(() => { window.location.href = '/purchase-order'; }, 1500);
             } else {
-                this.showToast('error', data.message);
+                this.showToast('error', data.message || 'Could not complete scan');
             }
         } catch (error) {
-            console.error('Error completing scan:', error);
-            this.showToast('error', 'Error completing scanning. Please try again.');
+            console.error('Complete scan error:', error);
+            this.showToast('error', 'Network error. Please try again.');
         }
     }
 
-    flashScanSuccess() {
-        const input = document.getElementById('barcodeInput');
-        if (input) {
-            input.style.backgroundColor = '#d4edda';
-            setTimeout(() => {
-                input.style.backgroundColor = '';
-            }, 300);
-        }
+    flashScan(type) {
+        const overlay = document.getElementById('scanFlash');
+        if (!overlay) return;
+
+        overlay.style.display = 'block';
+        overlay.classList.remove('flash-success', 'flash-error');
+        void overlay.offsetWidth; // force reflow
+        overlay.classList.add(type === 'success' ? 'flash-success' : 'flash-error');
+
+        setTimeout(() => {
+            overlay.style.display = 'none';
+            overlay.classList.remove('flash-success', 'flash-error');
+        }, 350);
     }
 
     showToast(type, message) {
-        const typeMap = {
-            'success': 'alert-success',
-            'error': 'alert-danger',
-            'warning': 'alert-warning',
-            'info': 'alert-info'
+        const container = document.getElementById('toastContainer');
+        if (!container) return;
+
+        const icons = {
+            success: 'fa-check-circle',
+            error:   'fa-times-circle',
+            warning: 'fa-exclamation-triangle',
+            info:    'fa-info-circle',
         };
-        
+
         const toast = document.createElement('div');
-        toast.className = `alert ${typeMap[type]} position-fixed shadow-lg`;
-        toast.style.cssText = 'top: 80px; right: 20px; z-index: 9999; min-width: 300px;';
+        toast.className = `toast-item toast-${type}`;
         toast.innerHTML = `
-            <button type="button" class="close" onclick="this.parentElement.remove()">
-                <span>&times;</span>
-            </button>
-            ${message}
+            <i class="fas ${icons[type] || 'fa-info-circle'} toast-icon"></i>
+            <span>${message}</span>
         `;
-        
-        document.body.appendChild(toast);
-        
+
+        container.appendChild(toast);
+
         setTimeout(() => {
-            toast.style.opacity = '0';
-            toast.style.transition = 'opacity 0.3s';
+            toast.style.opacity    = '0';
+            toast.style.transform  = 'translateX(20px)';
+            toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
             setTimeout(() => toast.remove(), 300);
         }, 3000);
     }
 
     playSuccessSound() {
         try {
-            const beep = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmwhBStxy/LcfjMGH2S36ueXTQwNU6Xj8LdlHAdBnNryw3kvBSh+zPHaizsIGm276OGVUAwLUaLk8LVoHgg+ktfzzHwwBSh6y/LZiToIGGm57eWaTAwNUKLl8LJrHgg9ldfzzH0yBSh5zPDYizkIGWm77OWaTQwNU6Li8rVpHQc+ltjzw30yBSl3y/LaiToIG2q87eOaTgwNU6Ph8LNoHQg8ktjzw38xBSp3y/LXizsIGWm67eWaTgwNU6Li8LRqHgc8ktjzw38xBSp2y/DXizsIGWq87OSbTgwNU6Ph8LRqHQc9ktfzw38xBSl3y/DXizsIGWm77OSbTgwNUqPh8LNqHQc8ktjzw38xBSp3y/DYizsIGWm77OWaTgwNU6Ph8LNoHQc+ltfzw38xBSl3y/DXizsIGWq87eOaTQwNUqPh8LNqHQc8ktjzw38xBSp3y/DXizsIGWm77eWaTgwNU6Ph8LNoHQc9ktfzw38xBSl4y/DXizsIGWm77OSbTgwNU6Ph8LNqHQc9ktfzw38xBSl3y/DXizsIGWm77OSbTgwNU6Ph8LNqHQc9ktfzw38xBSl3y/DXiz');
-            beep.play().catch(() => {});
-        } catch (e) {
-            // Silent fail
-        }
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.frequency.setValueAtTime(880, ctx.currentTime);
+            osc.frequency.setValueAtTime(1100, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.25);
+        } catch (e) { /* silent */ }
     }
 
     playErrorSound() {
         try {
-            const beep = new Audio('data:audio/wav;base64,UklGRhwCAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YfgBAAD/AP///wAA//8AAAEA//8BAAAA/wD//wEAAAD/AAEA/wAAAP//AAABAP///////wAAAQD//wEA/wD+/wEAAQAAAAEA/v8AAP//AAABAP7/AAD//wAAAAEA/v8AAAEA/v////8BAP7/AAD//wAAAQD+/wAAAQD+////AAEA/v8AAAEA/v////8BAP7/AAABAP7////+AAEA/v8AAAEA/v////8AAP7/AAABAP3////+AAEA/v8AAAEA/v////8AAP7/AAABAP3////+AAEA/v8AAAEA/v////8AAP7/AAABAP3////+AAEA/v8AAAEA/v////8AAP7/AAABAP3////+AAEA/v8AAAEA/v////8AAP7/AAABAP3////+AAEA/v8AAAEA/v////8AAP7/AAABAP3////+AAEA/v8AAAEA/v////8AAP7/AAABAP3////+AAEA/v8AAAEA/v////8AAP7/AAABAP3////+AAEA/v8AAAEA/v////8AAP7/AAABAP3/');
-            beep.play().catch(() => {});
-        } catch (e) {
-            // Silent fail
-        }
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(200, ctx.currentTime);
+            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.2);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.2);
+        } catch (e) { /* silent */ }
     }
 }
 
-// ✅ INITIALIZE SCANNER
+// ✅ INITIALIZE
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('✅ DOM ready - Initializing scanner...');
-    
     const container = document.getElementById('scanContainer');
     const poId = container?.dataset.poId;
-    
+
     if (poId) {
-        console.log('🎯 Creating scanner instance for PO:', poId);
+        console.log('🎯 Scanner ready for PO:', poId);
         window.scannerManager = new BarcodeScannerManager(poId);
     } else {
-        console.error('❌ PO ID not found in scanContainer!');
+        console.error('❌ PO ID not found in #scanContainer[data-po-id]');
     }
 });
 
-feb 12
+feb 23 2026

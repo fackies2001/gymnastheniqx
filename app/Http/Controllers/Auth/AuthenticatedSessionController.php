@@ -23,9 +23,13 @@ class AuthenticatedSessionController extends Controller
     /**
      * Display the login view.
      */
-    public function create(): View
+    public function create(): \Illuminate\Http\Response
     {
-        return view('auth.login');
+        // ✅ NO-CACHE HEADERS — prevents browser back button after logout
+        return response(view('auth.login'))
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', 'Sat, 01 Jan 2000 00:00:00 GMT');
     }
 
     /**
@@ -41,14 +45,14 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         Log::info('User Logged In: ', [
-            'user_id' => $user->id,
-            'email' => $user->email,
-            'time' => now(),
-            'ip' => $request->ip(),
+            'user_id'    => $user->id,
+            'email'      => $user->email,
+            'time'       => now(),
+            'ip'         => $request->ip(),
             'user_agent' => $request->userAgent(),
-            'status' => 'success',
-            'message' => 'User logged in successfully.',
-            'has_pin' => !empty($user->pin) ? 'YES' : 'NO',
+            'status'     => 'success',
+            'message'    => 'User logged in successfully.',
+            'has_pin'    => !empty($user->pin) ? 'YES' : 'NO',
         ]);
 
         // Delete old token for this device
@@ -61,27 +65,25 @@ class AuthenticatedSessionController extends Controller
         $hasPin = !empty($user->pin);
 
         if (!$hasPin) {
-            // NEW USER - Need to set PIN
             session([
                 'show_pin_modal' => true,
-                'pin_verified' => false,
-                'pin_mode' => 'set'
+                'pin_verified'   => false,
+                'pin_mode'       => 'set'
             ]);
 
             Log::info('🆕 PIN Modal: NEW USER - Set PIN required', [
-                'user_id' => $user->id,
+                'user_id'      => $user->id,
                 'session_data' => session()->all()
             ]);
         } else {
-            // EXISTING USER - Need to verify PIN
             session([
                 'show_pin_modal' => true,
-                'pin_verified' => false,
-                'pin_mode' => 'verify'
+                'pin_verified'   => false,
+                'pin_mode'       => 'verify'
             ]);
 
             Log::info('🔐 PIN Modal: EXISTING USER - Verify PIN required', [
-                'user_id' => $user->id,
+                'user_id'      => $user->id,
                 'session_data' => session()->all()
             ]);
         }
@@ -99,8 +101,8 @@ class AuthenticatedSessionController extends Controller
 
         Log::info('User Logged Out', [
             'user_id' => auth()->id(),
-            'time' => now(),
-            'ip' => $request->ip(),
+            'time'    => now(),
+            'ip'      => $request->ip(),
         ]);
 
         Auth::guard('web')->logout();
@@ -108,6 +110,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
+        // ✅ Redirect to login — no-cache handled by create() and CheckPinStatus
         return redirect('/login');
     }
 }

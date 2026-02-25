@@ -69,6 +69,7 @@
                             <th>Quantity</th>
                             <th>Status</th>
                             <th>Date Added</th>
+                            <th>Last Updated</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -162,6 +163,11 @@
                         {
                             data: 'created_at',
                             name: 'created_at',
+                            className: 'text-center'
+                        },
+                        {
+                            data: 'updated_at', // ✅ Last Updated
+                            name: 'updated_at',
                             className: 'text-center'
                         },
                         {

@@ -181,7 +181,6 @@
             <table class="table table-bordered table-hover" id="retailerTable">
                 <thead class="bg-dark text-white">
                     <tr>
-                        <th>SKU</th>
                         <th>Retailer Name</th>
                         <th>Product</th>
                         <th>Qty</th>
@@ -192,7 +191,6 @@
                 <tbody>
                     @foreach ($retailer_orders as $order)
                         <tr>
-                            <td class="font-weight-bold text-secondary text-uppercase">{{ $order->sku ?? 'N/A' }}</td>
                             <td>{{ $order->retailer_name }}</td>
                             <td>{{ $order->product_name }}</td>
                             <td>{{ $order->quantity }}</td>
@@ -471,13 +469,30 @@
             td {
                 border: 1px solid #000 !important;
                 padding: 8px !important;
+                visibility: visible !important;
             }
 
             thead {
+                display: table-header-group !important;
+                visibility: visible !important;
                 background-color: #343a40 !important;
-                color: white !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
+            }
+
+            thead tr th {
+                background-color: #343a40 !important;
+                color: black !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+                visibility: visible !important;
+                display: table-cell !important;
+                font-weight: bold !important;
+            }
+
+            /* Hide DataTable generated elements but keep our table */
+            .dataTables_scrollHead {
+                display: none !important;
             }
         }
 
@@ -531,7 +546,49 @@
                 hour12: true
             });
             document.getElementById('print-date-table').textContent = dateString + ' | ' + timeString;
+
+            // Destroy DataTable
+            if ($.fn.DataTable.isDataTable('#retailerTable')) {
+                $('#retailerTable').DataTable().destroy();
+            }
+
+            // Manually restore headers
+            $('#retailerTable thead tr').html(`
+                <th>Retailer Name</th>
+                <th>Product</th>
+                <th>Qty</th>
+                <th>Total Amount</th>
+            `);
+
             window.print();
+
+            // Re-initialize DataTable after print
+            window.onafterprint = function() {
+                $('#retailerTable thead tr').html(`
+            <th>Retailer Name</th>
+            <th>Product</th>
+            <th>Qty</th>
+            <th>Total Amount</th>
+            <th class="no-print">Action</th>
+        `);
+                $('#retailerTable').DataTable({
+                    "responsive": true,
+                    "autoWidth": false,
+                    "destroy": true,
+                    "order": [
+                        [0, "asc"]
+                    ],
+                    "pageLength": 10,
+                    "language": {
+                        "emptyTable": "No records found for the selected period"
+                    },
+                    "columnDefs": [{
+                        "targets": -1,
+                        "orderable": false,
+                        "searchable": false
+                    }]
+                });
+            };
         }
 
         $(document).ready(function() {

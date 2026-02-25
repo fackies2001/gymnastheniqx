@@ -752,9 +752,16 @@
                 let data = table.row(this).data();
                 if (!data || !data.id) return;
 
-                // PENDING = Approval Modal, APPROVED/REJECTED = View Receipt Modal
+                // ✅ RBAC - Staff cannot open approval modal
+                let userRole = '{{ strtolower(auth()->user()->role?->role_name ?? '') }}';
+
                 if (data.status_id == 1) {
-                    openApprovalModal(data.id);
+                    if (userRole === 'admin' || userRole === 'manager') {
+                        openApprovalModal(data.id);
+                    } else {
+                        // Staff - view only
+                        openPRDetailsModal(data.id);
+                    }
                 } else {
                     openPRDetailsModal(data.id);
                 }
@@ -767,7 +774,14 @@
                 e.preventDefault();
                 e.stopPropagation();
                 let prId = $(this).data('id');
-                if (prId) openApprovalModal(prId);
+                let userRole = '{{ strtolower(auth()->user()->role?->role_name ?? '') }}';
+                if (prId) {
+                    if (userRole === 'admin' || userRole === 'manager') {
+                        openApprovalModal(prId);
+                    } else {
+                        openPRDetailsModal(prId);
+                    }
+                }
             });
 
             $(document).on('click', '.approve-pr-btn', function(e) {
@@ -825,7 +839,7 @@
                                 let productName = item.product_name || item.supplier_product
                                     ?.name || 'Unknown';
                                 let sku = item.sku || item.supplier_product?.system_sku ||
-                                'N/A';
+                                    'N/A';
                                 itemsHtml += `
                                     <tr>
                                         <td class="text-center">${index + 1}</td>

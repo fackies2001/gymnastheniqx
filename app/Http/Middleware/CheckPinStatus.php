@@ -18,40 +18,48 @@ class CheckPinStatus
 
         $user = auth()->user();
 
-        // 2️⃣ Check PIN directly from $user
-        $hasPin = !empty($user->pin);
+        $hasPin    = !empty($user->pin);
         $isVerified = session('pin_verified', false);
 
-        // 🔍 DEBUG LOG
         Log::info('PIN Status Check for User: ' . $user->full_name, [
-            'user_id' => $user->id,
-            'has_pin' => $hasPin ? 'YES' : 'NO',
-            'is_verified' => $isVerified ? 'YES' : 'NO',
+            'user_id'       => $user->id,
+            'has_pin'       => $hasPin    ? 'YES' : 'NO',
+            'is_verified'   => $isVerified ? 'YES' : 'NO',
             'current_route' => $request->path(),
         ]);
 
-        // 3️⃣ EXEMPT PIN-related routes to prevent infinite loop
+        // 2️⃣ Exempt PIN-related routes to prevent infinite loop
         if ($request->is('verify_pin', 'update_pin')) {
             return $next($request);
         }
 
-        // 4️⃣ If user has PIN AND it's verified, allow access
+        // 3️⃣ If user has PIN AND it's verified — allow through with no-cache headers
         if ($hasPin && $isVerified) {
             session()->forget(['show_pin_modal', 'pin_mode']);
-            return $next($request);
+            return $this->withNoCache($next($request));
         }
 
-        // 5️⃣ If user needs PIN setup/verification
+        // 4️⃣ If user needs PIN setup/verification — still allow through but show modal
         if (!$hasPin) {
-            // User has NO PIN - must set
             session(['show_pin_modal' => true, 'pin_mode' => 'set']);
             Log::info('🚨 PIN Modal Triggered: SET MODE', ['user_id' => $user->id]);
         } elseif ($hasPin && !$isVerified) {
-            // User HAS PIN but NOT verified - must verify
             session(['show_pin_modal' => true, 'pin_mode' => 'verify']);
             Log::info('🚨 PIN Modal Triggered: VERIFY MODE', ['user_id' => $user->id]);
         }
 
-        return $next($request);
+        return $this->withNoCache($next($request));
+    }
+
+    /**
+     * ✅ Attach no-cache headers to every authenticated response
+     * This prevents the browser back button from showing cached pages after logout.
+     */
+    private function withNoCache(Response $response): Response
+    {
+        return $response
+            ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+            ->header('Pragma', 'no-cache')
+            ->header('Expires', 'Sat, 01 Jan 2000 00:00:00 GMT');
     }
 }

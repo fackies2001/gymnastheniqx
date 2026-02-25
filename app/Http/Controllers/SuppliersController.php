@@ -104,4 +104,35 @@ class SuppliersController extends Controller
         $request->merge(['id' => $id]);
         return $this->datatableServices->get_purchase_requests_table($request);
     }
+
+    public function edit($id)
+    {
+        $supplier = Supplier::findOrFail($id);
+        return view('suppliers.edit', compact('supplier'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $supplier = Supplier::findOrFail($id);
+        $supplier->update([
+            'name' => $request->name,
+            'email' => $request->email,
+            'contact_number' => $request->contact_number,
+            'address' => $request->address,
+        ]);
+
+        return redirect()->route('suppliers.index')
+            ->with('success', 'Supplier updated successfully!');
+    }
+
+    public function destroy($id)
+    {
+        $supplier = Supplier::findOrFail($id);
+        // Manual delete ng products bago i-delete ang supplier
+        $supplier->supplierProducts()->delete();
+        $supplier->delete();
+
+        return redirect()->route('suppliers.index')
+            ->with('success', 'Supplier deleted successfully!');
+    }
 }

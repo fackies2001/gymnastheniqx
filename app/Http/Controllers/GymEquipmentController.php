@@ -59,6 +59,9 @@ class GymEquipmentController extends Controller
             ->editColumn('created_at', function ($row) {
                 return $row->created_at->format('M d, Y');
             })
+            ->editColumn('updated_at', function ($row) {
+                return $row->updated_at->format('M d, Y h:i A');
+            })
             ->addColumn('action', function ($row) {
                 return '
                     <div class="btn-group" role="group">
@@ -71,7 +74,7 @@ class GymEquipmentController extends Controller
                     </div>
                 ';
             })
-            ->rawColumns(['status', 'action'])
+            ->rawColumns(['status', 'updated_at', 'action'])
             ->make(true);
     }
 

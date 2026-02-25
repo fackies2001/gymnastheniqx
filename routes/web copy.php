@@ -22,7 +22,8 @@ use App\Http\Controllers\{
     SerializedProductsController,
     RetailerOrderController,
     ManpowerController,
-    GymEquipmentController
+    GymEquipmentController,
+    PincodeController // ✅ ADD THIS
 };
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Middleware\CheckPinStatus;
@@ -32,7 +33,13 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// ✅ AUTHENTICATED ROUTES
+// ✅ PIN VERIFICATION ROUTES (OUTSIDE CheckPinStatus MIDDLEWARE - CRITICAL!)
+Route::middleware(['auth'])->group(function () {
+    Route::post('/verify_pin', [UserManagementController::class, 'verifyPin'])->name('user.verify.pin');
+    Route::put('/update_pin', [UserManagementController::class, 'updatePin'])->name('user.update.pin');
+});
+
+// ✅ AUTHENTICATED ROUTES WITH PIN CHECK
 Route::middleware(['auth', CheckPinStatus::class])->group(function () {
 
     // --- DASHBOARD & USER MANAGEMENT ---
@@ -100,47 +107,36 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
     Route::get('/warehouse', [WarehouseController::class, 'index'])->name('warehouse.index');
     Route::post('/warehouse/store', [WarehouseController::class, 'store'])->name('warehouse.store');
     Route::post('/warehouse/update', [WarehouseController::class, 'update'])->name('warehouse.update');
-    Route::delete('/warehouse/delete', [WarehouseController::class, 'destroy'])->name('warehouse.delete'); // ✅ ADD THIS
+    Route::delete('/warehouse/delete', [WarehouseController::class, 'destroy'])->name('warehouse.delete');
     Route::get('/scan', [ScanController::class, 'index'])->name('scan.index');
 
     // ✅ Purchase Request Routes
     Route::prefix('purchase-request')->group(function () {
-        // 1. Mga GET routes para sa listahan at helpers
         Route::get('/', [PurchaseRequestController::class, 'index'])->name('pr.index');
         Route::get('/datatable', [PurchaseRequestController::class, 'getPurchaseRequestTable'])->name('pr.datatable');
         Route::get('/generate-number', [PurchaseRequestController::class, 'generatePRNumber'])->name('pr.generate-number');
         Route::get('/supplier-products/{id}', [PurchaseRequestController::class, 'getSupplierProducts'])->name('pr.supplier-products');
-
-        // 2. Lahat ng POST routes (Dapat mauna ito bago ang /{id})
         Route::post('/store', [PurchaseRequestController::class, 'store'])->name('pr.store');
         Route::post('/approve/{id}', [PurchaseRequestController::class, 'approve'])->name('pr.approve');
         Route::post('/reject/{id}', [PurchaseRequestController::class, 'reject'])->name('pr.reject');
         Route::get('/{id}', [PurchaseRequestController::class, 'show'])->name('pr.show');
     });
+
     // Purchase Order 
     Route::prefix('purchase-order')->group(function () {
         Route::get('/', [PurchaseOrderController::class, 'index'])->name('purchase-order.index');
-        Route::get('/generate-number', [PurchaseOrderController::class, 'generatePONumber'])->name('purchase-order.generate-number'); // ✅ Specific routes muna
+        Route::get('/generate-number', [PurchaseOrderController::class, 'generatePONumber'])->name('purchase-order.generate-number');
         Route::get('/scan/{id}', [PurchaseOrderController::class, 'scanView'])->name('purchase-order.scan');
         Route::get('/details/{id}', [PurchaseOrderController::class, 'getDetailsJson'])->name('purchase-order.details');
-
-        // ✅ POST routes (dapat nauna to bago yung GET /{id})
         Route::post('/{id}/scan-item', [PurchaseOrderController::class, 'scanItem'])->name('purchase-order.scan-item');
         Route::post('/{id}/complete-scan', [PurchaseOrderController::class, 'completeScan'])->name('purchase-order.complete-scan');
         Route::post('/receive', [PurchaseOrderController::class, 'receiveItems'])->name('purchase-order.receive');
-
-        // ✅ Generic /{id} dapat nasa dulo
         Route::get('/{id}', [PurchaseOrderController::class, 'show'])->name('purchase-order.show');
     });
 
-    // ==========================================
-    // ✅ SUPPLIER PRODUCTS ROUTES
-    // ==========================================
     Route::get('/suppliers/{id}/products', [PurchaseRequestController::class, 'getSupplierProducts'])->name('suppliers.products');
 
-    // ==========================================
-    // SERIALIZED PRODUCTS (3-Layer Flow)
-    // ==========================================
+    // SERIALIZED PRODUCTS
     Route::controller(SerializedProductsController::class)->group(function () {
         Route::get('/serialized_products', 'index')->name('serialized_products.index');
         Route::get('/serialized_products/index-table', 'indexTable')->name('serialized_products.indexTable');
@@ -154,9 +150,7 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
         Route::put('/serialized_products/update_status/{id}', 'updateStatus')->name('serialized_products.update_status');
     });
 
-    // ==========================================
     // SUPPLIER MANAGEMENT
-    // ==========================================
     Route::controller(SuppliersController::class)->group(function () {
         Route::get('/suppliers', 'index')->name('suppliers.index');
         Route::get('/suppliers/create', 'create')->name('suppliers.create');
@@ -165,9 +159,7 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
         Route::get('/suppliers/{id}', 'show')->name('suppliers.show');
     });
 
-    // ==========================================
     // SUPPLIER PRODUCTS
-    // ==========================================
     Route::controller(SupplierProductsController::class)->group(function () {
         Route::get('/supplier_products', 'index')->name('supplier_products.index');
         Route::post('/supplier_products/store', 'store')->name('supplier_products.store');
@@ -178,20 +170,16 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
         Route::get('/supplier_products/show_table/{id}', 'showTable')->name('supplier_products.show_table');
     });
 
-    // ==========================================
     // RETAILER ORDERS
-    // ==========================================
     Route::controller(RetailerOrderController::class)->group(function () {
         Route::get('/orders', 'index')->name('retailer.orders.index');
         Route::post('/retailer-orders/store', 'store')->name('retailer.orders.store');
         Route::post('/retailer-orders/{id}/approve', 'approve')->name('retailer.orders.approve');
         Route::post('/retailer-orders/{id}/reject', 'reject')->name('retailer.orders.reject');
-        Route::post('/retailer-orders/{id}/complete', 'complete')->name('retailer.orders.complete'); // ✅ NEW
+        Route::post('/retailer-orders/{id}/complete', 'complete')->name('retailer.orders.complete');
     });
 
-    // ==========================================
     // REPORTS MANAGEMENT
-    // ==========================================
     Route::controller(ReportsController::class)->group(function () {
         Route::post('/reports/damage', 'reportDamage')->name('reports.report.damage');
         Route::post('/reports/update-stock', 'updateStock')->name('reports.update.stock');
@@ -209,32 +197,28 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
         Route::get('/strategic-reports', 'strategicIndex')->name('reports.strategic');
     });
 
-    // ==========================================
     // MANPOWER MANAGEMENT
-    // ==========================================
     Route::controller(ManpowerController::class)->group(function () {
         Route::get('/manpower', 'index')->name('manpower.index');
         Route::get('/manpower/data', 'get_coaches_data')->name('manpower.data');
         Route::post('/manpower/store', 'store')->name('manpower.store');
         Route::get('/manpower/{id}/edit', 'edit')->name('manpower.edit');
-        Route::put('/manpower/{id}', 'update')->name('manpower.update');  // ✅ CHANGED TO PUT!
+        Route::put('/manpower/{id}', 'update')->name('manpower.update');
         Route::delete('/manpower/{id}', 'destroy')->name('manpower.delete');
     });
 
-    // ==========================================
     // GYM EQUIPMENT MANAGEMENT
-    // ==========================================
     Route::controller(GymEquipmentController::class)->group(function () {
         Route::get('/gym-equipments', 'index')->name('gym.index');
         Route::get('/gym-equipments/data', 'getEquipments')->name('gym.data');
-        Route::get('/gym-equipments/print', 'print')->name('gym.print'); // Move this UP
+        Route::get('/gym-equipments/print', 'print')->name('gym.print');
         Route::post('/gym-equipments/store', 'store')->name('gym.store');
         Route::get('/gym-equipments/{id}/edit', 'edit')->name('gym.edit');
         Route::put('/gym-equipments/{id}', 'update')->name('gym.update');
         Route::delete('/gym-equipments/{id}', 'destroy')->name('gym.delete');
     });
-}); // ✅ END OF AUTH MIDDLEWARE GROUP
+});
 
 require __DIR__ . '/auth.php';
 
-feb 11
+feb 16

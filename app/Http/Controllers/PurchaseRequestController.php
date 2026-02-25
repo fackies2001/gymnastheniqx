@@ -41,8 +41,16 @@ class PurchaseRequestController extends Controller
     public function getPurchaseRequestTable(Request $request)
     {
         if ($request->ajax()) {
+            $user = auth()->user();
+            $userRole = strtolower($user->role?->role_name ?? '');
+
             $query = PurchaseRequest::with(['user', 'department', 'supplier', 'status'])
                 ->select('purchase_request.*');
+
+            // ✅ Admin lang nakakakita ng lahat, Staff at Manager sarili lang
+            if ($userRole !== 'admin') {
+                $query->where('user_id', $user->id);
+            }
 
             return DataTables::eloquent($query)
                 ->addColumn('requestor', function ($pr) {
@@ -67,7 +75,7 @@ class PurchaseRequestController extends Controller
                 ->addColumn('id', function ($pr) {
                     return $pr->id;
                 })
-                ->addColumn('status_id', function ($pr) {  // ✅ DAGDAG ITO
+                ->addColumn('status_id', function ($pr) {
                     return $pr->status_id;
                 })
                 ->editColumn('created_at', function ($pr) {
@@ -80,9 +88,16 @@ class PurchaseRequestController extends Controller
 
     public function index()
     {
+        $user = auth()->user();
+        $userRole = strtolower($user->role?->role_name ?? '');
+
         $purchaseRequests = PurchaseRequest::with(['user', 'department', 'supplier'])
+            ->when($userRole !== 'admin', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            })
             ->orderBy('created_at', 'desc')
             ->get();
+
         $suppliers = Supplier::all();
         return view('purchase-request.index', compact('purchaseRequests', 'suppliers'));
     }
@@ -99,7 +114,7 @@ class PurchaseRequestController extends Controller
         DB::beginTransaction();
         try {
             $user   = Auth::user();
-            $prefix = "PR-" . date('Ym');
+            $prefix = "PR-" . date('Ymd');
 
             $lastPR = PurchaseRequest::where('request_number', 'LIKE', $prefix . '%')
                 ->lockForUpdate()
@@ -107,15 +122,15 @@ class PurchaseRequestController extends Controller
                 ->first();
 
             $newNumber = $lastPR
-                ? str_pad((int) substr($lastPR->request_number, -3) + 1, 3, '0', STR_PAD_LEFT)
-                : '001';
+                ? str_pad((int) substr($lastPR->request_number, -4) + 1, 4, '0', STR_PAD_LEFT)
+                : '0001';
 
             $prNumber = $prefix . '-' . $newNumber;
 
             $pr = PurchaseRequest::create([
                 'request_number' => $prNumber,
                 'user_id'        => $user->id,
-                'department_id' => $user->department_id ?? $user->department?->id ?? null,
+                'department_id'  => $user->department_id ?? $user->department?->id ?? null,
                 'supplier_id'    => $validated['supplier_id'],
                 'status_id'      => 1,
                 'order_date'     => now(),
@@ -154,7 +169,6 @@ class PurchaseRequestController extends Controller
                 $admins        = $this->getAdmins();
 
                 foreach ($admins as $admin) {
-                    // Don't notify yourself if you're an admin
                     if ($admin->id !== $user->id) {
                         $admin->notify(new PurchaseRequestNotification(
                             'created',
@@ -206,9 +220,7 @@ class PurchaseRequestController extends Controller
                 }
             }
 
-            // BAGO - ensure department is always resolved
             if (!$pr->department_id && $pr->user && $pr->user->department_id) {
-                // If PR has no department, inherit from user
                 $pr->department_id = $pr->user->department_id;
                 $pr->setRelation('department', $pr->user->department);
             } elseif (!$pr->department && $pr->user && $pr->user->department) {
@@ -221,10 +233,9 @@ class PurchaseRequestController extends Controller
                 $pr->supplier_contact_person = $pr->supplier->contact_person ?? 'N/A';
                 $pr->supplier_contact_number = $pr->supplier->contact_number  ?? 'N/A';
                 $pr->supplier_email          = $pr->supplier->email           ?? 'N/A';
-                $pr->supplier_address        = $pr->supplier->address        ?? 'N/A';
+                $pr->supplier_address        = $pr->supplier->address         ?? 'N/A';
             }
 
-            // ✅ Direct query gamit ang tamang foreign key: purchase_request_id
             $po = \App\Models\PurchaseOrder::where('purchase_request_id', $pr->id)->first();
             $pr->po_delivery_date = $po?->delivery_date?->format('Y-m-d') ?? null;
             $pr->po_payment_terms = $po?->payment_terms ?? null;
@@ -295,7 +306,6 @@ class PurchaseRequestController extends Controller
                 $approverName = auth()->user()->full_name
                     ?? (auth()->user()->first_name . ' ' . auth()->user()->last_name);
 
-                // Notify the staff who made the request
                 if ($pr->user) {
                     $pr->user->notify(new PurchaseRequestNotification(
                         'approved',
@@ -305,7 +315,6 @@ class PurchaseRequestController extends Controller
                     ));
                 }
 
-                // ✅ Also notify all admins about the new PO created
                 $admins = $this->getAdmins();
                 foreach ($admins as $admin) {
                     $admin->notify(new PurchaseOrderNotification(
@@ -353,9 +362,6 @@ class PurchaseRequestController extends Controller
 
             DB::commit();
 
-            // ============================================================
-            // ✅ NOTIFY REQUESTER: PR rejected
-            // ============================================================
             try {
                 $rejectorName = Auth::user()->full_name
                     ?? (Auth::user()->first_name . ' ' . Auth::user()->last_name);
@@ -404,7 +410,7 @@ class PurchaseRequestController extends Controller
     {
         try {
             DB::beginTransaction();
-            $prefix = "PR-" . date('Ym');
+            $prefix = "PR-" . date('Ymd');
 
             $lastPR = PurchaseRequest::where('request_number', 'LIKE', $prefix . '%')
                 ->lockForUpdate()
@@ -412,8 +418,8 @@ class PurchaseRequestController extends Controller
                 ->first();
 
             $newNumber = $lastPR
-                ? str_pad((int) substr($lastPR->request_number, -3) + 1, 3, '0', STR_PAD_LEFT)
-                : '001';
+                ? str_pad((int) substr($lastPR->request_number, -4) + 1, 4, '0', STR_PAD_LEFT)
+                : '0001';
 
             $prNumber = $prefix . '-' . $newNumber;
             DB::commit();

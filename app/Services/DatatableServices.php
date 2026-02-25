@@ -273,19 +273,19 @@ class DatatableServices
             $query->where('product_id', $supplier_product_id);
         }
 
-        return DataTables::eloquent($query->orderBy('updated_at', 'desc'))
+        return DataTables::eloquent($query)
             ->addColumn('serial_number', function ($row) {
                 return '<span class="font-weight-bold text-primary">' . $row->serial_number . '</span>';
             })
             ->addColumn('status', function ($row) {
                 $statusColors = [
-                    1 => 'success',  // Available
-                    2 => 'warning',  // Reserved
-                    3 => 'danger',   // Sold
-                    4 => 'dark',     // Damaged
-                    5 => 'danger',   // Lost
-                    6 => 'info',     // Returned
-                    7 => 'warning',  // Under Repair
+                    1 => 'success',
+                    2 => 'warning',
+                    3 => 'danger',
+                    4 => 'dark',
+                    5 => 'danger',
+                    6 => 'info',
+                    7 => 'warning',
                 ];
 
                 $statusName = $row->productStatus->name ?? 'Unknown';
@@ -294,22 +294,33 @@ class DatatableServices
                 return "<span class='badge badge-{$color} px-2 py-1'>{$statusName}</span>";
             })
             ->addColumn('scanned_by', function ($row) {
-                $name = $row->scannedBy->name ?? 'System';
+                $name = $row->scannedBy->full_name ?? 'System';
                 return '<span class="small font-weight-bold">' . $name . '</span>';
             })
             ->addColumn('order_date', function ($row) {
-                return $row->purchaseOrder ? \Carbon\Carbon::parse($row->purchaseOrder->order_date)->format('M d, Y') : '-';
+                return $row->purchaseOrder
+                    ? \Carbon\Carbon::parse($row->purchaseOrder->order_date)->format('M d, Y')
+                    : '-';
             })
             ->addColumn('delivery_date', function ($row) {
-                return $row->purchaseOrder ? \Carbon\Carbon::parse($row->purchaseOrder->delivery_date)->format('M d, Y') : '-';
+                return $row->purchaseOrder
+                    ? \Carbon\Carbon::parse($row->purchaseOrder->delivery_date)->format('M d, Y')
+                    : '-';
             })
-            ->addColumn('scanned_date', function ($row) {
-                return $row->scanned_at ? \Carbon\Carbon::parse($row->scanned_at)->format('M d, Y') : '-';
+            ->addColumn('scanned_at', function ($row) {
+                return $row->scanned_at
+                    ? \Carbon\Carbon::parse($row->scanned_at)->format('M d, Y h:i A')
+                    : '-';
             })
             ->addColumn('action', function ($row) {
                 return $row->serial_number;
             })
-            // ✅ ONLY FILTER serial_number column - remove other filters that cause errors
+            ->orderColumn('serial_number', 'serial_number $1')
+            ->orderColumn('status', 'status $1')
+            ->orderColumn('scanned_by', 'scanned_by $1')        // ✅ Simple lang, walang join
+            ->orderColumn('order_date', 'purchase_order_id $1') // ✅ Simple lang, walang join
+            ->orderColumn('delivery_date', 'purchase_order_id $1') // ✅ Simple lang, walang join
+            ->orderColumn('scanned_at', 'scanned_at $1')
             ->filter(function ($query) {
                 if (request()->has('search') && !empty(request('search')['value'])) {
                     $search = request('search')['value'];
@@ -319,7 +330,6 @@ class DatatableServices
             ->rawColumns(['serial_number', 'status', 'scanned_by'])
             ->make(true);
     }
-
     /**
      * All Serialized Products
      */

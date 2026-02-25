@@ -26,6 +26,7 @@ class RetailerOrder extends Model
         'allocated_serial_numbers', // ✅ Was "alocated_serial_numbers" in DB (now fixed via migration)
         'shipped_by',
         'shipped_at',
+        'created_by_user_id',  // ✅ Nandito ba ito?
     ];
 
     protected $casts = [
