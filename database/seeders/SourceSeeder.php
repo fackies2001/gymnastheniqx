@@ -15,6 +15,6 @@ class SourceSeeder extends Seeder
             ['id' => 3, 'name' => 'Employee', 'created_at' => now(), 'updated_at' => now()],
         ];
 
-        DB::table('source')->insert($sources);
+        DB::table('source')->insertOrIgnore($sources);
     }
 }
