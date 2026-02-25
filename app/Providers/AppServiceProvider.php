@@ -16,40 +16,35 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        // Gamitin ang View facade (Capital V)
+        if (env('APP_ENV') === 'production') {
+            \Illuminate\Support\Facades\URL::forceScheme('https');
+        }
+
         \Illuminate\Support\Facades\View::composer('*', function ($view) {
             if (auth()->check()) {
                 $today = \Carbon\Carbon::today()->toDateString();
 
-                // Siguraduhin na singular ang Models (walang "s")
                 $lowStockCount = \App\Models\SupplierProduct::where('stock', '<=', 5)->count();
                 $newArrivals = \App\Models\SerializedProduct::whereDate('created_at', $today)->count();
 
-                // I-pass ang data sa view gamit ang lowercase $view variable
                 $view->with([
                     'lowStockCount' => $lowStockCount,
                     'newArrivals'   => $newArrivals,
-                    // ... iba pang data
                 ]);
             }
-        });; // <-- Dito dapat nagtatapos ang View Composer
+        });
 
-        // --- PART 2: ADMINLTE SIDEBAR MENU LOGIC ---
-        // Ginamitan nat sa Event::listen para sigurado
         Event::listen(BuildingMenu::class, function (BuildingMenu $event) {
             $user = auth()->user();
 
-            // Gumamit ng optional o null coalescing para iwas 500 error kung null ang relations
             $warehouseName = $user?->adminlte_warehouse() ?? 'No Warehouse';
             $roleName = $user?->employee?->role?->role_name ?? 'No Role';
 
-            // Add header
             $event->menu->addBefore('inventory', [
                 'key' => 'account_settings',
                 'header' => strtoupper($roleName) . ' - ' . strtoupper($warehouseName),
             ]);
 
-            // Add role badge
             $event->menu->addBefore('inventory', [
                 'text' => strtoupper($roleName),
                 'url' => '#',
@@ -59,7 +54,6 @@ class AppServiceProvider extends ServiceProvider
                 'key' => 'role-menu-item'
             ]);
 
-            // Add warehouse badge
             $event->menu->addBefore('inventory', [
                 'text' => strtoupper($warehouseName),
                 'url' => '#',
