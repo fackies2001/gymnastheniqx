@@ -35,16 +35,23 @@
                                     <x-bootstrap.input-error :messages="$errors->get('email')" />
                                 </div>
                                 <div class="mb-3">
-                                    <x-bootstrap.label for="phone" value="Supplier Phone" />
-                                    <x-bootstrap.input id="phone" name="phone" required
+                                    {{-- BAGO --}}
+                                    <x-bootstrap.label for="contact_number" value="Supplier Phone" />
+                                    <x-bootstrap.input id="contact_number" name="contact_number" required
                                         placeholder="Enter supplier phone" />
-                                    <x-bootstrap.input-error :messages="$errors->get('phone')" />
+                                    <x-bootstrap.input-error :messages="$errors->get('contact_number')" />
                                 </div>
                                 <div class="mb-3">
                                     <x-bootstrap.label for="address" value="Supplier Address" />
                                     <x-bootstrap.input id="address" name="address" required
                                         placeholder="Enter supplier address" />
                                     <x-bootstrap.input-error :messages="$errors->get('address')" />
+                                </div>
+                                <div class="mb-3">
+                                    <x-bootstrap.label for="contact_person" value="Contact Person" />
+                                    <x-bootstrap.input id="contact_person" name="contact_person"
+                                        placeholder="Enter contact person name" />
+                                    <x-bootstrap.input-error :messages="$errors->get('contact_person')" />
                                 </div>
                             </div>
                         </div>

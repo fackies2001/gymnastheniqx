@@ -56,7 +56,7 @@ class SupplierProductServices
         TransactionHelper::run(function () use ($validatedData, $request, $source_id) {
             $supplier = Supplier::create([
                 'name'           => $validatedData['name'],
-                'contact_person' => $validatedData['contact_person'] ?? 'N/A',
+                'contact_person' => $validatedData['contact_person'] ?? null,
                 'contact_number' => $validatedData['phone'] ?? $validatedData['contact_number'] ?? null,
                 'email'          => $validatedData['email'] ?? null,
                 'address'        => $validatedData['address'] ?? null,
