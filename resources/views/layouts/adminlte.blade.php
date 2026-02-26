@@ -582,19 +582,16 @@
                         });
                 });
 
-                // ✅ Timer starts ONLY after first user activity
-                ['click', 'mousemove', 'keypress', 'scroll'].forEach(function(evt) {
+                
+                // ✅ Timer starts ONLY after first activity, resets on subsequent activity
+                ['click', 'keypress'].forEach(function(evt) {
                     document.addEventListener(evt, function() {
                         if (!timerStarted) {
                             timerStarted = true;
-                            startTimers();
-                        } else {
-                            startTimers();
                         }
-                    }, {
-                        once: false
+                        startTimers();
                     });
-                });
+                });;
             });
         </script>
     @endauth
