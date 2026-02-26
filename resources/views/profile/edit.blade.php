@@ -22,7 +22,7 @@
                                 <div class="col-md-auto text-center">
                                     <div class="position-relative d-inline-block">
                                         @if ($user->profile_photo)
-                                            <img id="profilePreview" src="{{ asset('storage/' . $user->profile_photo) }}"
+                                            <img id="profilePreview" src="{{ $user->profile_photo }}"
                                                 class="rounded-circle border shadow-sm" width="130" height="130"
                                                 style="object-fit: cover; border: 5px solid #fff !important;">
                                         @else
