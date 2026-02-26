@@ -505,9 +505,9 @@
         <script>
             $(document).ready(function() {
                 const SESSION_MINUTES = 2;
-                const WARNING_SECONDS = 60;
-                const sessionMs = SESSION_MINUTES * 60 * 1000;
-                const warningMs = WARNING_SECONDS * 1000;
+                const WARNING_SECONDS = 10;
+                const sessionMs = 30 * 1000; // 30 seconds total
+                const warningMs = WARNING_SECONDS * 1000; // warning after 20 seconds
 
                 let warnTimer, logoutTimer, countdownInterval;
                 let timerStarted = false;
@@ -582,7 +582,7 @@
                         });
                 });
 
-                
+
                 // ✅ Timer starts ONLY after first activity, resets on subsequent activity
                 ['click', 'keypress'].forEach(function(evt) {
                     document.addEventListener(evt, function() {
