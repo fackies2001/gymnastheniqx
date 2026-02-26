@@ -175,8 +175,8 @@
     <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
     <style>
         /* ============================================
-                                                               USER DROPDOWN MENU STYLING
-                                                            ============================================ */
+                                                                       USER DROPDOWN MENU STYLING
+                                                                    ============================================ */
         .user-menu-dropdown {
             min-width: 280px !important;
         }
@@ -237,8 +237,8 @@
         }
 
         /* ============================================
-                                                               DARK MODE
-                                                            ============================================ */
+                                                                       DARK MODE
+                                                                    ============================================ */
         body.dark-mode,
         body.dark-mode .wrapper {
             background-color: #1a1a2e !important;
@@ -582,8 +582,8 @@
                 `);
 
                 const SESSION_MINUTES = 2;
-                const WARNING_SECONDS = 60;
-                const sessionMs = SESSION_MINUTES * 60 * 1000;
+                const WARNING_SECONDS = 90;
+                const sessionMs = SESSION_MINUTES * 90 * 1000;
                 const warningMs = WARNING_SECONDS * 1000;
 
                 let warnTimer, logoutTimer, countdownInterval;
@@ -628,15 +628,26 @@
                         });
                 });
 
+                // ✅ Hindi mag-start ang timer hanggang may activity
+                let hasActivity = false;
+
                 ['click', 'mousemove', 'keypress', 'scroll'].forEach(function(evt) {
-                    document.addEventListener(evt, resetTimers);
+                    document.addEventListener(evt, function() {
+                        hasActivity = true;
+                        resetTimers();
+                    });
                 });
 
-                resetTimers();
+                // Start timer only after first activity
+                const activityCheck = setInterval(function() {
+                    if (hasActivity) {
+                        clearInterval(activityCheck);
+                    }
+                }, 1000);
             });
         </script>
     @endauth
-    
+
     {{-- ✅ NOTIFICATION BELL --}}
     <script>
         (function() {
