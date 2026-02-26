@@ -4,8 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Cloudinary\Cloudinary;
-use Cloudinary\Configuration\Configuration;
 
 class ProfileController extends Controller
 {
@@ -31,16 +29,17 @@ class ProfileController extends Controller
         ];
 
         if ($request->hasFile('profile_photo')) {
-            // Setup Cloudinary
-            $cloudinary = new Cloudinary(
-                Configuration::instance([
-                    'cloud' => [
-                        'cloud_name' => env('CLOUDINARY_CLOUD_NAME'),
-                        'api_key'    => env('CLOUDINARY_API_KEY'),
-                        'api_secret' => env('CLOUDINARY_API_SECRET'),
-                    ],
-                ])
-            );
+
+            $cloudinary = new \Cloudinary\Cloudinary([
+                'cloud' => [
+                    'cloud_name' => env('CLOUDINARY_CLOUD_NAME'),
+                    'api_key'    => env('CLOUDINARY_API_KEY'),
+                    'api_secret' => env('CLOUDINARY_API_SECRET'),
+                ],
+                'url' => [
+                    'secure' => true
+                ]
+            ]);
 
             // Delete old photo if exists
             if ($user->profile_photo_public_id) {
