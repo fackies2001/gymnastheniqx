@@ -135,14 +135,48 @@
 @endif
 
 {{-- =========================
+|   SESSION TIMEOUT MODAL
+|========================= --}}
+@auth
+    <div class="modal fade" id="sessionWarningModal" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content" style="border-radius: 15px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+                <div class="modal-header"
+                    style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 15px 15px 0 0; border: none;">
+                    <h5 class="modal-title text-white font-weight-bold">
+                        <i class="fas fa-exclamation-triangle mr-2"></i> Session Expiring Soon!
+                    </h5>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <p class="mb-1">Your session will expire in</p>
+                    <h2 class="font-weight-bold text-danger"><span id="countdown">60</span>s</h2>
+                    <p class="text-muted small">Click "Stay Logged In" to continue your session.</p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-success px-4" id="stayLoggedIn">
+                        <i class="fas fa-check mr-1"></i> Stay Logged In
+                    </button>
+                    <form action="{{ route('logout') }}" method="POST" class="d-inline">
+                        @csrf
+                        <button type="submit" class="btn btn-danger px-4">
+                            <i class="fas fa-sign-out-alt mr-1"></i> Logout Now
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+@endauth
+
+{{-- =========================
 |   CSS
 |========================= --}}
 @section('css')
     <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
     <style>
         /* ============================================
-                                           USER DROPDOWN MENU STYLING
-                                        ============================================ */
+                                               USER DROPDOWN MENU STYLING
+                                            ============================================ */
         .user-menu-dropdown {
             min-width: 280px !important;
         }
@@ -203,8 +237,8 @@
         }
 
         /* ============================================
-                                           DARK MODE
-                                        ============================================ */
+                                               DARK MODE
+                                            ============================================ */
         body.dark-mode,
         body.dark-mode .wrapper {
             background-color: #1a1a2e !important;
@@ -464,7 +498,6 @@
         })();
     </script>
 
-
     {{-- ✅ USER DROPDOWN MENU HANDLER --}}
     <script>
         $(document).ready(function() {
@@ -504,6 +537,68 @@
             @endif
         });
     </script>
+
+    {{-- ✅ SESSION TIMEOUT SCRIPT --}}
+    @auth
+        <script>
+            (function() {
+                const SESSION_MINUTES = 2;
+                const WARNING_SECONDS = 60;
+                const sessionMs = SESSION_MINUTES * 60 * 1000;
+                const warningMs = WARNING_SECONDS * 1000;
+
+                let warnTimer, logoutTimer, countdownInterval;
+
+                function resetTimers() {
+                    clearTimeout(warnTimer);
+                    clearTimeout(logoutTimer);
+                    clearInterval(countdownInterval);
+
+                    warnTimer = setTimeout(showWarning, sessionMs - warningMs);
+                    logoutTimer = setTimeout(autoLogout, sessionMs);
+                }
+
+                function showWarning() {
+                    let secs = WARNING_SECONDS;
+                    document.getElementById('countdown').textContent = secs;
+                    $('#sessionWarningModal').modal({
+                        backdrop: 'static',
+                        keyboard: false
+                    });
+                    $('#sessionWarningModal').modal('show');
+
+                    countdownInterval = setInterval(function() {
+                        secs--;
+                        document.getElementById('countdown').textContent = secs;
+                        if (secs <= 0) clearInterval(countdownInterval);
+                    }, 1000);
+                }
+
+                function autoLogout() {
+                    clearInterval(countdownInterval);
+                    document.querySelector('#sessionWarningModal form').submit();
+                }
+
+                document.getElementById('stayLoggedIn').addEventListener('click', function() {
+                    fetch('/keep-alive', {
+                            method: 'GET'
+                        })
+                        .then(function() {
+                            $('#sessionWarningModal').modal('hide');
+                            clearInterval(countdownInterval);
+                            resetTimers();
+                        });
+                });
+
+                ['click', 'mousemove', 'keypress', 'scroll'].forEach(function(evt) {
+                    document.addEventListener(evt, resetTimers);
+                });
+
+                resetTimers();
+            })
+            ();
+        </script>
+    @endauth
 
     {{-- ✅ NOTIFICATION BELL --}}
     <script>

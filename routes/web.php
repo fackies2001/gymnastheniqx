@@ -41,6 +41,10 @@ Route::middleware(['auth'])->group(function () {
 
 // ✅ AUTHENTICATED ROUTES WITH PIN CHECK
 Route::middleware(['auth', CheckPinStatus::class])->group(function () {
+    // Keep-alive route for session timeout
+    Route::get('/keep-alive', function () {
+        return response()->json(['status' => 'ok']);
+    });
 
     // --- DASHBOARD & USER MANAGEMENT ---
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
