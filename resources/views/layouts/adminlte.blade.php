@@ -135,48 +135,11 @@
 @endif
 
 {{-- =========================
-|   SESSION TIMEOUT MODAL
-|========================= --}}
-@auth
-    <div class="modal fade" id="sessionWarningModal" tabindex="-1" role="dialog" style="z-index: 99999;">
-        <div class="modal-dialog modal-dialog-centered" role="document">
-            <div class="modal-content" style="border-radius: 15px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
-                <div class="modal-header"
-                    style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 15px 15px 0 0; border: none;">
-                    <h5 class="modal-title text-white font-weight-bold">
-                        <i class="fas fa-exclamation-triangle mr-2"></i> Session Expiring Soon!
-                    </h5>
-                </div>
-                <div class="modal-body text-center py-4">
-                    <p class="mb-1">Your session will expire in</p>
-                    <h2 class="font-weight-bold text-danger"><span id="countdown">60</span>s</h2>
-                    <p class="text-muted small">Click "Stay Logged In" to continue your session.</p>
-                </div>
-                <div class="modal-footer justify-content-center">
-                    <button type="button" class="btn btn-success px-4" id="stayLoggedIn">
-                        <i class="fas fa-check mr-1"></i> Stay Logged In
-                    </button>
-                    <form action="{{ route('logout') }}" method="POST" class="d-inline">
-                        @csrf
-                        <button type="submit" class="btn btn-danger px-4">
-                            <i class="fas fa-sign-out-alt mr-1"></i> Logout Now
-                        </button>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-@endauth
-
-{{-- =========================
 |   CSS
 |========================= --}}
 @section('css')
     <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
     <style>
-        /* ============================================
-                                                                       USER DROPDOWN MENU STYLING
-                                                                    ============================================ */
         .user-menu-dropdown {
             min-width: 280px !important;
         }
@@ -214,7 +177,6 @@
             margin: 5px 0;
         }
 
-        /* Notification bell styling */
         #notificationBellWrapper .nav-link {
             color: inherit;
         }
@@ -236,9 +198,7 @@
             border-left: 3px solid #667eea !important;
         }
 
-        /* ============================================
-                                                                       DARK MODE
-                                                                    ============================================ */
+        /* DARK MODE */
         body.dark-mode,
         body.dark-mode .wrapper {
             background-color: #1a1a2e !important;
@@ -461,12 +421,13 @@
             background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
         }
 
-        #sessionWarningModal .modal-dialog {
-            z-index: 100000;
+        /* SESSION MODAL */
+        #sessionWarningModal {
+            z-index: 99999 !important;
         }
 
-        .modal-backdrop {
-            z-index: 99998 !important;
+        #sessionWarningModal .modal-dialog {
+            z-index: 100000;
         }
     </style>
     @stack('css')
@@ -497,7 +458,7 @@
         }
     </style>
 
-    {{-- ✅ DARK MODE — prevent flash, runs immediately --}}
+    {{-- ✅ DARK MODE — prevent flash --}}
     <script>
         (function() {
             if (localStorage.getItem('darkMode') === 'enabled') {
@@ -510,7 +471,6 @@
     <script>
         $(document).ready(function() {
             // Logout is natively handled in menu-item-dropdown-user-menu.blade.php
-            // No JS needed here.
         });
     </script>
 
@@ -519,76 +479,71 @@
         $(document).ready(function() {
             @if (!session()->has('pin_verified'))
                 console.log('[PIN] Initializing modal...');
-
                 $('#pincodeModal').modal('show');
-
                 $('#pincodeModal').on('hide.bs.modal', function(e) {
                     e.preventDefault();
                     return false;
                 });
-
                 document.body.classList.add('pin-modal-active');
-
                 $(document).on('keydown.pinmodal', function(e) {
                     if (e.keyCode === 27) {
                         e.preventDefault();
                         return false;
                     }
                 });
-
                 window.history.pushState(null, '', window.location.href);
                 window.onpopstate = function() {
                     window.history.pushState(null, '', window.location.href);
                 };
-
                 console.log('[PIN] Modal initialized ✅');
             @endif
         });
     </script>
 
-    {{-- ✅ SESSION TIMEOUT SCRIPT --}}
+    {{-- ✅ SESSION TIMEOUT — starts only after first user activity --}}
     @auth
         <script>
             $(document).ready(function() {
-                // Inject modal HTML into body dynamically
-                $('body').append(`
-                    <div class="modal fade" id="sessionWarningModal" tabindex="-1" role="dialog" style="z-index:99999;">
-                        <div class="modal-dialog modal-dialog-centered" role="document">
-                            <div class="modal-content" style="border-radius:15px;border:none;box-shadow:0 10px 40px rgba(0,0,0,0.2);">
-                                <div class="modal-header" style="background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%);border-radius:15px 15px 0 0;border:none;">
-                                    <h5 class="modal-title text-white font-weight-bold">
-                                        <i class="fas fa-exclamation-triangle mr-2"></i> Session Expiring Soon!
-                                    </h5>
-                                </div>
-                                <div class="modal-body text-center py-4">
-                                    <p class="mb-1">Your session will expire in</p>
-                                    <h2 class="font-weight-bold text-danger"><span id="countdown">60</span>s</h2>
-                                    <p class="text-muted small">Click "Stay Logged In" to continue your session.</p>
-                                </div>
-                                <div class="modal-footer justify-content-center">
-                                    <button type="button" class="btn btn-success px-4" id="stayLoggedIn">
-                                        <i class="fas fa-check mr-1"></i> Stay Logged In
-                                    </button>
-                                    <form action="{{ route('logout') }}" method="POST" class="d-inline">
-                                        <input type="hidden" name="_token" value="{{ csrf_token() }}">
-                                        <button type="submit" class="btn btn-danger px-4">
-                                            <i class="fas fa-sign-out-alt mr-1"></i> Logout Now
-                                        </button>
-                                    </form>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `);
-
                 const SESSION_MINUTES = 2;
-                const WARNING_SECONDS = 90;
-                const sessionMs = SESSION_MINUTES * 90 * 1000;
+                const WARNING_SECONDS = 60;
+                const sessionMs = SESSION_MINUTES * 60 * 1000;
                 const warningMs = WARNING_SECONDS * 1000;
 
                 let warnTimer, logoutTimer, countdownInterval;
+                let timerStarted = false;
 
-                function resetTimers() {
+                // Inject modal into body AFTER DOM is ready
+                $('body').append(`
+                <div class="modal fade" id="sessionWarningModal" tabindex="-1" role="dialog">
+                    <div class="modal-dialog modal-dialog-centered" role="document">
+                        <div class="modal-content" style="border-radius:15px;border:none;box-shadow:0 10px 40px rgba(0,0,0,0.2);">
+                            <div class="modal-header" style="background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%);border-radius:15px 15px 0 0;border:none;">
+                                <h5 class="modal-title text-white font-weight-bold">
+                                    <i class="fas fa-exclamation-triangle mr-2"></i> Session Expiring Soon!
+                                </h5>
+                            </div>
+                            <div class="modal-body text-center py-4">
+                                <p class="mb-1">Your session will expire in</p>
+                                <h2 class="font-weight-bold text-danger"><span id="countdown">60</span>s</h2>
+                                <p class="text-muted small">Click "Stay Logged In" to continue your session.</p>
+                            </div>
+                            <div class="modal-footer justify-content-center">
+                                <button type="button" class="btn btn-success px-4" id="stayLoggedIn">
+                                    <i class="fas fa-check mr-1"></i> Stay Logged In
+                                </button>
+                                <form action="{{ route('logout') }}" method="POST" class="d-inline">
+                                    <input type="hidden" name="_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-danger px-4">
+                                        <i class="fas fa-sign-out-alt mr-1"></i> Logout Now
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `);
+
+                function startTimers() {
                     clearTimeout(warnTimer);
                     clearTimeout(logoutTimer);
                     clearInterval(countdownInterval);
@@ -604,7 +559,6 @@
                         keyboard: false
                     });
                     $('#sessionWarningModal').modal('show');
-
                     countdownInterval = setInterval(function() {
                         secs--;
                         $('#countdown').text(secs);
@@ -617,33 +571,30 @@
                     $('#sessionWarningModal form').submit();
                 }
 
-                $('#stayLoggedIn').on('click', function() {
+                $(document).on('click', '#stayLoggedIn', function() {
                     fetch('/keep-alive', {
                             method: 'GET'
                         })
                         .then(function() {
                             $('#sessionWarningModal').modal('hide');
                             clearInterval(countdownInterval);
-                            resetTimers();
+                            startTimers();
                         });
                 });
 
-                // ✅ Hindi mag-start ang timer hanggang may activity
-                let hasActivity = false;
-
+                // ✅ Timer starts ONLY after first user activity
                 ['click', 'mousemove', 'keypress', 'scroll'].forEach(function(evt) {
                     document.addEventListener(evt, function() {
-                        hasActivity = true;
-                        resetTimers();
+                        if (!timerStarted) {
+                            timerStarted = true;
+                            startTimers();
+                        } else {
+                            startTimers();
+                        }
+                    }, {
+                        once: false
                     });
                 });
-
-                // Start timer only after first activity
-                const activityCheck = setInterval(function() {
-                    if (hasActivity) {
-                        clearInterval(activityCheck);
-                    }
-                }, 1000);
             });
         </script>
     @endauth
@@ -682,7 +633,6 @@
                 const badge = document.getElementById('notifBadge');
                 const label = document.getElementById('notifCountLabel');
                 if (!badge) return;
-
                 if (count > 0) {
                     badge.textContent = count > 99 ? '99+' : count;
                     badge.style.display = 'inline-block';
@@ -698,61 +648,44 @@
             function renderNotifications(notifications) {
                 const container = document.getElementById('notifItemsContainer');
                 if (!container) return;
-
                 if (!notifications.length) {
                     container.innerHTML = `
                         <div class="text-center text-muted py-4 px-3">
-                            <i class="fas fa-bell-slash mb-2"
-                               style="font-size:1.8rem; opacity:0.35; display:block;"></i>
+                            <i class="fas fa-bell-slash mb-2" style="font-size:1.8rem; opacity:0.35; display:block;"></i>
                             <span style="font-size:0.85rem;">No new notifications</span>
                         </div>`;
                     return;
                 }
-
                 let html = '';
                 notifications.forEach(n => {
                     html += `
                         <a href="${esc(n.url || '#')}"
                            class="dropdown-item notif-item d-flex align-items-start py-2 px-3 unread"
                            data-notif-id="${esc(n.id)}"
-                           style="border-bottom:1px solid rgba(0,0,0,0.05);
-                                  white-space:normal; cursor:pointer;">
+                           style="border-bottom:1px solid rgba(0,0,0,0.05); white-space:normal; cursor:pointer;">
                             <div class="mr-2 mt-1" style="min-width:28px; text-align:center;">
-                                <i class="${esc(n.icon || 'fas fa-bell text-info')}"
-                                   style="font-size:1rem;"></i>
+                                <i class="${esc(n.icon || 'fas fa-bell text-info')}" style="font-size:1rem;"></i>
                             </div>
                             <div style="flex:1; min-width:0;">
-                                <div style="font-size:0.8rem; font-weight:600; line-height:1.3;">
-                                    ${getActionLabel(n.type, n.action)}
-                                </div>
-                                <div style="font-size:0.78rem; margin-top:2px;
-                                            opacity:0.85; line-height:1.3;">
-                                    ${esc(n.message)}
-                                </div>
+                                <div style="font-size:0.8rem; font-weight:600; line-height:1.3;">${getActionLabel(n.type, n.action)}</div>
+                                <div style="font-size:0.78rem; margin-top:2px; opacity:0.85; line-height:1.3;">${esc(n.message)}</div>
                                 <div style="font-size:0.7rem; color:#999; margin-top:3px;">
                                     <i class="far fa-clock mr-1"></i>${esc(n.time_ago)}
-                                    <span style="font-size:0.65rem; margin-left:4px;">
-                                        ${esc(n.time)}
-                                    </span>
+                                    <span style="font-size:0.65rem; margin-left:4px;">${esc(n.time)}</span>
                                 </div>
                             </div>
                         </a>`;
                 });
-
                 html += `
                     <div class="dropdown-divider my-0"></div>
-                    <a href="#" id="markAllReadBtn"
-                       class="dropdown-item text-center py-2"
+                    <a href="#" id="markAllReadBtn" class="dropdown-item text-center py-2"
                        style="font-size:0.8rem; color:#667eea; font-weight:700;">
                         <i class="fas fa-check-double mr-1"></i> Mark all as read
                     </a>`;
-
                 container.innerHTML = html;
-
                 container.querySelectorAll('.notif-item[data-notif-id]').forEach(el => {
                     el.addEventListener('click', () => markAsRead(el.dataset.notifId, el));
                 });
-
                 const markAllBtn = document.getElementById('markAllReadBtn');
                 if (markAllBtn) {
                     markAllBtn.addEventListener('click', e => {
@@ -838,9 +771,7 @@
             }
 
             document.readyState === 'loading' ?
-                document.addEventListener('DOMContentLoaded', init) :
-                init();
-
+                document.addEventListener('DOMContentLoaded', init) : init();
         })();
     </script>
 @stop
