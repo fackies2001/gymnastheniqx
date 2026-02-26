@@ -54,7 +54,11 @@
                                 <div class="col mt-3 mt-md-0">
                                     <h4 class="mb-0 font-weight-bold text-dark">{{ $user->name }}</h4>
                                     <p class="text-muted mb-0 small">{{ $user->email }}</p>
-                                    <span class="badge badge-pill badge-info px-3 mt-2">Active Account</span>
+                                    @if ($user->status === 'Active')
+                                        <span class="badge badge-pill badge-success px-3 mt-2">Active Account</span>
+                                    @else
+                                        <span class="badge badge-pill badge-danger px-3 mt-2">Inactive Account</span>
+                                    @endif
                                 </div>
                             </div>
 
