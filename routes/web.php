@@ -164,9 +164,6 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
         Route::put('/suppliers/{id}', 'update')->name('suppliers.update');
         Route::delete('/suppliers/{id}', 'destroy')->name('suppliers.destroy');
         Route::get('/suppliers/{id}', 'show')->name('suppliers.show');
-        Route::get('/suppliers/{id}/edit', 'edit')->name('suppliers.edit');
-        Route::put('/suppliers/{id}', 'update')->name('suppliers.update');
-        Route::delete('/suppliers/{id}', 'destroy')->name('suppliers.destroy');
     });
 
     // SUPPLIER PRODUCTS
