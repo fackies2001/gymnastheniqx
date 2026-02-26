@@ -138,7 +138,7 @@
 |   SESSION TIMEOUT MODAL
 |========================= --}}
 @auth
-    <div class="modal fade" id="sessionWarningModal" tabindex="-1" role="dialog">
+    <div class="modal fade" id="sessionWarningModal" tabindex="-1" role="dialog" style="z-index: 99999;">
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content" style="border-radius: 15px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
                 <div class="modal-header"
@@ -175,8 +175,8 @@
     <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
     <style>
         /* ============================================
-                                               USER DROPDOWN MENU STYLING
-                                            ============================================ */
+                                                           USER DROPDOWN MENU STYLING
+                                                        ============================================ */
         .user-menu-dropdown {
             min-width: 280px !important;
         }
@@ -237,8 +237,8 @@
         }
 
         /* ============================================
-                                               DARK MODE
-                                            ============================================ */
+                                                           DARK MODE
+                                                        ============================================ */
         body.dark-mode,
         body.dark-mode .wrapper {
             background-color: #1a1a2e !important;
@@ -460,6 +460,14 @@
         body.dark-mode .user-menu-dropdown .dropdown-header {
             background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
         }
+
+        #sessionWarningModal .modal-dialog {
+            z-index: 100000;
+        }
+
+        .modal-backdrop {
+            z-index: 99998 !important;
+        }
     </style>
     @stack('css')
 @stop
@@ -539,9 +547,10 @@
     </script>
 
     {{-- ✅ SESSION TIMEOUT SCRIPT --}}
+    {{-- ✅ SESSION TIMEOUT SCRIPT --}}
     @auth
         <script>
-            (function() {
+            $(document).ready(function() {
                 const SESSION_MINUTES = 2;
                 const WARNING_SECONDS = 60;
                 const sessionMs = SESSION_MINUTES * 60 * 1000;
@@ -594,9 +603,9 @@
                     document.addEventListener(evt, resetTimers);
                 });
 
+                // ✅ Start timers only after page fully loaded
                 resetTimers();
-            })
-            ();
+            });
         </script>
     @endauth
 
