@@ -14,43 +14,34 @@
             <div class="user-panel mt-3 pb-3 mb-3 d-none d-md-flex">
 
                 <div class="image">
-                    {{-- ✅ FIXED: Check for actual profile photo first, fallback to initials --}}
                     @php
                         $user = Auth::user();
-                        $hasProfilePhoto =
-                            $user->profile_photo && Storage::disk('public')->exists($user->profile_photo);
-
-                        if (!$hasProfilePhoto) {
-                            // Generate initials avatar if no photo
+                        if ($user->profile_photo) {
+                            $avatarUrl = $user->profile_photo;
+                        } else {
                             $userName = $user->full_name ?? 'User';
                             $initials = collect(explode(' ', $userName))
                                 ->map(fn($word) => strtoupper(substr($word, 0, 1)))
                                 ->take(2)
                                 ->implode('');
-
-                            // Generate unique color based on user ID
                             $colors = [
-                                '6777ef', // Purple-blue (default)
-                                'fc544b', // Red
-                                'ffa426', // Orange
-                                '3abaf4', // Light blue
-                                '6c757d', // Gray
-                                '47c363', // Green
-                                'f3ba2f', // Yellow
-                                'e83e8c', // Pink
-                                '20c997', // Teal
-                                '17a2b8', // Cyan
+                                '6777ef',
+                                'fc544b',
+                                'ffa426',
+                                '3abaf4',
+                                '6c757d',
+                                '47c363',
+                                'f3ba2f',
+                                'e83e8c',
+                                '20c997',
+                                '17a2b8',
                             ];
-
                             $colorIndex = $user->id % count($colors);
                             $bgColor = $colors[$colorIndex];
                             $avatarUrl =
                                 'https://ui-avatars.com/api/?name=' .
                                 urlencode($initials) .
                                 "&background={$bgColor}&color=fff&size=128";
-                        } else {
-                            // Use actual profile photo
-                            $avatarUrl = asset('storage/' . $user->profile_photo);
                         }
                     @endphp
                     <img src="{{ $avatarUrl }}" class="img-circle elevation-2" alt="User Image"
