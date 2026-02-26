@@ -33,20 +33,9 @@
                                     {{-- Photo --}}
                                     <td class="text-center">
                                         @if ($employee->profile_photo)
-                                            @php
-                                                $photoPath = storage_path('app/public/' . $employee->profile_photo);
-                                            @endphp
-                                            @if (file_exists($photoPath))
-                                                <img src="{{ asset('storage/' . $employee->profile_photo) }}" width="40"
-                                                    height="40" class="img-circle border shadow-sm"
-                                                    style="object-fit: cover;"
-                                                    onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name={{ urlencode(substr($employee->full_name, 0, 1)) }}&background=6777ef&color=fff';">
-                                            @else
-                                                <div class="img-circle bg-secondary d-inline-flex align-items-center justify-content-center text-white shadow-sm"
-                                                    style="width:40px; height:40px; font-size:16px;">
-                                                    {{ strtoupper(substr($employee->full_name, 0, 1)) }}
-                                                </div>
-                                            @endif
+                                            <img src="{{ $employee->profile_photo }}" width="40" height="40"
+                                                class="img-circle border shadow-sm" style="object-fit: cover;"
+                                                onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name={{ urlencode(substr($employee->full_name, 0, 1)) }}&background=6777ef&color=fff';">
                                         @else
                                             <div class="img-circle bg-secondary d-inline-flex align-items-center justify-content-center text-white shadow-sm"
                                                 style="width:40px; height:40px; font-size:16px;">
@@ -379,9 +368,9 @@
                                 },
                                 success: function(res) {
                                     Swal.fire('Deleted!', res.message, 'success').then(
-                                () => {
-                                        location.reload();
-                                    });
+                                        () => {
+                                            location.reload();
+                                        });
                                 },
                                 error: function(xhr) {
                                     let errorMsg = xhr.responseJSON?.message ||
