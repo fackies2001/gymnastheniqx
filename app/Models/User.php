@@ -28,6 +28,7 @@ class User extends Authenticatable
         'address',
         'date_hired',
         'profile_photo',
+        'profile_photo_public_id', // ← add this
         'status',
         'assigned_at',
         'pin',
@@ -65,10 +66,7 @@ class User extends Authenticatable
     public function adminlte_image()
     {
         if ($this->profile_photo) {
-            $fullPath = storage_path('app/public/' . $this->profile_photo);
-            if (file_exists($fullPath)) {
-                return asset('storage/' . $this->profile_photo);
-            }
+            return $this->profile_photo; // Cloudinary URL na to
         }
 
         $nameParts = explode(' ', trim($this->full_name ?? 'User'));
