@@ -2,137 +2,114 @@
 @extends('adminlte::page')
 
 {{-- =========================
-|   HEAD
-|========================= --}}
-@section('adminlte_head')
-    @if (session()->has('sanctum_token'))
-        <meta name="api-token" content="{{ session('sanctum_token') }}">
-    @endif
-    <meta name="csrf-token" content="{{ csrf_token() }}">
-@endsection
-
-{{-- =========================
-|   TITLE
-|========================= --}}
-@section('title')
-    {{ config('adminlte.title') }}
-    @hasSection('subtitle')
-        - @yield('subtitle')
-    @endif
-@stop
-
-{{-- =========================
-|   CONTENT HEADER
-|========================= --}}
-@section('content_header')
-    @hasSection('content_header_title')
-        <h1 class="text-muted">
-            @yield('content_header_title')
-            @hasSection('content_header_subtitle')
-                <small class="text-dark">
-                    <i class="fas fa-xs fa-angle-right text-muted"></i>
-                    @yield('content_header_subtitle')
-                </small>
-            @endif
-        </h1>
-    @endif
-@stop
-
-{{-- =========================
-|   MAIN CONTENT
-|========================= --}}
-@section('content')
-    @yield('content_body')
-@stop
-
-{{-- =========================
 |   PIN CODE MODAL
 |========================= --}}
-@if (Auth::check() && !session()->has('pin_verified'))
-    <div class="modal fade" id="pincodeModal" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-dialog-centered" role="document">
-            <div class="modal-content"
-                style="border-radius: 15px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
-                <div class="modal-header"
-                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px 15px 0 0; border: none;">
-                    <h5 class="modal-title text-white font-weight-bold">
-                        <i class="fas fa-lock mr-2"></i>
-                        @if (Auth::user()->pin)
-                            Enter Your PIN to Continue
-                        @else
-                            Set Your Security PIN
-                        @endif
-                    </h5>
-                </div>
-                <div class="modal-body text-center py-4">
-                    @if (Auth::user()->pin)
-                        <p class="text-muted mb-4">Please enter your 4-digit PIN to access the dashboard</p>
-                    @else
-                        <p class="text-muted mb-4">Create a 4-digit PIN to secure your account</p>
-                    @endif
-
-                    <form id="pincodeForm" method="POST" action="{{ route('user.verify.pin') }}">
-                        @csrf
-                        <div class="d-flex justify-content-center gap-2 mb-4">
-                            <input type="text" class="pin-digit form-control text-center" maxlength="1"
-                                name="pin[]"
-                                style="width: 60px; height: 60px; font-size: 24px; font-weight: bold; border: 2px solid #667eea; border-radius: 10px;"
-                                required autocomplete="off" inputmode="numeric">
-                            <input type="text" class="pin-digit form-control text-center" maxlength="1"
-                                name="pin[]"
-                                style="width: 60px; height: 60px; font-size: 24px; font-weight: bold; border: 2px solid #667eea; border-radius: 10px;"
-                                required autocomplete="off" inputmode="numeric">
-                            <input type="text" class="pin-digit form-control text-center" maxlength="1"
-                                name="pin[]"
-                                style="width: 60px; height: 60px; font-size: 24px; font-weight: bold; border: 2px solid #667eea; border-radius: 10px;"
-                                required autocomplete="off" inputmode="numeric">
-                            <input type="text" class="pin-digit form-control text-center" maxlength="1"
-                                name="pin[]"
-                                style="width: 60px; height: 60px; font-size: 24px; font-weight: bold; border: 2px solid #667eea; border-radius: 10px;"
-                                required autocomplete="off" inputmode="numeric">
-                        </div>
-
-                        <button type="submit" id="savePincodeBtn" class="btn btn-primary btn-lg btn-block"
-                            style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 10px; font-weight: bold;">
+@auth
+    @if (!session()->has('pin_verified'))
+        <div class="modal fade" id="pincodeModal" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-dialog-centered" role="document">
+                <div class="modal-content"
+                    style="border-radius: 15px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+                    <div class="modal-header"
+                        style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px 15px 0 0; border: none;">
+                        <h5 class="modal-title text-white font-weight-bold">
                             <i class="fas fa-lock mr-2"></i>
                             @if (Auth::user()->pin)
-                                Verify PIN
+                                Enter Your PIN to Continue
                             @else
-                                Save PIN & Continue
+                                Set Your Security PIN
                             @endif
-                        </button>
-                    </form>
+                        </h5>
+                    </div>
+                    <div class="modal-body text-center py-4">
+                        @if (Auth::user()->pin)
+                            <p class="text-muted mb-4">Please enter your 4-digit PIN to access the dashboard</p>
+                        @else
+                            <p class="text-muted mb-4">Create a 4-digit PIN to secure your account</p>
+                        @endif
 
-                    <div class="mt-3">
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle mr-1"></i>
-                            @if (Auth::user()->pin)
-                                Forgot PIN? Contact administrator
-                            @else
-                                You'll need this PIN every time you log in
-                            @endif
-                        </small>
+                        <form id="pincodeForm" method="POST" action="{{ route('user.verify.pin') }}">
+                            @csrf
+                            <div class="d-flex justify-content-center gap-2 mb-4">
+                                <input type="text" class="pin-digit form-control text-center" maxlength="1"
+                                    name="pin[]"
+                                    style="width: 60px; height: 60px; font-size: 24px; font-weight: bold; border: 2px solid #667eea; border-radius: 10px;"
+                                    required autocomplete="off" inputmode="numeric">
+                                <input type="text" class="pin-digit form-control text-center" maxlength="1"
+                                    name="pin[]"
+                                    style="width: 60px; height: 60px; font-size: 24px; font-weight: bold; border: 2px solid #667eea; border-radius: 10px;"
+                                    required autocomplete="off" inputmode="numeric">
+                                <input type="text" class="pin-digit form-control text-center" maxlength="1"
+                                    name="pin[]"
+                                    style="width: 60px; height: 60px; font-size: 24px; font-weight: bold; border: 2px solid #667eea; border-radius: 10px;"
+                                    required autocomplete="off" inputmode="numeric">
+                                <input type="text" class="pin-digit form-control text-center" maxlength="1"
+                                    name="pin[]"
+                                    style="width: 60px; height: 60px; font-size: 24px; font-weight: bold; border: 2px solid #667eea; border-radius: 10px;"
+                                    required autocomplete="off" inputmode="numeric">
+                            </div>
+
+                            <button type="submit" id="savePincodeBtn" class="btn btn-primary btn-lg btn-block"
+                                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 10px; font-weight: bold;">
+                                <i class="fas fa-lock mr-2"></i>
+                                @if (Auth::user()->pin)
+                                    Verify PIN
+                                @else
+                                    Save PIN & Continue
+                                @endif
+                            </button>
+                        </form>
+
+                        <div class="mt-3">
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle mr-1"></i>
+                                @if (Auth::user()->pin)
+                                    Forgot PIN? Contact administrator
+                                @else
+                                    You'll need this PIN every time you log in
+                                @endif
+                            </small>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
+    @endif
+@endauth
+
+{{-- =========================
+|   SESSION TIMEOUT MODAL
+|========================= --}}
+@auth
+    <div class="modal fade" id="sessionWarningModal" tabindex="-1" role="dialog" style="z-index: 99999;">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content" style="border-radius: 15px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+                <div class="modal-header"
+                    style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); border-radius: 15px 15px 0 0; border: none;">
+                    <h5 class="modal-title text-white font-weight-bold">
+                        <i class="fas fa-exclamation-triangle mr-2"></i> Session Expiring Soon!
+                    </h5>
+                </div>
+                <div class="modal-body text-center py-4">
+                    <p class="mb-1">Your session will expire in</p>
+                    <h2 class="font-weight-bold text-danger"><span id="countdown">60</span>s</h2>
+                    <p class="text-muted small">Click "Stay Logged In" to continue your session.</p>
+                </div>
+                <div class="modal-footer justify-content-center">
+                    <button type="button" class="btn btn-success px-4" id="stayLoggedIn">
+                        <i class="fas fa-check mr-1"></i> Stay Logged In
+                    </button>
+                    <form action="{{ route('logout') }}" method="POST" class="d-inline">
+                        @csrf
+                        <button type="submit" class="btn btn-danger px-4">
+                            <i class="fas fa-sign-out-alt mr-1"></i> Logout Now
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </div>
-
-    <style>
-        .pin-digit:focus {
-            border-color: #764ba2 !important;
-            box-shadow: 0 0 0 0.2rem rgba(118, 75, 162, 0.25) !important;
-        }
-
-        .gap-2 {
-            gap: 0.5rem !important;
-        }
-
-        body.pin-modal-active {
-            overflow: hidden;
-        }
-    </style>
-@endif
+@endauth
 
 {{-- =========================
 |   CSS
@@ -140,6 +117,9 @@
 @section('css')
     <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
     <style>
+        /* ============================================
+               USER DROPDOWN MENU STYLING
+            ============================================ */
         .user-menu-dropdown {
             min-width: 280px !important;
         }
@@ -177,6 +157,7 @@
             margin: 5px 0;
         }
 
+        /* Notification bell styling */
         #notificationBellWrapper .nav-link {
             color: inherit;
         }
@@ -198,7 +179,25 @@
             border-left: 3px solid #667eea !important;
         }
 
-        /* DARK MODE */
+        /* ============================================
+               PIN MODAL
+            ============================================ */
+        .pin-digit:focus {
+            border-color: #764ba2 !important;
+            box-shadow: 0 0 0 0.2rem rgba(118, 75, 162, 0.25) !important;
+        }
+
+        .gap-2 {
+            gap: 0.5rem !important;
+        }
+
+        body.pin-modal-active {
+            overflow: hidden;
+        }
+
+        /* ============================================
+               DARK MODE
+            ============================================ */
         body.dark-mode,
         body.dark-mode .wrapper {
             background-color: #1a1a2e !important;
@@ -421,13 +420,12 @@
             background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
         }
 
-        /* SESSION MODAL */
-        #sessionWarningModal {
-            z-index: 99999 !important;
-        }
-
         #sessionWarningModal .modal-dialog {
             z-index: 100000;
+        }
+
+        .modal-backdrop {
+            z-index: 99998 !important;
         }
     </style>
     @stack('css')
@@ -458,7 +456,7 @@
         }
     </style>
 
-    {{-- ✅ DARK MODE — prevent flash --}}
+    {{-- ✅ DARK MODE — prevent flash, runs immediately --}}
     <script>
         (function() {
             if (localStorage.getItem('darkMode') === 'enabled') {
@@ -479,123 +477,143 @@
         $(document).ready(function() {
             @if (!session()->has('pin_verified'))
                 console.log('[PIN] Initializing modal...');
+
                 $('#pincodeModal').modal('show');
+
                 $('#pincodeModal').on('hide.bs.modal', function(e) {
                     e.preventDefault();
                     return false;
                 });
+
                 document.body.classList.add('pin-modal-active');
+
                 $(document).on('keydown.pinmodal', function(e) {
                     if (e.keyCode === 27) {
                         e.preventDefault();
                         return false;
                     }
                 });
+
                 window.history.pushState(null, '', window.location.href);
                 window.onpopstate = function() {
                     window.history.pushState(null, '', window.location.href);
                 };
+
                 console.log('[PIN] Modal initialized ✅');
             @endif
         });
     </script>
 
-    {{-- ✅ SESSION TIMEOUT - 2 minutes inactivity --}}
+    {{-- ✅ SESSION TIMEOUT HANDLER --}}
     @auth
         <script>
-            $(document).ready(function() {
-                const INACTIVITY_LIMIT = 2 * 60 * 1000; // 2 minutes
-                const WARNING_DURATION = 60 * 1000; // 60 seconds warning
-                const WARNING_SECONDS = 60;
+            (function() {
+                'use strict';
 
-                let inactivityTimer, logoutTimer, countdownInterval;
+                const INACTIVITY_LIMIT = 2 * 60 * 1000; // 2 minutes → show warning
+                const COUNTDOWN_SECONDS = 60; // 60s to act before auto-logout
+                const CSRF = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
-                // Inject modal
-                $('body').append(`
-                <div class="modal fade" id="sessionWarningModal" tabindex="-1" role="dialog">
-                    <div class="modal-dialog modal-dialog-centered" role="document">
-                        <div class="modal-content" style="border-radius:15px;border:none;box-shadow:0 10px 40px rgba(0,0,0,0.2);">
-                            <div class="modal-header" style="background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%);border-radius:15px 15px 0 0;border:none;">
-                                <h5 class="modal-title text-white font-weight-bold">
-                                    <i class="fas fa-exclamation-triangle mr-2"></i> Session Expiring Soon!
-                                </h5>
-                            </div>
-                            <div class="modal-body text-center py-4">
-                                <p class="mb-1">Your session will expire in</p>
-                                <h2 class="font-weight-bold text-danger"><span id="countdown">${WARNING_SECONDS}</span>s</h2>
-                                <p class="text-muted small">Click "Stay Logged In" to continue your session.</p>
-                            </div>
-                            <div class="modal-footer justify-content-center">
-                                <button type="button" class="btn btn-success px-4" id="stayLoggedIn">
-                                    <i class="fas fa-check mr-1"></i> Stay Logged In
-                                </button>
-                                <form action="{{ route('logout') }}" method="POST" class="d-inline">
-                                    <input type="hidden" name="_token" value="{{ csrf_token() }}">
-                                    <button type="submit" class="btn btn-danger px-4">
-                                        <i class="fas fa-sign-out-alt mr-1"></i> Logout Now
-                                    </button>
-                                </form>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `);
+                let inactivityTimer = null;
+                let countdownTimer = null;
+                let secondsLeft = COUNTDOWN_SECONDS;
+                let warningShown = false;
 
+                /* ─── Reset inactivity timer on user activity ─── */
                 function resetInactivityTimer() {
+                    if (warningShown) return; // ignore activity while warning is visible
                     clearTimeout(inactivityTimer);
-                    clearTimeout(logoutTimer);
-                    clearInterval(countdownInterval);
-
-                    // Hide modal if visible
-                    if ($('#sessionWarningModal').hasClass('show')) {
-                        $('#sessionWarningModal').modal('hide');
-                    }
-
-                    // Show warning after 1 minute of inactivity
-                    inactivityTimer = setTimeout(showWarning, INACTIVITY_LIMIT - WARNING_DURATION);
-
-                    // Auto logout after 2 minutes of inactivity
-                    logoutTimer = setTimeout(autoLogout, INACTIVITY_LIMIT);
+                    inactivityTimer = setTimeout(showWarning, INACTIVITY_LIMIT);
                 }
 
+                /* ─── Show the warning modal ─── */
                 function showWarning() {
-                    let secs = WARNING_SECONDS;
-                    $('#countdown').text(secs);
+                    warningShown = true;
+                    secondsLeft = COUNTDOWN_SECONDS;
+
                     $('#sessionWarningModal').modal({
                         backdrop: 'static',
                         keyboard: false
                     });
                     $('#sessionWarningModal').modal('show');
 
-                    countdownInterval = setInterval(function() {
-                        secs--;
-                        $('#countdown').text(secs);
-                        if (secs <= 0) clearInterval(countdownInterval);
+                    updateCountdownDisplay();
+                    startCountdown();
+                }
+
+                /* ─── Count down 60 → 0 then auto-logout ─── */
+                function startCountdown() {
+                    clearInterval(countdownTimer);
+                    countdownTimer = setInterval(function() {
+                        secondsLeft--;
+                        updateCountdownDisplay();
+                        if (secondsLeft <= 0) {
+                            clearInterval(countdownTimer);
+                            autoLogout();
+                        }
                     }, 1000);
                 }
 
-                function autoLogout() {
-                    clearInterval(countdownInterval);
-                    $('#sessionWarningModal form').submit();
+                function updateCountdownDisplay() {
+                    const el = document.getElementById('countdown');
+                    if (el) el.textContent = secondsLeft;
                 }
 
-                $(document).on('click', '#stayLoggedIn', function() {
+                /* ─── Auto-logout: submit the logout form inside the modal ─── */
+                function autoLogout() {
+                    const logoutForm = document.querySelector('#sessionWarningModal form[action*="logout"]');
+                    if (logoutForm) {
+                        logoutForm.submit();
+                    } else {
+                        window.location.href = '{{ route('logout') }}';
+                    }
+                }
+
+                /* ─── Stay logged in: ping server + reset everything ─── */
+                function stayLoggedIn() {
+                    clearInterval(countdownTimer);
+                    warningShown = false;
+
+                    $('#sessionWarningModal').modal('hide');
+
+                    // Ping server to refresh Laravel session
                     fetch('/keep-alive', {
-                        method: 'GET'
-                    }).then(function() {
-                        resetInactivityTimer();
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    }).catch(function() {}); // silent fail is fine
+
+                    resetInactivityTimer();
+                }
+
+                /* ─── Bind "Stay Logged In" button ─── */
+                document.getElementById('stayLoggedIn')
+                    ?.addEventListener('click', stayLoggedIn);
+
+                /* ─── Listen for user activity ─── */
+                ['mousemove', 'mousedown', 'keydown', 'touchstart', 'touchmove', 'scroll', 'click']
+                .forEach(function(evt) {
+                    document.addEventListener(evt, resetInactivityTimer, {
+                        passive: true
                     });
                 });
 
-                // ✅ Reset timer on ANY user activity
-                ['mousemove', 'mousedown', 'keypress', 'scroll', 'touchstart', 'click'].forEach(function(evt) {
-                    document.addEventListener(evt, resetInactivityTimer, true);
+                /* ─── Pause timer when tab is hidden, resume when visible ─── */
+                document.addEventListener('visibilitychange', function() {
+                    if (document.hidden) {
+                        clearTimeout(inactivityTimer);
+                    } else {
+                        if (!warningShown) resetInactivityTimer();
+                    }
                 });
 
-                // ✅ Start timer immediately on page load
+                /* ─── Kick off on page load ─── */
                 resetInactivityTimer();
-                console.log('[Session] Inactivity timer started ✅');
-            });
+                console.log('[Session] Inactivity timer started ✅ (2 min limit)');
+
+            })
+            ();
         </script>
     @endauth
 
@@ -633,6 +651,7 @@
                 const badge = document.getElementById('notifBadge');
                 const label = document.getElementById('notifCountLabel');
                 if (!badge) return;
+
                 if (count > 0) {
                     badge.textContent = count > 99 ? '99+' : count;
                     badge.style.display = 'inline-block';
@@ -648,44 +667,61 @@
             function renderNotifications(notifications) {
                 const container = document.getElementById('notifItemsContainer');
                 if (!container) return;
+
                 if (!notifications.length) {
                     container.innerHTML = `
                         <div class="text-center text-muted py-4 px-3">
-                            <i class="fas fa-bell-slash mb-2" style="font-size:1.8rem; opacity:0.35; display:block;"></i>
+                            <i class="fas fa-bell-slash mb-2"
+                               style="font-size:1.8rem; opacity:0.35; display:block;"></i>
                             <span style="font-size:0.85rem;">No new notifications</span>
                         </div>`;
                     return;
                 }
+
                 let html = '';
                 notifications.forEach(n => {
                     html += `
                         <a href="${esc(n.url || '#')}"
                            class="dropdown-item notif-item d-flex align-items-start py-2 px-3 unread"
                            data-notif-id="${esc(n.id)}"
-                           style="border-bottom:1px solid rgba(0,0,0,0.05); white-space:normal; cursor:pointer;">
+                           style="border-bottom:1px solid rgba(0,0,0,0.05);
+                                  white-space:normal; cursor:pointer;">
                             <div class="mr-2 mt-1" style="min-width:28px; text-align:center;">
-                                <i class="${esc(n.icon || 'fas fa-bell text-info')}" style="font-size:1rem;"></i>
+                                <i class="${esc(n.icon || 'fas fa-bell text-info')}"
+                                   style="font-size:1rem;"></i>
                             </div>
                             <div style="flex:1; min-width:0;">
-                                <div style="font-size:0.8rem; font-weight:600; line-height:1.3;">${getActionLabel(n.type, n.action)}</div>
-                                <div style="font-size:0.78rem; margin-top:2px; opacity:0.85; line-height:1.3;">${esc(n.message)}</div>
+                                <div style="font-size:0.8rem; font-weight:600; line-height:1.3;">
+                                    ${getActionLabel(n.type, n.action)}
+                                </div>
+                                <div style="font-size:0.78rem; margin-top:2px;
+                                            opacity:0.85; line-height:1.3;">
+                                    ${esc(n.message)}
+                                </div>
                                 <div style="font-size:0.7rem; color:#999; margin-top:3px;">
                                     <i class="far fa-clock mr-1"></i>${esc(n.time_ago)}
-                                    <span style="font-size:0.65rem; margin-left:4px;">${esc(n.time)}</span>
+                                    <span style="font-size:0.65rem; margin-left:4px;">
+                                        ${esc(n.time)}
+                                    </span>
                                 </div>
                             </div>
                         </a>`;
                 });
+
                 html += `
                     <div class="dropdown-divider my-0"></div>
-                    <a href="#" id="markAllReadBtn" class="dropdown-item text-center py-2"
+                    <a href="#" id="markAllReadBtn"
+                       class="dropdown-item text-center py-2"
                        style="font-size:0.8rem; color:#667eea; font-weight:700;">
                         <i class="fas fa-check-double mr-1"></i> Mark all as read
                     </a>`;
+
                 container.innerHTML = html;
+
                 container.querySelectorAll('.notif-item[data-notif-id]').forEach(el => {
                     el.addEventListener('click', () => markAsRead(el.dataset.notifId, el));
                 });
+
                 const markAllBtn = document.getElementById('markAllReadBtn');
                 if (markAllBtn) {
                     markAllBtn.addEventListener('click', e => {
@@ -771,8 +807,9 @@
             }
 
             document.readyState === 'loading' ?
-                document.addEventListener('DOMContentLoaded', init) : init();
+                document.addEventListener('DOMContentLoaded', init) :
+                init();
+
         })();
     </script>
 @stop
-git add .
