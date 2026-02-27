@@ -352,18 +352,6 @@
         #sessionWarningModal {
             z-index: 99999 !important;
         }
-
-        #sessionWarningModal .modal-dialog {
-            z-index: 100000;
-        }
-
-        #pincodeModal {
-            z-index: 99999 !important;
-        }
-
-        .modal-backdrop {
-            z-index: 99998 !important;
-        }
     </style>
     @stack('css')
 @stop
