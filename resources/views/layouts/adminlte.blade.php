@@ -3,13 +3,12 @@
 
 {{-- =========================
 |   PIN CODE MODAL
-|   ⚠️ Always in DOM — pincode_LOCKED.js requires #pincodeModal to exist.
-|   JS controls whether to show it based on session state.
 |========================= --}}
-@auth
+@if (Auth::check() && !session()->has('pin_verified'))
     <div class="modal fade" id="pincodeModal" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-dialog-centered" role="document">
-            <div class="modal-content" style="border-radius: 15px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+            <div class="modal-content"
+                style="border-radius: 15px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
                 <div class="modal-header"
                     style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px 15px 0 0; border: none;">
                     <h5 class="modal-title text-white font-weight-bold">
@@ -31,16 +30,20 @@
                     <form id="pincodeForm" method="POST" action="{{ route('user.verify.pin') }}">
                         @csrf
                         <div class="d-flex justify-content-center gap-2 mb-4">
-                            <input type="text" class="pin-digit form-control text-center" maxlength="1" name="pin[]"
+                            <input type="text" class="pin-digit form-control text-center" maxlength="1"
+                                name="pin[]"
                                 style="width: 60px; height: 60px; font-size: 24px; font-weight: bold; border: 2px solid #667eea; border-radius: 10px;"
                                 required autocomplete="off" inputmode="numeric">
-                            <input type="text" class="pin-digit form-control text-center" maxlength="1" name="pin[]"
+                            <input type="text" class="pin-digit form-control text-center" maxlength="1"
+                                name="pin[]"
                                 style="width: 60px; height: 60px; font-size: 24px; font-weight: bold; border: 2px solid #667eea; border-radius: 10px;"
                                 required autocomplete="off" inputmode="numeric">
-                            <input type="text" class="pin-digit form-control text-center" maxlength="1" name="pin[]"
+                            <input type="text" class="pin-digit form-control text-center" maxlength="1"
+                                name="pin[]"
                                 style="width: 60px; height: 60px; font-size: 24px; font-weight: bold; border: 2px solid #667eea; border-radius: 10px;"
                                 required autocomplete="off" inputmode="numeric">
-                            <input type="text" class="pin-digit form-control text-center" maxlength="1" name="pin[]"
+                            <input type="text" class="pin-digit form-control text-center" maxlength="1"
+                                name="pin[]"
                                 style="width: 60px; height: 60px; font-size: 24px; font-weight: bold; border: 2px solid #667eea; border-radius: 10px;"
                                 required autocomplete="off" inputmode="numeric">
                         </div>
@@ -70,7 +73,22 @@
             </div>
         </div>
     </div>
-@endauth
+
+    <style>
+        .pin-digit:focus {
+            border-color: #764ba2 !important;
+            box-shadow: 0 0 0 0.2rem rgba(118, 75, 162, 0.25) !important;
+        }
+
+        .gap-2 {
+            gap: 0.5rem !important;
+        }
+
+        body.pin-modal-active {
+            overflow: hidden;
+        }
+    </style>
+@endif
 
 {{-- =========================
 |   SESSION TIMEOUT MODAL
@@ -172,22 +190,6 @@
         .notif-item.unread {
             background-color: rgba(102, 126, 234, 0.05);
             border-left: 3px solid #667eea !important;
-        }
-
-        /* ============================================
-               PIN MODAL
-            ============================================ */
-        .pin-digit:focus {
-            border-color: #764ba2 !important;
-            box-shadow: 0 0 0 0.2rem rgba(118, 75, 162, 0.25) !important;
-        }
-
-        .gap-2 {
-            gap: 0.5rem !important;
-        }
-
-        body.pin-modal-active {
-            overflow: hidden;
         }
 
         /* ============================================
@@ -505,8 +507,8 @@
             (function() {
                 'use strict';
 
-                const INACTIVITY_LIMIT = 2 * 60 * 1000; // 2 minutes → show warning
-                const COUNTDOWN_SECONDS = 60; // 60s to act before auto-logout
+                const INACTIVITY_LIMIT = 2 * 60 * 1000; // 2 minutes → show warning modal
+                const COUNTDOWN_SECONDS = 60; // 60s countdown before auto-logout
                 const CSRF = document.querySelector('meta[name="csrf-token"]')?.content ?? '';
 
                 let inactivityTimer = null;
@@ -514,29 +516,27 @@
                 let secondsLeft = COUNTDOWN_SECONDS;
                 let warningShown = false;
 
-                /* ─── Reset inactivity timer on user activity ─── */
+                /* ─── Reset timer on any user activity ─── */
                 function resetInactivityTimer() {
-                    if (warningShown) return; // ignore activity while warning is visible
+                    if (warningShown) return;
                     clearTimeout(inactivityTimer);
                     inactivityTimer = setTimeout(showWarning, INACTIVITY_LIMIT);
                 }
 
-                /* ─── Show the warning modal ─── */
+                /* ─── Show warning modal ─── */
                 function showWarning() {
                     warningShown = true;
                     secondsLeft = COUNTDOWN_SECONDS;
-
                     $('#sessionWarningModal').modal({
                         backdrop: 'static',
                         keyboard: false
                     });
                     $('#sessionWarningModal').modal('show');
-
                     updateCountdownDisplay();
                     startCountdown();
                 }
 
-                /* ─── Count down 60 → 0 then auto-logout ─── */
+                /* ─── Countdown ticker ─── */
                 function startCountdown() {
                     clearInterval(countdownTimer);
                     countdownTimer = setInterval(function() {
@@ -554,39 +554,38 @@
                     if (el) el.textContent = secondsLeft;
                 }
 
-                /* ─── Auto-logout: submit the logout form inside the modal ─── */
+                /* ─── Auto logout ─── */
                 function autoLogout() {
-                    const logoutForm = document.querySelector('#sessionWarningModal form[action*="logout"]');
-                    if (logoutForm) {
-                        logoutForm.submit();
+                    const form = document.querySelector('#sessionWarningModal form[action*="logout"]');
+                    if (form) {
+                        form.submit();
                     } else {
                         window.location.href = '{{ route('logout') }}';
                     }
                 }
 
-                /* ─── Stay logged in: ping server + reset everything ─── */
+                /* ─── Stay logged in ─── */
                 function stayLoggedIn() {
                     clearInterval(countdownTimer);
                     warningShown = false;
-
                     $('#sessionWarningModal').modal('hide');
 
-                    // Ping server to refresh Laravel session
+                    // Ping server to keep Laravel session alive
                     fetch('/keep-alive', {
                         method: 'GET',
                         headers: {
                             'Accept': 'application/json'
                         }
-                    }).catch(function() {}); // silent fail is fine
+                    }).catch(function() {});
 
                     resetInactivityTimer();
                 }
 
-                /* ─── Bind "Stay Logged In" button ─── */
+                /* ─── Bind button ─── */
                 document.getElementById('stayLoggedIn')
                     ?.addEventListener('click', stayLoggedIn);
 
-                /* ─── Listen for user activity ─── */
+                /* ─── Track activity events ─── */
                 ['mousemove', 'mousedown', 'keydown', 'touchstart', 'touchmove', 'scroll', 'click']
                 .forEach(function(evt) {
                     document.addEventListener(evt, resetInactivityTimer, {
@@ -594,7 +593,7 @@
                     });
                 });
 
-                /* ─── Pause timer when tab is hidden, resume when visible ─── */
+                /* ─── Pause when tab is hidden ─── */
                 document.addEventListener('visibilitychange', function() {
                     if (document.hidden) {
                         clearTimeout(inactivityTimer);
@@ -603,7 +602,7 @@
                     }
                 });
 
-                /* ─── Kick off on page load ─── */
+                /* ─── Start on page load ─── */
                 resetInactivityTimer();
                 console.log('[Session] Inactivity timer started ✅ (2 min limit)');
 

@@ -48,7 +48,7 @@
 {{-- =========================
 |   PIN CODE MODAL
 |========================= --}}
-{{-- @if (Auth::check() && !session()->has('pin_verified'))
+@if (Auth::check() && !session()->has('pin_verified'))
     <div class="modal fade" id="pincodeModal" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content"
@@ -63,7 +63,7 @@
                             Set Your Security PIN
                         @endif
                     </h5>
-                </div> --}}
+                </div>
                 <div class="modal-body text-center py-4">
                     @if (Auth::user()->pin)
                         <p class="text-muted mb-4">Please enter your 4-digit PIN to access the dashboard</p>
