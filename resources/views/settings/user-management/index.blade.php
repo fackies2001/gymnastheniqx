@@ -210,13 +210,12 @@
         </div>
     </div>
 
+
     @push('js')
         <script>
             $(document).ready(function() {
 
-                // ============================================
                 // DATATABLE
-                // ============================================
                 if ($.fn.DataTable.isDataTable('#sampleId')) {
                     $('#sampleId').DataTable().destroy();
                 }
@@ -226,9 +225,7 @@
                     retrieve: true
                 });
 
-                // ============================================
                 // CREATE MODE
-                // ============================================
                 $('#create_employee').on('click', function() {
                     $('#employeeForm')[0].reset();
                     $('#emp_id').val('');
@@ -237,48 +234,27 @@
                     $('#createUserModal').modal('show');
                 });
 
-                // ============================================
                 // EDIT MODE
-                // ============================================
                 $(document).on('click', '.edit-employee-btn', function() {
                     let btn = $(this);
-
-                    // Reset form first
                     $('#employeeForm')[0].reset();
-
-                    // Fill hidden ID
                     $('#emp_id').val(btn.data('id'));
-
-                    // Fill text fields
                     $('#full_name').val(btn.data('full_name') || '');
                     $('#email').val(btn.data('email') || '');
                     $('#username').val(btn.data('username') || '');
                     $('#contact_number').val(btn.data('contact_number') || '');
                     $('#address').val(btn.data('address') || '');
                     $('#date_hired').val(btn.data('hired') || '');
-
-                    // Fill dropdowns
                     $('#role_id').val(btn.data('role') || '');
                     $('#department_id').val(btn.data('department') || '');
                     $('#assigned_at').val(btn.data('warehouse') || '');
                     $('#status').val(btn.data('status') || 'active');
-
-                    // Update modal UI
                     $('.modal-title').text('Edit Employee Details');
                     $('#save_btn').text('Update Employee');
                     $('#createUserModal').modal('show');
                 });
 
-                // ============================================
-                // FORM SUBMIT (Store & Update)
-                // ============================================
-                // DATI:
-                $('#employeeForm').off('submit').on('submit', function(e) {
-                    e.preventDefault();
-                    ...
-                });
-
-                // BAGO — i-trigger manually:
+                // SAVE / UPDATE BUTTON
                 $('#save_btn').off('click').on('click', function() {
                     let id = $('#emp_id').val();
                     let formData = new FormData($('#employeeForm')[0]);
@@ -313,12 +289,9 @@
                     });
                 });
 
-                // ============================================
                 // RESET PIN
-                // ============================================
                 $(document).on('click', '.reset-pin-btn', function() {
                     let id = $(this).data('id');
-
                     Swal.fire({
                         title: 'Reset PIN?',
                         text: 'This user will need to set a new PIN on their next action.',
@@ -339,22 +312,18 @@
                                     Swal.fire('Reset!', res.message, 'success');
                                 },
                                 error: function(xhr) {
-                                    let errorMsg = xhr.responseJSON?.message ||
-                                        'Failed to reset PIN.';
-                                    Swal.fire('Error', errorMsg, 'error');
+                                    Swal.fire('Error', xhr.responseJSON?.message ||
+                                        'Failed to reset PIN.', 'error');
                                 }
                             });
                         }
                     });
                 });
 
-                // ============================================
                 // DELETE EMPLOYEE
-                // ============================================
                 $(document).on('click', '.delete-employee-btn', function() {
                     let id = $(this).data('id');
                     let name = $(this).data('name');
-
                     Swal.fire({
                         title: 'Sigurado ka ba?',
                         text: 'Mabubura ang account ni ' + name + '. Hindi mo na ito maibabalik!',
@@ -374,14 +343,13 @@
                                 },
                                 success: function(res) {
                                     Swal.fire('Deleted!', res.message, 'success').then(
-                                        () => {
-                                            location.reload();
-                                        });
+                                () => {
+                                        location.reload();
+                                    });
                                 },
                                 error: function(xhr) {
-                                    let errorMsg = xhr.responseJSON?.message ||
-                                        'Hindi mabura ang user.';
-                                    Swal.fire('Error!', errorMsg, 'error');
+                                    Swal.fire('Error!', xhr.responseJSON?.message ||
+                                        'Hindi mabura ang user.', 'error');
                                 }
                             });
                         }
@@ -391,4 +359,5 @@
             }); // end ready
         </script>
     @endpush
+
 @stop
