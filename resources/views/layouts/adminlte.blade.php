@@ -4,91 +4,84 @@
 {{-- =========================
 |   PIN CODE MODAL
 |========================= --}}
-@if (Auth::check() && !session()->has('pin_verified'))
-    <div class="modal fade" id="pincodeModal" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-dialog-centered" role="document">
-            <div class="modal-content"
-                style="border-radius: 15px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
-                <div class="modal-header"
-                    style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px 15px 0 0; border: none;">
-                    <h5 class="modal-title text-white font-weight-bold">
+<div class="modal fade" id="pincodeModal" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-centered" role="document">
+        <div class="modal-content" style="border-radius: 15px; border: none; box-shadow: 0 10px 40px rgba(0,0,0,0.2);">
+            <div class="modal-header"
+                style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 15px 15px 0 0; border: none;">
+                <h5 class="modal-title text-white font-weight-bold">
+                    <i class="fas fa-lock mr-2"></i>
+                    @if (Auth::user()->pin)
+                        Enter Your PIN to Continue
+                    @else
+                        Set Your Security PIN
+                    @endif
+                </h5>
+            </div>
+            <div class="modal-body text-center py-4">
+                @if (Auth::user()->pin)
+                    <p class="text-muted mb-4">Please enter your 4-digit PIN to access the dashboard</p>
+                @else
+                    <p class="text-muted mb-4">Create a 4-digit PIN to secure your account</p>
+                @endif
+
+                <form id="pincodeForm" method="POST" action="{{ route('user.verify.pin') }}">
+                    @csrf
+                    <div class="d-flex justify-content-center gap-2 mb-4">
+                        <input type="text" class="pin-digit form-control text-center" maxlength="1" name="pin[]"
+                            style="width: 60px; height: 60px; font-size: 24px; font-weight: bold; border: 2px solid #667eea; border-radius: 10px;"
+                            required autocomplete="off" inputmode="numeric">
+                        <input type="text" class="pin-digit form-control text-center" maxlength="1" name="pin[]"
+                            style="width: 60px; height: 60px; font-size: 24px; font-weight: bold; border: 2px solid #667eea; border-radius: 10px;"
+                            required autocomplete="off" inputmode="numeric">
+                        <input type="text" class="pin-digit form-control text-center" maxlength="1" name="pin[]"
+                            style="width: 60px; height: 60px; font-size: 24px; font-weight: bold; border: 2px solid #667eea; border-radius: 10px;"
+                            required autocomplete="off" inputmode="numeric">
+                        <input type="text" class="pin-digit form-control text-center" maxlength="1" name="pin[]"
+                            style="width: 60px; height: 60px; font-size: 24px; font-weight: bold; border: 2px solid #667eea; border-radius: 10px;"
+                            required autocomplete="off" inputmode="numeric">
+                    </div>
+
+                    <button type="submit" id="savePincodeBtn" class="btn btn-primary btn-lg btn-block"
+                        style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 10px; font-weight: bold;">
                         <i class="fas fa-lock mr-2"></i>
                         @if (Auth::user()->pin)
-                            Enter Your PIN to Continue
+                            Verify PIN
                         @else
-                            Set Your Security PIN
+                            Save PIN & Continue
                         @endif
-                    </h5>
-                </div>
-                <div class="modal-body text-center py-4">
-                    @if (Auth::user()->pin)
-                        <p class="text-muted mb-4">Please enter your 4-digit PIN to access the dashboard</p>
-                    @else
-                        <p class="text-muted mb-4">Create a 4-digit PIN to secure your account</p>
-                    @endif
+                    </button>
+                </form>
 
-                    <form id="pincodeForm" method="POST" action="{{ route('user.verify.pin') }}">
-                        @csrf
-                        <div class="d-flex justify-content-center gap-2 mb-4">
-                            <input type="text" class="pin-digit form-control text-center" maxlength="1"
-                                name="pin[]"
-                                style="width: 60px; height: 60px; font-size: 24px; font-weight: bold; border: 2px solid #667eea; border-radius: 10px;"
-                                required autocomplete="off" inputmode="numeric">
-                            <input type="text" class="pin-digit form-control text-center" maxlength="1"
-                                name="pin[]"
-                                style="width: 60px; height: 60px; font-size: 24px; font-weight: bold; border: 2px solid #667eea; border-radius: 10px;"
-                                required autocomplete="off" inputmode="numeric">
-                            <input type="text" class="pin-digit form-control text-center" maxlength="1"
-                                name="pin[]"
-                                style="width: 60px; height: 60px; font-size: 24px; font-weight: bold; border: 2px solid #667eea; border-radius: 10px;"
-                                required autocomplete="off" inputmode="numeric">
-                            <input type="text" class="pin-digit form-control text-center" maxlength="1"
-                                name="pin[]"
-                                style="width: 60px; height: 60px; font-size: 24px; font-weight: bold; border: 2px solid #667eea; border-radius: 10px;"
-                                required autocomplete="off" inputmode="numeric">
-                        </div>
-
-                        <button type="submit" id="savePincodeBtn" class="btn btn-primary btn-lg btn-block"
-                            style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; border-radius: 10px; font-weight: bold;">
-                            <i class="fas fa-lock mr-2"></i>
-                            @if (Auth::user()->pin)
-                                Verify PIN
-                            @else
-                                Save PIN & Continue
-                            @endif
-                        </button>
-                    </form>
-
-                    <div class="mt-3">
-                        <small class="text-muted">
-                            <i class="fas fa-info-circle mr-1"></i>
-                            @if (Auth::user()->pin)
-                                Forgot PIN? Contact administrator
-                            @else
-                                You'll need this PIN every time you log in
-                            @endif
-                        </small>
-                    </div>
+                <div class="mt-3">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        @if (Auth::user()->pin)
+                            Forgot PIN? Contact administrator
+                        @else
+                            You'll need this PIN every time you log in
+                        @endif
+                    </small>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <style>
-        .pin-digit:focus {
-            border-color: #764ba2 !important;
-            box-shadow: 0 0 0 0.2rem rgba(118, 75, 162, 0.25) !important;
-        }
+<style>
+    .pin-digit:focus {
+        border-color: #764ba2 !important;
+        box-shadow: 0 0 0 0.2rem rgba(118, 75, 162, 0.25) !important;
+    }
 
-        .gap-2 {
-            gap: 0.5rem !important;
-        }
+    .gap-2 {
+        gap: 0.5rem !important;
+    }
 
-        body.pin-modal-active {
-            overflow: hidden;
-        }
-    </style>
-@endif
+    body.pin-modal-active {
+        overflow: hidden;
+    }
+</style>
 
 {{-- =========================
 |   SESSION TIMEOUT MODAL
