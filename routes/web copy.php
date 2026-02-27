@@ -1,3 +1,5 @@
+
+
 <?php
 /*
 use Illuminate\Support\Facades\Route;
@@ -41,6 +43,10 @@ Route::middleware(['auth'])->group(function () {
 
 // ✅ AUTHENTICATED ROUTES WITH PIN CHECK
 Route::middleware(['auth', CheckPinStatus::class])->group(function () {
+    // Keep-alive route for session timeout
+    Route::get('/keep-alive', function () {
+        return response()->json(['status' => 'ok']);
+    });
 
     // --- DASHBOARD & USER MANAGEMENT ---
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
@@ -76,17 +82,21 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
         ]);
     });
 
-    Route::get('/user-management', [UserManagementController::class, 'index'])->name('user.management');
-    Route::post('/user-management/store', [UserManagementController::class, 'store'])->name('user.management.store');
-    Route::post('/user-management/update', [UserManagementController::class, 'update'])->name('user.management.update');
-    Route::delete('/user-management/delete/{id}', [UserManagementController::class, 'destroy'])->name('user.management.delete');
-    Route::post('/user-management/reset-pin', [UserManagementController::class, 'resetPin'])->name('admin.reset.pin');
+
+    // ✅ ADMIN ONLY - User Management
+    Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin')->group(function () {
+        Route::get('/user-management', [UserManagementController::class, 'index'])->name('user.management');
+        Route::post('/user-management/store', [UserManagementController::class, 'store'])->name('user.management.store');
+        Route::post('/user-management/update', [UserManagementController::class, 'update'])->name('user.management.update');
+        Route::delete('/user-management/delete/{id}', [UserManagementController::class, 'destroy'])->name('user.management.delete');
+        Route::post('/user-management/reset-pin', [UserManagementController::class, 'resetPin'])->name('admin.reset.pin');
+        Route::get('admin/register/form', [RegisteredUserController::class, 'create'])->name('register');
+        Route::post('/employee/register', [RegisteredUserController::class, 'store'])->name('employee.register');
+    });
+
+    // ✅ ALL ROLES - PIN Routes
     Route::put('/update_pin', [UserManagementController::class, 'updatePin'])->name('user.update.pin');
     Route::post('/verify_pin', [UserManagementController::class, 'verifyPin'])->name('user.verify.pin');
-
-    // Registered User Form
-    Route::get('admin/register/form', [RegisteredUserController::class, 'create'])->name('register');
-    Route::post('/employee/register', [RegisteredUserController::class, 'store'])->name('employee.register');
 
     // --- PROFILE MANAGEMENT ---
     Route::controller(ProfileController::class)->group(function () {
@@ -156,6 +166,9 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
         Route::get('/suppliers/create', 'create')->name('suppliers.create');
         Route::post('/suppliers/store', 'store')->name('suppliers.store');
         Route::get('/suppliers/{id}/products-table', 'showTable')->name('suppliers_products.show_table');
+        Route::get('/suppliers/{id}/edit', 'edit')->name('suppliers.edit');
+        Route::put('/suppliers/{id}', 'update')->name('suppliers.update');
+        Route::delete('/suppliers/{id}', 'destroy')->name('suppliers.destroy');
         Route::get('/suppliers/{id}', 'show')->name('suppliers.show');
     });
 
@@ -181,22 +194,28 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
 
     // REPORTS MANAGEMENT
     Route::controller(ReportsController::class)->group(function () {
+        // ✅ ALL ROLES - Daily Reports
         Route::post('/reports/damage', 'reportDamage')->name('reports.report.damage');
         Route::post('/reports/update-stock', 'updateStock')->name('reports.update.stock');
         Route::get('/daily-reports', 'dailyIndex')->name('reports.daily');
         Route::get('/reports/daily/data', 'getDailyData')->name('reports.daily.data');
         Route::get('/reports/daily/export', 'exportDaily')->name('reports.daily.export');
-        Route::get('/weekly-reports', 'weeklyIndex')->name('reports.weekly');
-        Route::get('/weekly-reports/get-data', 'getWeeklyData')->name('reports.weekly.data');
-        Route::get('/weekly-reports/export', 'exportWeekly')->name('reports.weekly.export');
         Route::post('/reports/approve/{id}/{type}', 'approve')->name('reports.approve');
         Route::post('/reports/reject/{id}/{type}', 'reject')->name('reports.reject');
-        Route::get('/monthly-reports', 'monthlyIndex')->name('reports.monthly');
-        Route::get('/quarterly-reports', 'strategicIndex')->name('reports.quarterly');
-        Route::get('/yearly-reports', 'strategicIndex')->name('reports.yearly');
-        Route::get('/strategic-reports', 'strategicIndex')->name('reports.strategic');
-    });
+        Route::post('/weekly-reports/save-audit', 'saveAudit')->name('reports.audit.save');
+        Route::get('/weekly-reports/audit-history', 'auditHistory')->name('reports.audit.history');
 
+        // ✅ ADMIN & MANAGER ONLY
+        Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager')->group(function () {
+            Route::get('/weekly-reports', 'weeklyIndex')->name('reports.weekly');
+            Route::get('/weekly-reports/get-data', 'getWeeklyData')->name('reports.weekly.data');
+            Route::get('/weekly-reports/export', 'exportWeekly')->name('reports.weekly.export');
+            Route::get('/monthly-reports', 'monthlyIndex')->name('reports.monthly');
+            Route::get('/quarterly-reports', 'strategicIndex')->name('reports.quarterly');
+            Route::get('/yearly-reports', 'strategicIndex')->name('reports.yearly');
+            Route::get('/strategic-reports', 'strategicIndex')->name('reports.strategic');
+        });
+    });
     // MANPOWER MANAGEMENT
     Route::controller(ManpowerController::class)->group(function () {
         Route::get('/manpower', 'index')->name('manpower.index');
@@ -220,5 +239,3 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
 });
 
 require __DIR__ . '/auth.php';
-
-feb 16

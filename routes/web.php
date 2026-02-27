@@ -23,7 +23,7 @@ use App\Http\Controllers\{
     RetailerOrderController,
     ManpowerController,
     GymEquipmentController,
-    PincodeController // ✅ ADD THIS
+    PincodeController
 };
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Middleware\CheckPinStatus;
@@ -34,6 +34,7 @@ Route::get('/', function () {
 });
 
 // ✅ PIN VERIFICATION ROUTES (OUTSIDE CheckPinStatus MIDDLEWARE - CRITICAL!)
+// Kailangan LABAS ng CheckPinStatus para hindi ma-intercept ang PIN submission
 Route::middleware(['auth'])->group(function () {
     Route::post('/verify_pin', [UserManagementController::class, 'verifyPin'])->name('user.verify.pin');
     Route::put('/update_pin', [UserManagementController::class, 'updatePin'])->name('user.update.pin');
@@ -80,7 +81,6 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
         ]);
     });
 
-
     // ✅ ADMIN ONLY - User Management
     Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin')->group(function () {
         Route::get('/user-management', [UserManagementController::class, 'index'])->name('user.management');
@@ -92,9 +92,7 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
         Route::post('/employee/register', [RegisteredUserController::class, 'store'])->name('employee.register');
     });
 
-    // ✅ ALL ROLES - PIN Routes
-    Route::put('/update_pin', [UserManagementController::class, 'updatePin'])->name('user.update.pin');
-    Route::post('/verify_pin', [UserManagementController::class, 'verifyPin'])->name('user.verify.pin');
+    // ❌ DUPLICATE PIN ROUTES REMOVED — nasa labas na ng CheckPinStatus group (lines ~34-37)
 
     // --- PROFILE MANAGEMENT ---
     Route::controller(ProfileController::class)->group(function () {
@@ -130,7 +128,7 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
         Route::get('/{id}', [PurchaseRequestController::class, 'show'])->name('pr.show');
     });
 
-    // Purchase Order 
+    // Purchase Order
     Route::prefix('purchase-order')->group(function () {
         Route::get('/', [PurchaseOrderController::class, 'index'])->name('purchase-order.index');
         Route::get('/generate-number', [PurchaseOrderController::class, 'generatePONumber'])->name('purchase-order.generate-number');
@@ -192,7 +190,6 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
 
     // REPORTS MANAGEMENT
     Route::controller(ReportsController::class)->group(function () {
-        // ✅ ALL ROLES - Daily Reports
         Route::post('/reports/damage', 'reportDamage')->name('reports.report.damage');
         Route::post('/reports/update-stock', 'updateStock')->name('reports.update.stock');
         Route::get('/daily-reports', 'dailyIndex')->name('reports.daily');
@@ -203,7 +200,6 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
         Route::post('/weekly-reports/save-audit', 'saveAudit')->name('reports.audit.save');
         Route::get('/weekly-reports/audit-history', 'auditHistory')->name('reports.audit.history');
 
-        // ✅ ADMIN & MANAGER ONLY
         Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager')->group(function () {
             Route::get('/weekly-reports', 'weeklyIndex')->name('reports.weekly');
             Route::get('/weekly-reports/get-data', 'getWeeklyData')->name('reports.weekly.data');
@@ -214,6 +210,7 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
             Route::get('/strategic-reports', 'strategicIndex')->name('reports.strategic');
         });
     });
+
     // MANPOWER MANAGEMENT
     Route::controller(ManpowerController::class)->group(function () {
         Route::get('/manpower', 'index')->name('manpower.index');

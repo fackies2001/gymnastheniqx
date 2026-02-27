@@ -373,7 +373,7 @@
 |========================= --}}
 @section('js')
 
-    {{-- ✅ PIN CODE MODAL --}}
+    {{-- ✅ PIN CODE MODAL — IISA LANG, NANDITO SA LAYOUT --}}
     @auth
         <div class="modal fade" id="pincodeModal" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog">
             <div class="modal-dialog modal-dialog-centered" role="document">
@@ -395,8 +395,15 @@
                         @else
                             <p class="text-muted mb-4">Create a 6-digit PIN to secure your account</p>
                         @endif
-                        <form id="pincodeForm" method="POST" action="{{ route('user.verify.pin') }}">
+
+                        {{-- ✅ FIXED: Dynamic action — verify kung may PIN na, update kung wala pa --}}
+                        <form id="pincodeForm" method="POST"
+                            action="{{ Auth::user()->pin ? route('user.verify.pin') : route('user.update.pin') }}">
                             @csrf
+                            @if (!Auth::user()->pin)
+                                @method('PUT')
+                            @endif
+
                             <div class="d-flex justify-content-center gap-2 mb-4">
                                 @for ($i = 0; $i < 6; $i++)
                                     <input type="text" class="pin-digit form-control text-center" maxlength="1"
@@ -405,6 +412,7 @@
                                         required autocomplete="off" inputmode="numeric">
                                 @endfor
                             </div>
+
                             <button type="submit" id="savePincodeBtn" class="btn btn-primary btn-lg btn-block"
                                 style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); border:none; border-radius:10px; font-weight:bold;">
                                 <i class="fas fa-lock mr-2"></i>
@@ -414,17 +422,23 @@
                                     Save PIN & Continue
                                 @endif
                             </button>
-                        </form>
-                        <div class="mt-3">
-                            <small class="text-muted">
+
+                            <div class="mt-3">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle mr-1"></i>
+                                    @if (Auth::user()->pin)
+                                        Forgot PIN? Contact administrator
+                                    @else
+                                        You'll need this PIN every time you log in
+                                    @endif
+                                </small>
+                            </div>
+
+                            <p class="mt-2 text-muted" style="font-size:0.75rem;">
                                 <i class="fas fa-info-circle mr-1"></i>
-                                @if (Auth::user()->pin)
-                                    Forgot PIN? Contact administrator
-                                @else
-                                    You'll need this PIN every time you log in
-                                @endif
-                            </small>
-                        </div>
+                                This modal cannot be closed until you complete the action.
+                            </p>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -491,7 +505,7 @@
         })();
     </script>
 
-    {{-- ✅ PIN MODAL INITIALIZATION --}}
+    {{-- ✅ PIN MODAL INITIALIZATION — IISA LANG DITO, WALA NA SA DASHBOARD --}}
     <script>
         $(document).ready(function() {
             @if (session('show_pin_modal'))
@@ -531,6 +545,7 @@
                 setTimeout(function() {
                     $('.pin-digit').first().focus();
                 }, 400);
+
                 console.log('[PIN] Modal initialized ✅');
             @endif
         });
@@ -542,7 +557,7 @@
             (function() {
                 'use strict';
 
-                const INACTIVITY_LIMIT = 2 * 60 * 1000; // 2 minutes
+                const INACTIVITY_LIMIT = 2 * 60 * 1000;
                 const COUNTDOWN_SECONDS = 60;
 
                 let inactivityTimer = null;

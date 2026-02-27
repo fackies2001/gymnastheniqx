@@ -1,4 +1,4 @@
-{{-- 📁 resources/views/dashboard/index.blade.php - FIXED VERSION --}}
+{{-- 📁 resources/views/dashboard/index.blade.php --}}
 @extends('layouts.adminlte')
 
 @section('subtitle', 'Dashboard')
@@ -10,20 +10,13 @@
     $monthly_products_in = $bar['monthly_products_in'];
     $low_stock_products = $low_stock_products ?? [];
     $recent_activities = $recent_activities ?? [];
-
-    // ✅ PIN MODAL DEBUG (Remove after confirming it works)
-    Log::info('🎯 Dashboard Rendered', [
-        'show_pin_modal' => session('show_pin_modal'),
-        'pin_mode' => session('pin_mode'),
-        'pin_verified' => session('pin_verified'),
-    ]);
 @endphp
 
 @push('css')
     <style>
         /* ============================================
-                                                   SMALL STAT BOXES
-                                                ============================================ */
+               SMALL STAT BOXES
+            ============================================ */
         .stat-box {
             border-radius: 10px;
             padding: 20px 18px 14px;
@@ -101,8 +94,8 @@
         }
 
         /* ============================================
-                                                   ACTIVITY FEED
-                                                ============================================ */
+               ACTIVITY FEED
+            ============================================ */
         .activity-item {
             padding: 10px 12px;
             border-left: 3px solid #667eea;
@@ -135,8 +128,8 @@
         }
 
         /* ============================================
-                                                   FILTER BUTTONS
-                                                ============================================ */
+               FILTER BUTTONS
+            ============================================ */
         .filter-btn-group .btn {
             border-radius: 20px;
             padding: 5px 14px;
@@ -150,8 +143,8 @@
         }
 
         /* ============================================
-                                                   DARK MODE TOGGLE
-                                                ============================================ */
+               DARK MODE TOGGLE
+            ============================================ */
         .dark-mode-toggle {
             position: fixed;
             bottom: 20px;
@@ -180,26 +173,6 @@
             color: white;
             transition: transform 0.3s ease;
         }
-
-        /* ============================================
-                       PIN MODAL CRITICAL STYLES
-                    ============================================ */
-        #pincodeModal {
-            z-index: 99999 !important;
-        }
-
-        #pincodeModal .modal-dialog {
-            z-index: 100000 !important;
-        }
-
-        .modal-backdrop.show {
-            opacity: 0.7 !important;
-            z-index: 99998 !important;
-        }
-
-        body.pin-modal-active {
-            overflow: hidden !important;
-        }
     </style>
 @endpush
 
@@ -213,8 +186,8 @@
     </button>
 
     {{-- ============================================
-     DATE FILTER BAR (SAME AS RETAILER ORDERS)
-============================================ --}}
+         DATE FILTER BAR
+    ============================================ --}}
     <div class="card shadow mb-4 no-print">
         <div class="card-header bg-gradient-primary">
             <h3 class="card-title font-weight-bold text-white">
@@ -346,9 +319,7 @@
                 </div>
                 <div class="stat-footer">
                     <span><i class="fas fa-users mr-1"></i> All time</span>
-                    <a href="{{ route('suppliers.index') }}">
-                        More info <i class="fas fa-arrow-circle-right"></i>
-                    </a>
+                    <a href="{{ route('suppliers.index') }}">More info <i class="fas fa-arrow-circle-right"></i></a>
                 </div>
             </div>
         </div>
@@ -363,9 +334,7 @@
                 </div>
                 <div class="stat-footer">
                     <span><i class="fas fa-filter mr-1"></i> Filtered period</span>
-                    <a href="{{ route('pr.index') }}">
-                        More info <i class="fas fa-arrow-circle-right"></i>
-                    </a>
+                    <a href="{{ route('pr.index') }}">More info <i class="fas fa-arrow-circle-right"></i></a>
                 </div>
             </div>
         </div>
@@ -380,14 +349,12 @@
                 </div>
                 <div class="stat-footer">
                     <span><i class="fas fa-filter mr-1"></i> Filtered period</span>
-                    <a href="{{ route('purchase-order.index') }}">
-                        More info <i class="fas fa-arrow-circle-right"></i>
-                    </a>
+                    <a href="{{ route('purchase-order.index') }}">More info <i class="fas fa-arrow-circle-right"></i></a>
                 </div>
             </div>
         </div>
 
-        {{-- Available Stock (Serialized Products) --}}
+        {{-- Available Stock --}}
         <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
             <div class="stat-box stat-box-stock shadow-sm">
                 <i class="fas fa-boxes stat-bg-icon"></i>
@@ -397,9 +364,8 @@
                 </div>
                 <div class="stat-footer">
                     <span><i class="fas fa-barcode mr-1"></i> Status: available</span>
-                    <a href="{{ route('serialized_products.index') }}">
-                        More info <i class="fas fa-arrow-circle-right"></i>
-                    </a>
+                    <a href="{{ route('serialized_products.index') }}">More info <i
+                            class="fas fa-arrow-circle-right"></i></a>
                 </div>
             </div>
         </div>
@@ -420,8 +386,7 @@
                     <div class="card">
                         <div class="card-header">
                             <h3 class="card-title">
-                                <i class="fas fa-chart-pie mr-1 text-primary"></i>
-                                Purchase Request Status
+                                <i class="fas fa-chart-pie mr-1 text-primary"></i> Purchase Request Status
                             </h3>
                             <div class="card-tools">
                                 <button type="button" class="btn btn-tool" data-card-widget="collapse">
@@ -441,8 +406,7 @@
                     <div class="card">
                         <div class="card-header">
                             <h3 class="card-title">
-                                <i class="fas fa-chart-pie mr-1 text-success"></i>
-                                Product Status
+                                <i class="fas fa-chart-pie mr-1 text-success"></i> Product Status
                             </h3>
                             <div class="card-tools">
                                 <button type="button" class="btn btn-tool" data-card-widget="collapse">
@@ -462,8 +426,7 @@
                     <div class="card">
                         <div class="card-header">
                             <h3 class="card-title">
-                                <i class="fas fa-chart-bar mr-1 text-info"></i>
-                                Monthly Products Scanned
+                                <i class="fas fa-chart-bar mr-1 text-info"></i> Monthly Products Scanned
                             </h3>
                             <div class="card-tools">
                                 <button type="button" class="btn btn-tool" data-card-widget="collapse">
@@ -574,8 +537,7 @@
                                     <i class="fas fa-{{ $activity->icon ?? 'info' }}"></i>
                                 </div>
                                 <div class="flex-grow-1">
-                                    <div class="font-weight-bold" style="font-size:0.83rem;">
-                                        {{ $activity->user_name }}
+                                    <div class="font-weight-bold" style="font-size:0.83rem;">{{ $activity->user_name }}
                                     </div>
                                     <div style="font-size:0.78rem;">{{ $activity->description }}</div>
                                     <div class="activity-time">
@@ -596,10 +558,10 @@
         </div>
     </div>
 
-    {{-- ============================================
-         ✅ PIN CODE MODAL - ALWAYS INCLUDED
-    ============================================ --}}
-    @include('components.bootstrap.pincode')
+    {{--
+        ❌ TINANGGAL: @include('components.bootstrap.pincode')
+        ✅ DAHIL: Ang PIN modal ay nasa layouts/adminlte.blade.php na — hindi na kailangan dito
+    --}}
 
 @stop
 
@@ -619,102 +581,12 @@
     @vite(['resources/js/dashboard.js'])
 
     {{-- ============================================
-         ✅ FIXED PIN MODAL HANDLER
+         DATE FILTER FUNCTIONALITY ONLY
+         ❌ TINANGGAL: PIN modal JS — nasa layouts/adminlte.blade.php na
     ============================================ --}}
     <script>
         $(document).ready(function() {
             console.log('🚀 Dashboard Initialized');
-
-            // ✅ PIN Modal Configuration
-            const pinConfig = {
-                shouldShow: {{ session('show_pin_modal') ? 'true' : 'false' }},
-                mode: '{{ session('pin_mode') ?? '' }}',
-                verified: {{ session('pin_verified') ? 'true' : 'false' }}
-            };
-
-            console.log('🔐 PIN Configuration:', pinConfig);
-
-            // ============================================
-            // ✅ PIN MODAL INITIALIZATION
-            // ============================================
-            if (pinConfig.shouldShow) {
-                console.log('⚠️ PIN Modal Required - Mode:', pinConfig.mode);
-
-                // ✅ Wait for DOM to be fully ready
-                setTimeout(function() {
-                    const $modal = $('#pincodeModal');
-
-                    if ($modal.length === 0) {
-                        console.error('❌ CRITICAL: #pincodeModal not found in DOM!');
-                        console.log('Available elements:', $('[id*="code"]').map((i, el) => el.id).get());
-                        return;
-                    }
-
-                    console.log('✅ PIN Modal Found - Initializing...');
-
-                    // ✅ Add body class for scroll prevention
-                    $('body').addClass('pin-modal-active modal-open');
-
-                    // ✅ Show modal with locked settings
-                    $modal.modal({
-                        backdrop: 'static',
-                        keyboard: false,
-                        show: true,
-                        focus: true
-                    });
-
-                    // ✅ Force display (sometimes Bootstrap needs this)
-                    $modal.addClass('show').css('display', 'block');
-
-                    // ✅ Ensure backdrop exists
-                    if ($('.modal-backdrop').length === 0) {
-                        $('<div class="modal-backdrop fade show"></div>').appendTo('body');
-                    }
-
-                    // ✅ CRITICAL: Prevent modal closing by ANY method
-                    $modal.on('hide.bs.modal', function(e) {
-                        console.log('⚠️ Blocked attempt to close PIN modal');
-                        e.preventDefault();
-                        e.stopPropagation();
-                        e.stopImmediatePropagation();
-                        return false;
-                    });
-
-                    // ✅ Disable ESC key globally
-                    $(document).on('keydown.pinmodal', function(e) {
-                        if (e.key === 'Escape' || e.keyCode === 27) {
-                            console.log('⚠️ ESC key blocked');
-                            e.preventDefault();
-                            e.stopPropagation();
-                            return false;
-                        }
-                    });
-
-                    // ✅ Prevent browser back button
-                    if (window.history && window.history.pushState) {
-                        window.history.pushState(null, '', window.location.href);
-                        window.onpopstate = function() {
-                            console.log('⚠️ Back button blocked');
-                            window.history.pushState(null, '', window.location.href);
-                        };
-                    }
-
-                    // ✅ Auto-focus first PIN input
-                    setTimeout(function() {
-                        const $firstInput = $('.pin-digit').first();
-                        if ($firstInput.length) {
-                            $firstInput.focus();
-                            console.log('✅ First PIN input focused');
-                        }
-                    }, 500);
-
-                    console.log('✅ PIN Modal Fully Locked & Displayed');
-
-                }, 250); // Small delay ensures DOM is ready
-
-            } else {
-                console.log('ℹ️ No PIN verification required');
-            }
 
             // ============================================
             // DATE FILTER FUNCTIONALITY
@@ -734,7 +606,6 @@
             $('#startDate, #endDate').on('change', function() {
                 const startDate = new Date($('#startDate').val());
                 const endDate = new Date($('#endDate').val());
-
                 if (startDate && endDate && startDate > endDate) {
                     alert('Start date cannot be after end date!');
                     $(this).val('');
@@ -745,8 +616,7 @@
             function checkMidnightReset() {
                 const now = new Date();
                 if (now.getHours() === 0 && now.getMinutes() === 0) {
-                    const currentFilter = $('#filterType').val();
-                    if (currentFilter === 'today') {
+                    if ($('#filterType').val() === 'today') {
                         console.log('🌙 Midnight detected! Auto-refreshing...');
                         location.reload();
                     }
