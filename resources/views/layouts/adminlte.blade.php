@@ -40,6 +40,12 @@
                         <input type="text" class="pin-digit form-control text-center" maxlength="1" name="pin[]"
                             style="width: 60px; height: 60px; font-size: 24px; font-weight: bold; border: 2px solid #667eea; border-radius: 10px;"
                             required autocomplete="off" inputmode="numeric">
+                        <input type="text" class="pin-digit form-control text-center" maxlength="1" name="pin[]"
+                            style="width: 60px; height: 60px; font-size: 24px; font-weight: bold; border: 2px solid #667eea; border-radius: 10px;"
+                            required autocomplete="off" inputmode="numeric">
+                        <input type="text" class="pin-digit form-control text-center" maxlength="1" name="pin[]"
+                            style="width: 60px; height: 60px; font-size: 24px; font-weight: bold; border: 2px solid #667eea; border-radius: 10px;"
+                            required autocomplete="off" inputmode="numeric">
                     </div>
 
                     <button type="submit" id="savePincodeBtn" class="btn btn-primary btn-lg btn-block"
@@ -463,14 +469,26 @@
     </script>
 
     {{-- ✅ PIN MODAL INITIALIZATION --}}
+    {{-- Uses show_pin_modal session key set by CheckPinStatus middleware --}}
     <script>
         $(document).ready(function() {
-            @if (!session()->has('pin_verified'))
-                console.log('[PIN] Initializing modal...');
+            @if (session('show_pin_modal'))
+                console.log('[PIN] Initializing modal... mode: {{ session('pin_mode') }}');
 
-                $('#pincodeModal').modal('show');
+                const $modal = $('#pincodeModal');
 
-                $('#pincodeModal').on('hide.bs.modal', function(e) {
+                if ($modal.length === 0) {
+                    console.warn('[PIN] #pincodeModal not found in DOM - skipping');
+                    return;
+                }
+
+                $modal.modal({
+                    backdrop: 'static',
+                    keyboard: false,
+                    show: true
+                });
+
+                $modal.on('hide.bs.modal', function(e) {
                     e.preventDefault();
                     return false;
                 });
@@ -488,6 +506,10 @@
                 window.onpopstate = function() {
                     window.history.pushState(null, '', window.location.href);
                 };
+
+                setTimeout(function() {
+                    $('.pin-digit').first().focus();
+                }, 400);
 
                 console.log('[PIN] Modal initialized ✅');
             @endif
