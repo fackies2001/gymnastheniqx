@@ -40,7 +40,7 @@ class UserManagementController extends Controller
             'contact_number' => 'nullable|string',
             'address' => 'nullable|string',
             'date_hired' => 'nullable|date',
-            'status' => 'required|in:active,inactive',
+            'status' => 'required|in:Active,Inactive,active,inactive',
             'profile_photo' => 'nullable|image|max:2048'
         ]);
 

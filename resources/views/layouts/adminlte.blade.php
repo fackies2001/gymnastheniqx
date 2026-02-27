@@ -394,8 +394,7 @@
 
                             <div class="d-flex justify-content-center gap-2 mb-4">
                                 @for ($i = 0; $i < 6; $i++)
-                                    <input type="text" class="pin-digit form-control text-center" maxlength="1"
-                                        name="pin[]"
+                                    <input type="password" class="pin-digit form-control text-center" name="pin[]"
                                         style="width:55px; height:55px; font-size:22px; font-weight:bold; border:2px solid #667eea; border-radius:10px;"
                                         required autocomplete="off" inputmode="numeric">
                                 @endfor
