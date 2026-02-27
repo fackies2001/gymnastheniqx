@@ -272,11 +272,16 @@
                 // ============================================
                 // FORM SUBMIT (Store & Update)
                 // ============================================
+                // DATI:
                 $('#employeeForm').off('submit').on('submit', function(e) {
                     e.preventDefault();
+                    ...
+                });
 
+                // BAGO — i-trigger manually:
+                $('#save_btn').off('click').on('click', function() {
                     let id = $('#emp_id').val();
-                    let formData = new FormData(this);
+                    let formData = new FormData($('#employeeForm')[0]);
                     let url = id ?
                         "{{ route('user.management.update') }}" :
                         "{{ route('user.management.store') }}";
@@ -293,6 +298,7 @@
                             });
                         },
                         error: function(xhr) {
+                            console.log('ERROR:', xhr.status, xhr.responseText);
                             let errorMsg = xhr.responseJSON?.message || 'May mali sa server.';
                             if (xhr.responseJSON?.errors) {
                                 errorMsg = Object.values(xhr.responseJSON.errors).flat().join(
