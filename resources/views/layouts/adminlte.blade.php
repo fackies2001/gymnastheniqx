@@ -500,19 +500,17 @@
         });
     </script>
 
-    {{-- ✅ SESSION TIMEOUT — starts only after first user activity --}}
+    {{-- ✅ SESSION TIMEOUT - 2 minutes inactivity --}}
     @auth
         <script>
             $(document).ready(function() {
-                const SESSION_MINUTES = 2;
-                const WARNING_SECONDS = 10;
-                const sessionMs = 30 * 1000; // 30 seconds total
-                const warningMs = WARNING_SECONDS * 1000; // warning after 20 seconds
+                const INACTIVITY_LIMIT = 2 * 60 * 1000; // 2 minutes
+                const WARNING_DURATION = 60 * 1000; // 60 seconds warning
+                const WARNING_SECONDS = 60;
 
-                let warnTimer, logoutTimer, countdownInterval;
-                let timerStarted = false;
+                let inactivityTimer, logoutTimer, countdownInterval;
 
-                // Inject modal into body AFTER DOM is ready
+                // Inject modal
                 $('body').append(`
                 <div class="modal fade" id="sessionWarningModal" tabindex="-1" role="dialog">
                     <div class="modal-dialog modal-dialog-centered" role="document">
@@ -524,7 +522,7 @@
                             </div>
                             <div class="modal-body text-center py-4">
                                 <p class="mb-1">Your session will expire in</p>
-                                <h2 class="font-weight-bold text-danger"><span id="countdown">60</span>s</h2>
+                                <h2 class="font-weight-bold text-danger"><span id="countdown">${WARNING_SECONDS}</span>s</h2>
                                 <p class="text-muted small">Click "Stay Logged In" to continue your session.</p>
                             </div>
                             <div class="modal-footer justify-content-center">
@@ -543,12 +541,21 @@
                 </div>
             `);
 
-                function startTimers() {
-                    clearTimeout(warnTimer);
+                function resetInactivityTimer() {
+                    clearTimeout(inactivityTimer);
                     clearTimeout(logoutTimer);
                     clearInterval(countdownInterval);
-                    warnTimer = setTimeout(showWarning, sessionMs - warningMs);
-                    logoutTimer = setTimeout(autoLogout, sessionMs);
+
+                    // Hide modal if visible
+                    if ($('#sessionWarningModal').hasClass('show')) {
+                        $('#sessionWarningModal').modal('hide');
+                    }
+
+                    // Show warning after 1 minute of inactivity
+                    inactivityTimer = setTimeout(showWarning, INACTIVITY_LIMIT - WARNING_DURATION);
+
+                    // Auto logout after 2 minutes of inactivity
+                    logoutTimer = setTimeout(autoLogout, INACTIVITY_LIMIT);
                 }
 
                 function showWarning() {
@@ -559,6 +566,7 @@
                         keyboard: false
                     });
                     $('#sessionWarningModal').modal('show');
+
                     countdownInterval = setInterval(function() {
                         secs--;
                         $('#countdown').text(secs);
@@ -573,25 +581,20 @@
 
                 $(document).on('click', '#stayLoggedIn', function() {
                     fetch('/keep-alive', {
-                            method: 'GET'
-                        })
-                        .then(function() {
-                            $('#sessionWarningModal').modal('hide');
-                            clearInterval(countdownInterval);
-                            startTimers();
-                        });
-                });
-
-
-                // ✅ Start timer once on first activity only
-                ['click', 'keypress', 'mousemove', 'scroll'].forEach(function(evt) {
-                    document.addEventListener(evt, function() {
-                        if (!timerStarted) {
-                            timerStarted = true;
-                            startTimers();
-                        }
+                        method: 'GET'
+                    }).then(function() {
+                        resetInactivityTimer();
                     });
                 });
+
+                // ✅ Reset timer on ANY user activity
+                ['mousemove', 'mousedown', 'keypress', 'scroll', 'touchstart', 'click'].forEach(function(evt) {
+                    document.addEventListener(evt, resetInactivityTimer, true);
+                });
+
+                // ✅ Start timer immediately on page load
+                resetInactivityTimer();
+                console.log('[Session] Inactivity timer started ✅');
             });
         </script>
     @endauth
@@ -772,3 +775,4 @@
         })();
     </script>
 @stop
+git add .
