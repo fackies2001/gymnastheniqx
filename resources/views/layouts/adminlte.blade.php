@@ -583,15 +583,15 @@
                 });
 
 
-                // ✅ Timer starts ONLY after first activity, resets on subsequent activity
-                ['click', 'keypress'].forEach(function(evt) {
+                // ✅ Start timer once on first activity only
+                ['click', 'keypress', 'mousemove', 'scroll'].forEach(function(evt) {
                     document.addEventListener(evt, function() {
                         if (!timerStarted) {
                             timerStarted = true;
+                            startTimers();
                         }
-                        startTimers();
                     });
-                });;
+                });
             });
         </script>
     @endauth
