@@ -232,9 +232,9 @@
 @push('js')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        let activeFilter = 'all';
-        let currentData = [];
-        let dataTable = null;
+        var activeFilter = 'all';
+        var currentData = [];
+        var dataTable = null;
 
         // ✅ FILTER BY STATUS (from cards)
         function filterByStatus(status) {
