@@ -564,7 +564,7 @@
                     },
                     {
                         data: 'created_at',
-                        name: 'pr.created_at' // ✅ FIX
+                        name: 'created_at' // ✅ FIX
                     },
                     {
                         data: 'action',

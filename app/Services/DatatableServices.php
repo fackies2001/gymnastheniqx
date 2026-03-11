@@ -83,7 +83,7 @@ class DatatableServices
 
         return DataTables::of($query)
             ->order(function ($query) {
-                $query->orderBy('pr.id', 'desc');
+                $query->orderBy('created_at', 'desc'); // ✅ alisin ang 'pr.' prefix
             })
             ->setRowId(function ($row) {
                 return 'pr_' . $row->id;
