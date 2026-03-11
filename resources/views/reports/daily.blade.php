@@ -53,7 +53,7 @@
             </div>
         </div>
 
-        {{-- ✅ NEW: CLEANER DATE FILTER (Same as Retailer Orders) --}}
+        {{-- CLEANER DATE FILTER --}}
         <div class="card shadow mb-4 no-print">
             <div class="card-header bg-gradient-primary">
                 <h3 class="card-title font-weight-bold text-white">
@@ -255,7 +255,6 @@
         // ✅ UPDATE FILTER BADGE
         function updateFilterBadge(status) {
             const badge = $('#filterBadge');
-
             if (status === 'all') {
                 badge.hide();
             } else {
@@ -281,16 +280,13 @@
                 type
             });
 
-            // Show loading
             $('#loadingSpinner').show();
 
-            // ✅ FIX: Destroy properly before clearing
             if (dataTable) {
                 dataTable.destroy();
                 dataTable = null;
             }
 
-            $('#dailyReportTable tbody').empty();
             $('#dailyReportTable tbody').html(
                 '<tr><td colspan="4" class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x"></i><br><small>Loading...</small></td></tr>'
             );
@@ -308,8 +304,6 @@
                     currentData = response.data || [];
                     renderTable(currentData);
                     $('#loadingSpinner').hide();
-
-                    // Update record count
                     $('#recordCount').text(currentData.length + ' records');
                 },
                 error: function(xhr, status, error) {
@@ -322,22 +316,17 @@
             });
         }
 
-        // ✅ RENDER TABLE WITH DATATABLES
+        // ✅ RENDER TABLE
         function renderTable(data) {
             let html = '';
 
             if (data && data.length > 0) {
                 data.forEach(item => {
-                    let productName = item.product_name || '';
-                    let categoryName = item.category_name || '';
-                    let traceability = item.traceability || '-';
-                    let quantity = item.quantity || 0;
-
                     html += `<tr>
-                        <td>${productName}</td>
-                        <td>${categoryName}</td>
-                        <td>${traceability}</td>
-                        <td class="text-center font-weight-bold">${quantity}</td>
+                        <td>${item.product_name || ''}</td>
+                        <td>${item.category_name || ''}</td>
+                        <td>${item.traceability || '-'}</td>
+                        <td class="text-center font-weight-bold">${item.quantity || 0}</td>
                     </tr>`;
                 });
             } else {
@@ -352,8 +341,6 @@
 
             $('#dailyReportTable tbody').html(html);
 
-            // ✅ Initialize DataTable with sorting arrows
-            // ✅ FIX: Initialize DataTable
             if (data && data.length > 0) {
                 setTimeout(function() {
                     dataTable = $('#dailyReportTable').DataTable({
@@ -368,174 +355,151 @@
                             "emptyTable": "No records found for the selected period"
                         }
                     });
-                }, 100); // ✅ slight delay para siguradong naka-render na yung HTML
+                }, 100);
+            }
+        }
+
+        // ✅ PRINT FUNCTION
+        function handlePrint() {
+            if (!currentData || currentData.length === 0) {
+                alert('No data to print');
+                return;
             }
 
-            // ✅ PRINT FUNCTION
-            function handlePrint() {
-                if (!currentData || currentData.length === 0) {
-                    alert('No data to print');
-                    return;
-                }
+            let html = '';
+            currentData.forEach(item => {
+                let cleanName = $('<div>').html(item.product_name).text();
+                let cleanCat = $('<div>').html(item.category_name).text();
+                let cleanTrace = $('<div>').html(item.traceability).text();
 
-                let html = '';
-                currentData.forEach(item => {
-                    let cleanName = $('<div>').html(item.product_name).text();
-                    let cleanCat = $('<div>').html(item.category_name).text();
-                    let cleanTrace = $('<div>').html(item.traceability).text();
-
-                    html += `<tr>
+                html += `<tr>
                     <td style="border: 1px solid black; padding: 5px;">${cleanName}</td>
                     <td style="border: 1px solid black; padding: 5px;">${cleanCat}</td>
                     <td style="border: 1px solid black; padding: 5px;">${cleanTrace}</td>
                     <td style="border: 1px solid black; padding: 5px; text-align: center;">${item.quantity}</td>
                 </tr>`;
-                });
+            });
 
-                $('#printTableBody').html(html || '<tr><td colspan="4" class="text-center">No data</td></tr>');
-                window.print();
+            $('#printTableBody').html(html || '<tr><td colspan="4" class="text-center">No data</td></tr>');
+            window.print();
+        }
+
+        // ✅ INITIALIZE
+        $(document).ready(function() {
+            console.log('📊 Daily Reports Ready');
+
+            const initialFilter = $('#filterType').val();
+            if (initialFilter && initialFilter !== 'all_time') {
+                $('#activeFilterBadge').show();
+                const labels = {
+                    'today': "Today's Records",
+                    'yesterday': "Yesterday's Records",
+                    'last_7_days': 'Last 7 Days',
+                    'last_30_days': 'Last 30 Days',
+                    'this_month': 'This Month',
+                    'last_month': 'Last Month',
+                    'this_year': 'This Year'
+                };
+                $('#filterLabel').text(labels[initialFilter] || initialFilter);
             }
 
-            // ✅ INITIALIZE
-            $(document).ready(function() {
-                console.log('📊 Daily Reports Ready');
+            // Load initial data
+            loadData();
 
-                // ✅ Show active filter badge on page load
-                const initialFilter = $('#filterType').val();
-                if (initialFilter && initialFilter !== 'all_time') {
-                    $('#activeFilterBadge').show();
+            // ✅ COMBINED filterType change handler (no duplicate)
+            $('#filterType').on('change', function() {
+                const selectedValue = $(this).val();
 
-                    const labels = {
-                        'today': "Today's Records",
-                        'yesterday': "Yesterday's Records",
-                        'last_7_days': 'Last 7 Days',
-                        'last_30_days': 'Last 30 Days',
-                        'this_month': 'This Month',
-                        'last_month': 'Last Month',
-                        'this_year': 'This Year'
-                    };
-                    $('#filterLabel').text(labels[initialFilter] || initialFilter);
-                }
+                if (selectedValue === 'custom') {
+                    $('#customDateDiv').show();
+                    $('#activeFilterBadge').hide();
+                } else {
+                    $('#customDateDiv').hide();
 
-                // Load initial data
-                loadData();
-
-                // ✅ Show/hide custom date input
-                $('#filterType').on('change', function() {
-                    const selectedValue = $(this).val();
-
-                    if (selectedValue === 'custom') {
-                        $('#customDateDiv').show();
-                        $('#activeFilterBadge').hide();
+                    if (selectedValue && selectedValue !== 'all_time') {
+                        $('#activeFilterBadge').show();
+                        const labels = {
+                            'today': "Today's Records",
+                            'yesterday': "Yesterday's Records",
+                            'last_7_days': 'Last 7 Days',
+                            'last_30_days': 'Last 30 Days',
+                            'this_month': 'This Month',
+                            'last_month': 'Last Month',
+                            'this_year': 'This Year'
+                        };
+                        $('#filterLabel').text(labels[selectedValue] || selectedValue);
                     } else {
-                        $('#customDateDiv').hide();
-
-                        if (selectedValue && selectedValue !== 'all_time') {
-                            $('#activeFilterBadge').show();
-                            const labels = {
-                                'today': "Today's Records",
-                                'yesterday': "Yesterday's Records",
-                                'last_7_days': 'Last 7 Days',
-                                'last_30_days': 'Last 30 Days',
-                                'this_month': 'This Month',
-                                'last_month': 'Last Month',
-                                'this_year': 'This Year'
-                            };
-                            $('#filterLabel').text(labels[selectedValue] || selectedValue);
-                        } else {
-                            $('#activeFilterBadge').hide();
-                        }
-
-                        // ✅ Auto-load data
-                        activeFilter = 'all';
-                        updateFilterBadge('all');
-                        loadData();
+                        $('#activeFilterBadge').hide();
                     }
-                });
 
-
-                // ✅ Apply Filter Button
-                $('#applyFilterBtn').on('click', function() {
-                    console.log('📅 Applying filter');
+                    // ✅ Auto-load data
                     activeFilter = 'all';
                     updateFilterBadge('all');
                     loadData();
-                });
+                }
+            });
 
-                // ✅ Reset Filter Button
-                $('#resetFilterBtn').on('click', function() {
-                    console.log('🔄 Resetting filter to today');
+            // ✅ Apply Filter Button
+            $('#applyFilterBtn').on('click', function() {
+                console.log('📅 Applying filter');
+                activeFilter = 'all';
+                updateFilterBadge('all');
+                loadData();
+            });
+
+            // ✅ Reset Filter Button
+            $('#resetFilterBtn').on('click', function() {
+                console.log('🔄 Resetting filter to today');
+                $('#filterType').val('today');
+                $('#customDate').val('');
+                $('#customDateDiv').hide();
+                $('#activeFilterBadge').show();
+                $('#filterLabel').text("Today's Records");
+                activeFilter = 'all';
+                updateFilterBadge('all');
+                loadData();
+            });
+
+            // ✅ Custom date change handler
+            $('#customDate').on('change', function() {
+                const selectedDate = $(this).val();
+                console.log('📅 Custom date changed:', selectedDate);
+                $('#activeFilterBadge').show();
+                $('#filterLabel').text(selectedDate);
+            });
+
+            // ✅ AUTO-RESET AT MIDNIGHT
+            function checkMidnightReset() {
+                const now = new Date();
+                const hours = now.getHours();
+                const minutes = now.getMinutes();
+                const currentFilter = $('#filterType').val();
+
+                if (hours === 0 && minutes === 0 && currentFilter === 'today') {
+                    console.log('🌙 Midnight detected! Auto-refreshing for new day...');
                     $('#filterType').val('today');
-                    $('#customDate').val('');
-                    $('#customDateDiv').hide();
                     $('#activeFilterBadge').show();
                     $('#filterLabel').text("Today's Records");
                     activeFilter = 'all';
                     updateFilterBadge('all');
-                    loadData();
-                });
 
-                // ✅ Custom date change handler
-                $('#customDate').on('change', function() {
-                    const selectedDate = $(this).val();
-                    console.log('📅 Custom date changed:', selectedDate);
-                    $('#activeFilterBadge').show();
-                    $('#filterLabel').text(selectedDate);
-                });
-
-                // ✅ Auto-submit on preset selection
-                // $('#filterType').on('change', function() {
-                //     const selectedValue = $(this).val();
-
-                //     // Auto-load for non-custom filters
-                //     if (selectedValue !== 'custom') {
-                //         activeFilter = 'all';
-                //         updateFilterBadge('all');
-                //         loadData();
-                //     }
-                // });
-
-                // ============================================================
-                // ✅ AUTO-RESET AT MIDNIGHT (12:00 AM)
-                // ============================================================
-                function checkMidnightReset() {
-                    const now = new Date();
-                    const hours = now.getHours();
-                    const minutes = now.getMinutes();
-                    const currentFilter = $('#filterType').val();
-
-                    // If it's midnight and filter is "today", auto-refresh
-                    if (hours === 0 && minutes === 0 && currentFilter === 'today') {
-                        console.log('🌙 Midnight detected! Auto-refreshing for new day...');
-
-                        // Reset to today's view
-                        $('#filterType').val('today');
-                        $('#activeFilterBadge').show();
-                        $('#filterLabel').text("Today's Records");
-                        activeFilter = 'all';
-                        updateFilterBadge('all');
-
-                        // Show notification
-                        if (typeof Swal !== 'undefined') {
-                            Swal.fire({
-                                icon: 'info',
-                                title: 'New Day!',
-                                text: 'Daily report has been reset for the new day.',
-                                timer: 3000,
-                                showConfirmButton: false
-                            });
-                        }
-
-                        loadData();
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'New Day!',
+                            text: 'Daily report has been reset for the new day.',
+                            timer: 3000,
+                            showConfirmButton: false
+                        });
                     }
+
+                    loadData();
                 }
+            }
 
-                // Check every minute for midnight
-                setInterval(checkMidnightReset, 60000);
-
-                // Check immediately on page load if it's a new day
-                checkMidnightReset();
-            });
+            setInterval(checkMidnightReset, 60000);
+            checkMidnightReset();
+        });
     </script>
 @endpush
 
@@ -551,7 +515,6 @@
             background-color: #f8f9fa;
         }
 
-        /* ✅ DataTables Sorting Arrow Styles */
         table.dataTable thead .sorting:before,
         table.dataTable thead .sorting:after,
         table.dataTable thead .sorting_asc:before,
@@ -567,7 +530,6 @@
             cursor: pointer;
         }
 
-        /* ✅ Filter Design (Same as Retailer Orders) */
         .bg-gradient-primary {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
