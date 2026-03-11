@@ -425,6 +425,12 @@ class DatatableServices
             ->editColumn('barcode', function ($row) {
                 return $row->barcode ?? 'N/A';
             })
+            // ✅ FIX: Dagdag na filterColumn para ma-search ang supplier name
+            ->filterColumn('supplier_name', function ($query, $keyword) {
+                $query->whereHas('supplier', function ($q) use ($keyword) {
+                    $q->where('name', 'like', "%{$keyword}%");
+                });
+            })
             ->make(true);
     }
 }
