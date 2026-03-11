@@ -282,8 +282,9 @@
 
             $('#loadingSpinner').show();
 
-            if (dataTable) {
-                dataTable.destroy();
+            // ✅ SAFE destroy
+            if ($.fn.DataTable.isDataTable('#dailyReportTable')) {
+                $('#dailyReportTable').DataTable().destroy();
                 dataTable = null;
             }
 
