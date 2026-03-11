@@ -240,16 +240,27 @@ class DatatableServices
             })
             ->addColumn('quantity', function ($row) {
                 $available = $row->available_count ?? 0;
-
                 return '<div class="text-center">
-                        <span class="badge badge-primary px-3 py-2" 
-                              style="font-size: 1rem; font-weight: 600;">
-                            ' . $available . ' Units
-                        </span>
-                    </div>';
+                    <span class="badge badge-primary px-3 py-2" 
+                          style="font-size: 1rem; font-weight: 600;">
+                        ' . $available . ' Units
+                    </span>
+                </div>';
             })
             ->addColumn('action', function ($row) {
                 return ['id' => $row->id, 'name' => $row->name];
+            })
+            // ✅ FIX: Dagdag na filterColumn para sa system_sku at supplier_name
+            ->filterColumn('system_sku', function ($query, $keyword) {
+                $query->where('supplier_product.system_sku', 'like', "%{$keyword}%");
+            })
+            ->filterColumn('product_name', function ($query, $keyword) {
+                $query->where('supplier_product.name', 'like', "%{$keyword}%");
+            })
+            ->filterColumn('supplier_name', function ($query, $keyword) {
+                $query->whereHas('supplier', function ($q) use ($keyword) {
+                    $q->where('name', 'like', "%{$keyword}%");
+                });
             })
             ->rawColumns(['product_name', 'system_sku', 'quantity'])
             ->make(true);
