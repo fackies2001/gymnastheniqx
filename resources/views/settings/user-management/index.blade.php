@@ -254,13 +254,19 @@
                     $('#createUserModal').modal('show');
                 });
 
+
                 // SAVE / UPDATE BUTTON
-                $('#save_btn').off('click').on('click', function() {
+                // ✅ FIX: Gamitin form submit instead ng button click para maiwasan ang hanging
+                $('#employeeForm').off('submit').on('submit', function(e) {
+                    e.preventDefault();
                     let id = $('#emp_id').val();
-                    let formData = new FormData($('#employeeForm')[0]);
+                    let formData = new FormData(this);
                     let url = id ?
                         "{{ route('user.management.update') }}" :
                         "{{ route('user.management.store') }}";
+
+                    // ✅ Disable button para hindi double submit
+                    $('#save_btn').prop('disabled', true).text('Saving...');
 
                     $.ajax({
                         url: url,
@@ -269,12 +275,18 @@
                         processData: false,
                         contentType: false,
                         success: function(response) {
-                            Swal.fire('Success', response.message, 'success').then(() => {
+                            $('#createUserModal').modal('hide');
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success',
+                                text: response.message,
+                                timer: 1500,
+                                showConfirmButton: false
+                            }).then(() => {
                                 location.reload();
                             });
                         },
                         error: function(xhr) {
-                            console.log('ERROR:', xhr.status, xhr.responseText);
                             let errorMsg = xhr.responseJSON?.message || 'May mali sa server.';
                             if (xhr.responseJSON?.errors) {
                                 errorMsg = Object.values(xhr.responseJSON.errors).flat().join(
@@ -285,6 +297,12 @@
                                 title: 'Oops...',
                                 html: errorMsg
                             });
+                        },
+                        complete: function() {
+                            // ✅ Re-enable button after request
+                            $('#save_btn').prop('disabled', false).text(
+                                id ? 'Update Employee' : 'Save Employee'
+                            );
                         }
                     });
                 });
@@ -343,9 +361,9 @@
                                 },
                                 success: function(res) {
                                     Swal.fire('Deleted!', res.message, 'success').then(
-                                () => {
-                                        location.reload();
-                                    });
+                                        () => {
+                                            location.reload();
+                                        });
                                 },
                                 error: function(xhr) {
                                     Swal.fire('Error!', xhr.responseJSON?.message ||

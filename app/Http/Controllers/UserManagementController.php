@@ -52,6 +52,7 @@ class UserManagementController extends Controller
         // Set default password (you can change this logic)
         $validated['password'] = Hash::make('password123'); // Default password
 
+        $validated['status'] = ucfirst(strtolower($validated['status']));
         $employee = User::create($validated);
 
         return response()->json([
@@ -91,6 +92,8 @@ class UserManagementController extends Controller
             $validated['profile_photo'] = $request->file('profile_photo')->store('profile_photos', 'public');
         }
 
+        // ✅ FIX: Capitalize status para consistent sa profile display
+        $validated['status'] = ucfirst(strtolower($validated['status']));
         $employee->update($validated);
 
         return response()->json([
