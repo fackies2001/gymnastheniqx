@@ -552,19 +552,19 @@
                 ],
                 columns: [{
                         data: 'request_number',
-                        name: 'pr.request_number' // ✅ FIX
+                        name: 'request_number'
                     },
                     {
                         data: 'requestor',
-                        name: 'u.full_name' // ✅ FIX
+                        name: 'requestor'
                     },
                     {
                         data: 'department',
-                        name: 'd.name' // ✅ FIX
+                        name: 'department'
                     },
                     {
                         data: 'created_at',
-                        name: 'created_at' // ✅ FIX
+                        name: 'created_at'
                     },
                     {
                         data: 'action',

@@ -63,18 +63,18 @@ class DatatableServices
             ->make(true);
     }
 
-    public function get_pr_index_table($request) // Lagyan mo ng $request parameter
+    public function get_pr_index_table($request)
     {
-        $query = \DB::table('purchase_request as pr')
-            ->leftJoin('employee as u', 'pr.user_id', '=', 'u.id')
-            ->leftJoin('department as d', 'pr.department_id', '=', 'd.id')
-            ->leftJoin('supplier as s', 'pr.supplier_id', '=', 's.id')
-            ->leftJoin('purchase_status_library as ps', 'pr.status_id', '=', 'ps.id')
+        $query = \DB::table('purchase_request')
+            ->leftJoin('employee as u', 'purchase_request.user_id', '=', 'u.id')
+            ->leftJoin('department as d', 'purchase_request.department_id', '=', 'd.id')
+            ->leftJoin('supplier as s', 'purchase_request.supplier_id', '=', 's.id')
+            ->leftJoin('purchase_status_library as ps', 'purchase_request.status_id', '=', 'ps.id')
             ->select(
-                'pr.id',
-                'pr.request_number',
-                'pr.created_at',
-                'pr.status_id',
+                'purchase_request.id',
+                'purchase_request.request_number',
+                'purchase_request.created_at',
+                'purchase_request.status_id',
                 'u.full_name as requestor',
                 'd.name as department_name',
                 's.name as supplier_name',
@@ -83,12 +83,11 @@ class DatatableServices
 
         return DataTables::of($query)
             ->order(function ($query) {
-                $query->orderBy('created_at', 'desc'); // ✅ alisin ang 'pr.' prefix
+                $query->orderBy('purchase_request.id', 'desc');
             })
             ->setRowId(function ($row) {
                 return 'pr_' . $row->id;
             })
-            // PINAKAMAHALAGA: Gawin nating 'pr_number' ang key para mag-match sa JS
             ->addColumn('pr_number', function ($row) {
                 return '<span class="font-weight-bold" style="color: #333;">' . ($row->request_number ?? 'N/A') . '</span>';
             })
@@ -101,7 +100,9 @@ class DatatableServices
             ->addColumn('created_at', function ($row) {
                 return \Carbon\Carbon::parse($row->created_at)->format('M d, Y');
             })
-
+            ->filterColumn('request_number', function ($query, $keyword) {
+                $query->where('purchase_request.request_number', 'like', "%{$keyword}%");
+            })
             ->filterColumn('requestor', function ($query, $keyword) {
                 $query->where('u.full_name', 'like', "%{$keyword}%");
             })
@@ -109,25 +110,25 @@ class DatatableServices
                 $query->where('d.name', 'like', "%{$keyword}%");
             })
             ->filterColumn('created_at', function ($query, $keyword) {
-                $query->where('pr.created_at', 'like', "%{$keyword}%");
+                $query->where('purchase_request.created_at', 'like', "%{$keyword}%");
             })
             ->addColumn('action', function ($row) {
                 if ($row->status_id == 1) {
                     return '<button class="btn btn-warning btn-xs review-pr-btn" data-pr-id="' . $row->id . '">
-                                <i class="fas fa-clock"></i> PENDING
-                            </button>';
+                            <i class="fas fa-clock"></i> PENDING
+                        </button>';
                 } elseif ($row->status_id == 2) {
                     return '<span class="badge badge-success px-2 py-1">
-                                <i class="fas fa-check-circle"></i> APPROVED
-                            </span>';
+                            <i class="fas fa-check-circle"></i> APPROVED
+                        </span>';
                 } elseif ($row->status_id == 3) {
                     return '<span class="badge badge-danger px-2 py-1">
-                                <i class="fas fa-times-circle"></i> REJECTED
-                            </span>';
+                            <i class="fas fa-times-circle"></i> REJECTED
+                        </span>';
                 }
                 return '<span class="badge badge-secondary">Unknown</span>';
             })
-            ->rawColumns(['pr_number', 'action']) // Siguraduhin na kasama ang pr_number dito
+            ->rawColumns(['pr_number', 'action'])
             ->make(true);
     }
 
