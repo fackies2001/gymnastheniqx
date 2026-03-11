@@ -79,29 +79,39 @@
 
         /* ===== SIGNATORY ===== */
         .signatory {
+            width: 100%;
             margin-top: 50px;
-            display: flex;
-            justify-content: space-between;
+            border-collapse: collapse;
+        }
+
+        .signatory td {
+            width: 33.33%;
             text-align: center;
+            padding: 0 10px;
+            border: none;
+            vertical-align: top;
         }
 
-        .signatory-col {
-            width: 30%;
+        .signatory .label {
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            margin-bottom: 0;
         }
 
-        .signatory-col .line {
+        .signatory .sig-line {
             border-bottom: 1px solid #000;
             margin: 40px auto 5px auto;
             width: 85%;
         }
 
-        .signatory-col p {
+        .signatory .name {
             font-size: 10px;
-            text-transform: uppercase;
             font-weight: bold;
+            text-transform: uppercase;
         }
 
-        .signatory-col small {
+        .signatory .role {
             font-size: 9px;
         }
 
@@ -180,26 +190,28 @@
     @endif
 
     {{-- SIGNATORY --}}
-    <div class="signatory">
-        <div class="signatory-col">
-            <p><strong>Prepared/Filed by:</strong></p>
-            <div class="line"></div>
-            <p>{{ auth()->user()->full_name ?? auth()->user()->name }}</p>
-            <small>(Employee Name & Signature)</small>
-        </div>
-        <div class="signatory-col">
-            <p><strong>Verified/Received by:</strong></p>
-            <div class="line"></div>
-            <p>____________________</p>
-            <small>(Warehouse Staff On-Duty)</small>
-        </div>
-        <div class="signatory-col">
-            <p><strong>Acknowledged by:</strong></p>
-            <div class="line"></div>
-            <p>____________________</p>
-            <small>(Warehouse Manager)</small>
-        </div>
-    </div>
+    <table class="signatory">
+        <tr>
+            <td>
+                <p class="label"><strong>Prepared/Filed by:</strong></p>
+                <div class="sig-line"></div>
+                <p class="name">{{ auth()->user()->full_name ?? auth()->user()->name }}</p>
+                <span class="role">(Employee Name & Signature)</span>
+            </td>
+            <td>
+                <p class="label"><strong>Verified/Received by:</strong></p>
+                <div class="sig-line"></div>
+                <p class="name">____________________</p>
+                <span class="role">(Warehouse Staff On-Duty)</span>
+            </td>
+            <td>
+                <p class="label"><strong>Acknowledged by:</strong></p>
+                <div class="sig-line"></div>
+                <p class="name">____________________</p>
+                <span class="role">(Warehouse Manager)</span>
+            </td>
+        </tr>
+    </table>
 
     <script>
         window.onload = function() {
