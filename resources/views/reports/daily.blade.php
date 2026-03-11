@@ -284,11 +284,13 @@
             // Show loading
             $('#loadingSpinner').show();
 
-            // Destroy existing DataTable if it exists
+            // ✅ FIX: Destroy properly before clearing
             if (dataTable) {
                 dataTable.destroy();
+                dataTable = null;
             }
 
+            $('#dailyReportTable tbody').empty();
             $('#dailyReportTable tbody').html(
                 '<tr><td colspan="4" class="text-center py-4"><i class="fas fa-spinner fa-spin fa-2x"></i><br><small>Loading...</small></td></tr>'
             );
@@ -351,187 +353,189 @@
             $('#dailyReportTable tbody').html(html);
 
             // ✅ Initialize DataTable with sorting arrows
+            // ✅ FIX: Initialize DataTable
             if (data && data.length > 0) {
-                dataTable = $('#dailyReportTable').DataTable({
-                    "responsive": true,
-                    "autoWidth": false,
-                    "destroy": true,
-                    "order": [
-                        [0, "asc"]
-                    ],
-                    "pageLength": 10,
-                    "language": {
-                        "emptyTable": "No records found for the selected period"
-                    }
-                });
-            }
-        }
-
-        // ✅ PRINT FUNCTION
-        function handlePrint() {
-            if (!currentData || currentData.length === 0) {
-                alert('No data to print');
-                return;
+                setTimeout(function() {
+                    dataTable = $('#dailyReportTable').DataTable({
+                        "responsive": true,
+                        "autoWidth": false,
+                        "destroy": true,
+                        "order": [
+                            [0, "asc"]
+                        ],
+                        "pageLength": 10,
+                        "language": {
+                            "emptyTable": "No records found for the selected period"
+                        }
+                    });
+                }, 100); // ✅ slight delay para siguradong naka-render na yung HTML
             }
 
-            let html = '';
-            currentData.forEach(item => {
-                let cleanName = $('<div>').html(item.product_name).text();
-                let cleanCat = $('<div>').html(item.category_name).text();
-                let cleanTrace = $('<div>').html(item.traceability).text();
+            // ✅ PRINT FUNCTION
+            function handlePrint() {
+                if (!currentData || currentData.length === 0) {
+                    alert('No data to print');
+                    return;
+                }
 
-                html += `<tr>
+                let html = '';
+                currentData.forEach(item => {
+                    let cleanName = $('<div>').html(item.product_name).text();
+                    let cleanCat = $('<div>').html(item.category_name).text();
+                    let cleanTrace = $('<div>').html(item.traceability).text();
+
+                    html += `<tr>
                     <td style="border: 1px solid black; padding: 5px;">${cleanName}</td>
                     <td style="border: 1px solid black; padding: 5px;">${cleanCat}</td>
                     <td style="border: 1px solid black; padding: 5px;">${cleanTrace}</td>
                     <td style="border: 1px solid black; padding: 5px; text-align: center;">${item.quantity}</td>
                 </tr>`;
-            });
+                });
 
-            $('#printTableBody').html(html || '<tr><td colspan="4" class="text-center">No data</td></tr>');
-            window.print();
-        }
-
-        // ✅ INITIALIZE
-        $(document).ready(function() {
-            console.log('📊 Daily Reports Ready');
-
-            // ✅ Show active filter badge on page load
-            const initialFilter = $('#filterType').val();
-            if (initialFilter && initialFilter !== 'all_time') {
-                $('#activeFilterBadge').show();
-
-                const labels = {
-                    'today': "Today's Records",
-                    'yesterday': "Yesterday's Records",
-                    'last_7_days': 'Last 7 Days',
-                    'last_30_days': 'Last 30 Days',
-                    'this_month': 'This Month',
-                    'last_month': 'Last Month',
-                    'this_year': 'This Year'
-                };
-                $('#filterLabel').text(labels[initialFilter] || initialFilter);
+                $('#printTableBody').html(html || '<tr><td colspan="4" class="text-center">No data</td></tr>');
+                window.print();
             }
 
-            // Load initial data
-            loadData();
+            // ✅ INITIALIZE
+            $(document).ready(function() {
+                console.log('📊 Daily Reports Ready');
 
-            // ✅ Show/hide custom date input
-            $('#filterType').on('change', function() {
-                const selectedValue = $(this).val();
+                // ✅ Show active filter badge on page load
+                const initialFilter = $('#filterType').val();
+                if (initialFilter && initialFilter !== 'all_time') {
+                    $('#activeFilterBadge').show();
 
-                if (selectedValue === 'custom') {
-                    $('#customDateDiv').show();
-                    $('#activeFilterBadge').hide();
-                } else {
-                    $('#customDateDiv').hide();
+                    const labels = {
+                        'today': "Today's Records",
+                        'yesterday': "Yesterday's Records",
+                        'last_7_days': 'Last 7 Days',
+                        'last_30_days': 'Last 30 Days',
+                        'this_month': 'This Month',
+                        'last_month': 'Last Month',
+                        'this_year': 'This Year'
+                    };
+                    $('#filterLabel').text(labels[initialFilter] || initialFilter);
+                }
 
-                    if (selectedValue && selectedValue !== 'all_time') {
-                        $('#activeFilterBadge').show();
-                        const labels = {
-                            'today': "Today's Records",
-                            'yesterday': "Yesterday's Records",
-                            'last_7_days': 'Last 7 Days',
-                            'last_30_days': 'Last 30 Days',
-                            'this_month': 'This Month',
-                            'last_month': 'Last Month',
-                            'this_year': 'This Year'
-                        };
-                        $('#filterLabel').text(labels[selectedValue] || selectedValue);
-                    } else {
+                // Load initial data
+                loadData();
+
+                // ✅ Show/hide custom date input
+                $('#filterType').on('change', function() {
+                    const selectedValue = $(this).val();
+
+                    if (selectedValue === 'custom') {
+                        $('#customDateDiv').show();
                         $('#activeFilterBadge').hide();
-                    }
+                    } else {
+                        $('#customDateDiv').hide();
 
-                    // ✅ Auto-load data
+                        if (selectedValue && selectedValue !== 'all_time') {
+                            $('#activeFilterBadge').show();
+                            const labels = {
+                                'today': "Today's Records",
+                                'yesterday': "Yesterday's Records",
+                                'last_7_days': 'Last 7 Days',
+                                'last_30_days': 'Last 30 Days',
+                                'this_month': 'This Month',
+                                'last_month': 'Last Month',
+                                'this_year': 'This Year'
+                            };
+                            $('#filterLabel').text(labels[selectedValue] || selectedValue);
+                        } else {
+                            $('#activeFilterBadge').hide();
+                        }
+
+                        // ✅ Auto-load data
+                        activeFilter = 'all';
+                        updateFilterBadge('all');
+                        loadData();
+                    }
+                });
+
+
+                // ✅ Apply Filter Button
+                $('#applyFilterBtn').on('click', function() {
+                    console.log('📅 Applying filter');
                     activeFilter = 'all';
                     updateFilterBadge('all');
                     loadData();
-                }
-            });
+                });
 
-
-            // ✅ Apply Filter Button
-            $('#applyFilterBtn').on('click', function() {
-                console.log('📅 Applying filter');
-                activeFilter = 'all';
-                updateFilterBadge('all');
-                loadData();
-            });
-
-            // ✅ Reset Filter Button
-            $('#resetFilterBtn').on('click', function() {
-                console.log('🔄 Resetting filter to today');
-                $('#filterType').val('today');
-                $('#customDate').val('');
-                $('#customDateDiv').hide();
-                $('#activeFilterBadge').show();
-                $('#filterLabel').text("Today's Records");
-                activeFilter = 'all';
-                updateFilterBadge('all');
-                loadData();
-            });
-
-            // ✅ Custom date change handler
-            $('#customDate').on('change', function() {
-                const selectedDate = $(this).val();
-                console.log('📅 Custom date changed:', selectedDate);
-                $('#activeFilterBadge').show();
-                $('#filterLabel').text(selectedDate);
-            });
-
-            // ✅ Auto-submit on preset selection
-            // $('#filterType').on('change', function() {
-            //     const selectedValue = $(this).val();
-
-            //     // Auto-load for non-custom filters
-            //     if (selectedValue !== 'custom') {
-            //         activeFilter = 'all';
-            //         updateFilterBadge('all');
-            //         loadData();
-            //     }
-            // });
-
-            // ============================================================
-            // ✅ AUTO-RESET AT MIDNIGHT (12:00 AM)
-            // ============================================================
-            function checkMidnightReset() {
-                const now = new Date();
-                const hours = now.getHours();
-                const minutes = now.getMinutes();
-                const currentFilter = $('#filterType').val();
-
-                // If it's midnight and filter is "today", auto-refresh
-                if (hours === 0 && minutes === 0 && currentFilter === 'today') {
-                    console.log('🌙 Midnight detected! Auto-refreshing for new day...');
-
-                    // Reset to today's view
+                // ✅ Reset Filter Button
+                $('#resetFilterBtn').on('click', function() {
+                    console.log('🔄 Resetting filter to today');
                     $('#filterType').val('today');
+                    $('#customDate').val('');
+                    $('#customDateDiv').hide();
                     $('#activeFilterBadge').show();
                     $('#filterLabel').text("Today's Records");
                     activeFilter = 'all';
                     updateFilterBadge('all');
-
-                    // Show notification
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'info',
-                            title: 'New Day!',
-                            text: 'Daily report has been reset for the new day.',
-                            timer: 3000,
-                            showConfirmButton: false
-                        });
-                    }
-
                     loadData();
+                });
+
+                // ✅ Custom date change handler
+                $('#customDate').on('change', function() {
+                    const selectedDate = $(this).val();
+                    console.log('📅 Custom date changed:', selectedDate);
+                    $('#activeFilterBadge').show();
+                    $('#filterLabel').text(selectedDate);
+                });
+
+                // ✅ Auto-submit on preset selection
+                // $('#filterType').on('change', function() {
+                //     const selectedValue = $(this).val();
+
+                //     // Auto-load for non-custom filters
+                //     if (selectedValue !== 'custom') {
+                //         activeFilter = 'all';
+                //         updateFilterBadge('all');
+                //         loadData();
+                //     }
+                // });
+
+                // ============================================================
+                // ✅ AUTO-RESET AT MIDNIGHT (12:00 AM)
+                // ============================================================
+                function checkMidnightReset() {
+                    const now = new Date();
+                    const hours = now.getHours();
+                    const minutes = now.getMinutes();
+                    const currentFilter = $('#filterType').val();
+
+                    // If it's midnight and filter is "today", auto-refresh
+                    if (hours === 0 && minutes === 0 && currentFilter === 'today') {
+                        console.log('🌙 Midnight detected! Auto-refreshing for new day...');
+
+                        // Reset to today's view
+                        $('#filterType').val('today');
+                        $('#activeFilterBadge').show();
+                        $('#filterLabel').text("Today's Records");
+                        activeFilter = 'all';
+                        updateFilterBadge('all');
+
+                        // Show notification
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                icon: 'info',
+                                title: 'New Day!',
+                                text: 'Daily report has been reset for the new day.',
+                                timer: 3000,
+                                showConfirmButton: false
+                            });
+                        }
+
+                        loadData();
+                    }
                 }
-            }
 
-            // Check every minute for midnight
-            setInterval(checkMidnightReset, 60000);
+                // Check every minute for midnight
+                setInterval(checkMidnightReset, 60000);
 
-            // Check immediately on page load if it's a new day
-            checkMidnightReset();
-        });
+                // Check immediately on page load if it's a new day
+                checkMidnightReset();
+            });
     </script>
 @endpush
 
