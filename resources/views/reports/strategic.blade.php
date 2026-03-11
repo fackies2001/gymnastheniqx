@@ -245,6 +245,12 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         $(function() {
+            // ✅ FIX: Destroy existing chart instance before creating new one
+            var existingChart = Chart.getChart('strategyChart');
+            if (existingChart) {
+                existingChart.destroy();
+            }
+
             var ctx = document.getElementById('strategyChart').getContext('2d');
             var strategyChart = new Chart(ctx, {
                 type: 'line',
