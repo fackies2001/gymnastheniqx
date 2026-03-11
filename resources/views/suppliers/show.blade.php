@@ -54,37 +54,39 @@
             // ✅ EXACTLY 6 COLUMNS to match 6 <th> headers
             var columns = [{
                     data: 'supplier_name',
-                    name: 'supplier.name', // ✅ Point to actual relationship
+                    name: 'supplier.name',
                     defaultContent: 'N/A'
                 },
                 {
                     data: 'category_name',
-                    name: 'category.name', // ✅ Point to actual relationship
+                    name: 'category.name',
                     defaultContent: 'N/A'
                 },
                 {
                     data: 'product_name',
-                    name: 'name', // ✅ Point to actual column
+                    name: 'supplier_product.name', // ✅ FIX: i-specify ang table name para walang conflict
                     defaultContent: 'N/A'
                 },
                 {
                     data: 'system_sku',
-                    name: 'system_sku',
+                    name: 'supplier_product.system_sku', // ✅ FIX: i-specify ang table name
                     defaultContent: 'N/A'
                 },
                 {
                     data: 'cost_price',
-                    name: 'cost_price',
+                    name: 'supplier_product.cost_price',
                     defaultContent: '0.00',
-                    orderable: true // ✅ Enable sorting
+                    orderable: true
                 },
                 {
                     data: 'date_created',
-                    name: 'created_at', // ✅ Point to actual column
+                    name: 'supplier_product.created_at',
                     defaultContent: '-',
                     orderable: true
                 }
             ];
+
+
             $('#productsTable').DataTable({
                 destroy: true,
                 processing: true,

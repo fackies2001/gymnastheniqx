@@ -58,7 +58,7 @@ class DatatableServices
                 });
             })
             ->filterColumn('product_name', function ($query, $keyword) {
-                $query->where('name', 'like', "%{$keyword}%");
+                $query->where('supplier_product.name', 'like', "%{$keyword}%"); // ✅ i-specify ang table
             })
             ->make(true);
     }
