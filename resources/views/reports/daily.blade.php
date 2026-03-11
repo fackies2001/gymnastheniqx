@@ -428,8 +428,6 @@
 
                     if (selectedValue && selectedValue !== 'all_time') {
                         $('#activeFilterBadge').show();
-
-                        // Set filter label
                         const labels = {
                             'today': "Today's Records",
                             'yesterday': "Yesterday's Records",
@@ -443,8 +441,14 @@
                     } else {
                         $('#activeFilterBadge').hide();
                     }
+
+                    // ✅ Auto-load data
+                    activeFilter = 'all';
+                    updateFilterBadge('all');
+                    loadData();
                 }
             });
+
 
             // ✅ Apply Filter Button
             $('#applyFilterBtn').on('click', function() {
@@ -476,16 +480,16 @@
             });
 
             // ✅ Auto-submit on preset selection
-            $('#filterType').on('change', function() {
-                const selectedValue = $(this).val();
+            // $('#filterType').on('change', function() {
+            //     const selectedValue = $(this).val();
 
-                // Auto-load for non-custom filters
-                if (selectedValue !== 'custom') {
-                    activeFilter = 'all';
-                    updateFilterBadge('all');
-                    loadData();
-                }
-            });
+            //     // Auto-load for non-custom filters
+            //     if (selectedValue !== 'custom') {
+            //         activeFilter = 'all';
+            //         updateFilterBadge('all');
+            //         loadData();
+            //     }
+            // });
 
             // ============================================================
             // ✅ AUTO-RESET AT MIDNIGHT (12:00 AM)
