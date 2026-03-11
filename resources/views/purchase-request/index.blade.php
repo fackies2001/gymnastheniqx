@@ -552,19 +552,19 @@
                 ],
                 columns: [{
                         data: 'request_number',
-                        name: 'request_number'
+                        name: 'pr.request_number' // ✅ FIX
                     },
                     {
                         data: 'requestor',
-                        name: 'requestor'
+                        name: 'u.full_name' // ✅ FIX
                     },
                     {
                         data: 'department',
-                        name: 'department'
+                        name: 'd.name' // ✅ FIX
                     },
                     {
                         data: 'created_at',
-                        name: 'created_at'
+                        name: 'pr.created_at' // ✅ FIX
                     },
                     {
                         data: 'action',
@@ -573,7 +573,7 @@
                         searchable: false,
                         className: 'text-center'
                     }
-                ]
+                ],
             });
 
             // ============================================

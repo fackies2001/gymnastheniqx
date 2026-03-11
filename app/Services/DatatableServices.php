@@ -101,6 +101,16 @@ class DatatableServices
             ->addColumn('created_at', function ($row) {
                 return \Carbon\Carbon::parse($row->created_at)->format('M d, Y');
             })
+
+            ->filterColumn('requestor', function ($query, $keyword) {
+                $query->where('u.full_name', 'like', "%{$keyword}%");
+            })
+            ->filterColumn('department', function ($query, $keyword) {
+                $query->where('d.name', 'like', "%{$keyword}%");
+            })
+            ->filterColumn('created_at', function ($query, $keyword) {
+                $query->where('pr.created_at', 'like', "%{$keyword}%");
+            })
             ->addColumn('action', function ($row) {
                 if ($row->status_id == 1) {
                     return '<button class="btn btn-warning btn-xs review-pr-btn" data-pr-id="' . $row->id . '">
