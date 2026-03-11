@@ -128,7 +128,7 @@
                 },
                 columns: [{
                         data: 'supplier_name',
-                        name: 'supplier_name',
+                        name: 'supplier.name', // ✅ FIX: dapat 'supplier.name' hindi 'supplier_name'
                         title: 'Supplier'
                     },
                     {
