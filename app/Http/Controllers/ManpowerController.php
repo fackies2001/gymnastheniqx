@@ -25,22 +25,29 @@ class ManpowerController extends Controller
             'position',
             'date_hired',
             'status'
-        ])->orderBy('created_at', 'desc');
+        ]);
 
         return DataTables::of($coaches)
             ->addIndexColumn()
             ->addColumn('action', function ($row) {
-                // ✅ EXACT SAME SA USER MANAGEMENT STYLE
                 $editBtn = '<button class="btn btn-sm btn-success edit-coach" data-id="' . $row->id . '">
-                                <i class="fas fa-edit"></i> Edit
-                            </button>';
+                            <i class="fas fa-edit"></i> Edit
+                        </button>';
 
                 $deleteBtn = '<button class="btn btn-sm btn-danger delete-coach" data-id="' . $row->id . '">
-                                <i class="fas fa-trash"></i> Delete
-                              </button>';
+                            <i class="fas fa-trash"></i> Delete
+                          </button>';
 
                 return $editBtn . ' ' . $deleteBtn;
             })
+            // ✅ FIX: orderColumn para gumana ang sorting
+            ->orderColumn('full_name', 'full_name $1')
+            ->orderColumn('contact_no', 'contact_no $1')
+            ->orderColumn('email', 'email $1')
+            ->orderColumn('address', 'address $1')
+            ->orderColumn('position', 'position $1')
+            ->orderColumn('date_hired', 'date_hired $1')
+            ->orderColumn('status', 'status $1')
             ->rawColumns(['action'])
             ->make(true);
     }
