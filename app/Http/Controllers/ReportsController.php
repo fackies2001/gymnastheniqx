@@ -42,11 +42,14 @@ class ReportsController extends Controller
             $date = Carbon::today()->toDateString();
         }
 
-        // ✅ Low Stock = Products with available count below 20 (no date filter)
-        $subquery = 'SELECT COUNT(*) FROM serialized_product WHERE serialized_product.product_id = supplier_product.id AND serialized_product.status = 1';
-        $lowStockCount = SupplierProduct::select('supplier_product.id', DB::raw("({$subquery}) as available_count"))
-            ->havingRaw('available_count < 20')
-            ->count();
+        // ✅ FIX: i-get muna yung list, tapos count
+        $lowStockCount = SupplierProduct::select(
+            'supplier_product.id',
+            DB::raw("(SELECT COUNT(*) FROM serialized_product WHERE serialized_product.product_id = supplier_product.id AND serialized_product.status = 1) as available_count")
+        )
+            ->havingRaw('available_count > 0 AND available_count < 20')
+            ->get()
+            ->count(); // ✅ count() sa collection, hindi sa query
 
         // ✅ Daily Received = Scanned items from PO with status Available
         $receivedQuery = SerializedProduct::where('status', 1)
