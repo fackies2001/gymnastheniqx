@@ -82,9 +82,10 @@ class DatatableServices
             );
 
         return DataTables::of($query)
-            ->order(function ($query) {
-                $query->orderBy('purchase_request.id', 'desc');
-            })
+            ->orderColumn('created_at', 'purchase_request.created_at $1') // ✅ FIX sorting
+            ->orderColumn('request_number', 'purchase_request.request_number $1')
+            ->orderColumn('requestor', 'u.full_name $1')
+            ->orderColumn('department', 'd.name $1')
             ->setRowId(function ($row) {
                 return 'pr_' . $row->id;
             })
@@ -112,6 +113,18 @@ class DatatableServices
             ->filterColumn('created_at', function ($query, $keyword) {
                 $query->where('purchase_request.created_at', 'like', "%{$keyword}%");
             })
+            // ✅ FIX: manual global search handler
+            ->filter(function ($query) {
+                if (request()->has('search') && !empty(request('search')['value'])) {
+                    $search = request('search')['value'];
+                    $query->where(function ($q) use ($search) {
+                        $q->where('purchase_request.request_number', 'like', "%{$search}%")
+                            ->orWhere('u.full_name', 'like', "%{$search}%")
+                            ->orWhere('d.name', 'like', "%{$search}%")
+                            ->orWhere('purchase_request.created_at', 'like', "%{$search}%");
+                    });
+                }
+            }, true)
             ->addColumn('action', function ($row) {
                 if ($row->status_id == 1) {
                     return '<button class="btn btn-warning btn-xs review-pr-btn" data-pr-id="' . $row->id . '">
