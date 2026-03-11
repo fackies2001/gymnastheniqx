@@ -15,6 +15,20 @@
         @page {
             size: A4 portrait;
             margin: 20mm 15mm;
+            /* ✅ FIX: Remove browser default header/footer */
+            margin-top: 10mm;
+            margin-bottom: 10mm;
+        }
+
+        @media print {
+            @page {
+                margin: 10mm 15mm;
+            }
+
+            /* ✅ Hide browser print header/footer */
+            html {
+                -webkit-print-color-adjust: exact;
+            }
         }
 
         body {
@@ -266,7 +280,16 @@
 
     <script>
         window.onload = function() {
-            window.print();
+            setTimeout(function() {
+                // ✅ Show instruction before print dialog opens
+                if (confirm(
+                        '💡 TIP: Sa print dialog, i-uncheck ang "Headers and footers" para sa mas cleaner output.\n\nI-click OK para mag-proceed sa print.'
+                        )) {
+                    window.print();
+                } else {
+                    window.print();
+                }
+            }, 500);
         };
     </script>
 </body>
