@@ -64,12 +64,12 @@
                 },
                 {
                     data: 'product_name',
-                    name: 'supplier_product.name', // ✅ FIX: i-specify ang table name para walang conflict
+                    name: 'supplier_product.name',
                     defaultContent: 'N/A'
                 },
                 {
                     data: 'system_sku',
-                    name: 'supplier_product.system_sku', // ✅ FIX: i-specify ang table name
+                    name: 'supplier_product.system_sku',
                     defaultContent: 'N/A'
                 },
                 {

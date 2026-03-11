@@ -25,7 +25,8 @@ class DatatableServices
         }
 
         $query = \App\Models\SupplierProduct::with(['category', 'supplier'])
-            ->where('supplier_id', $supplierId);
+            ->where('supplier_id', $supplierId)
+            ->select('supplier_product.*'); // ✅ FIX: explicit select para hindi ma-override
 
         return DataTables::eloquent($query)
             ->addColumn('supplier_name', function ($row) {
@@ -35,7 +36,7 @@ class DatatableServices
                 return $row->category->name ?? 'N/A';
             })
             ->addColumn('product_name', function ($row) {
-                return $row->name ?? 'N/A';
+                return $row->name ?? 'N/A'; // ✅ $row->name = product name (Klassino, Baby Flo, etc.)
             })
             ->addColumn('system_sku', function ($row) {
                 return $row->system_sku ?? 'N/A';
@@ -46,7 +47,6 @@ class DatatableServices
             ->addColumn('date_created', function ($row) {
                 return $row->created_at ? $row->created_at->format('M d, Y') : '-';
             })
-            // ✅ ADD THESE FOR SEARCH & SORT SUPPORT
             ->filterColumn('supplier_name', function ($query, $keyword) {
                 $query->whereHas('supplier', function ($q) use ($keyword) {
                     $q->where('name', 'like', "%{$keyword}%");
@@ -58,7 +58,7 @@ class DatatableServices
                 });
             })
             ->filterColumn('product_name', function ($query, $keyword) {
-                $query->where('supplier_product.name', 'like', "%{$keyword}%"); // ✅ i-specify ang table
+                $query->where('supplier_product.name', 'like', "%{$keyword}%");
             })
             ->make(true);
     }
