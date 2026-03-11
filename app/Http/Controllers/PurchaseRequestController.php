@@ -47,7 +47,6 @@ class PurchaseRequestController extends Controller
             $query = PurchaseRequest::with(['user', 'department', 'supplier', 'status'])
                 ->select('purchase_request.*');
 
-            // ✅ Admin lang nakakakita ng lahat, Staff at Manager sarili lang
             if ($userRole !== 'admin') {
                 $query->where('user_id', $user->id);
             }
@@ -72,19 +71,40 @@ class PurchaseRequestController extends Controller
                     }
                     return '<span class="badge badge-secondary">N/A</span>';
                 })
-                ->addColumn('id', function ($pr) {
-                    return $pr->id;
+                ->addColumn('id', fn($pr) => $pr->id)
+                ->addColumn('status_id', fn($pr) => $pr->status_id)
+                ->editColumn('created_at', fn($pr) => $pr->created_at->format('M d, Y'))
+                // ✅ FIX: filterColumn para sa search
+                ->filterColumn('requestor', function ($query, $keyword) {
+                    $query->whereHas('user', function ($q) use ($keyword) {
+                        $q->where('full_name', 'like', "%{$keyword}%");
+                    });
                 })
-                ->addColumn('status_id', function ($pr) {
-                    return $pr->status_id;
+                ->filterColumn('department', function ($query, $keyword) {
+                    $query->whereHas('department', function ($q) use ($keyword) {
+                        $q->where('name', 'like', "%{$keyword}%");
+                    });
                 })
-                ->editColumn('created_at', function ($pr) {
-                    return $pr->created_at->format('M d, Y');
+                ->filterColumn('request_number', function ($query, $keyword) {
+                    $query->where('purchase_request.request_number', 'like', "%{$keyword}%");
+                })
+                ->filterColumn('created_at', function ($query, $keyword) {
+                    $query->where('purchase_request.created_at', 'like', "%{$keyword}%");
+                })
+                // ✅ FIX: orderColumn para sa sorting
+                ->orderColumn('requestor', function ($query, $order) {
+                    $query->join('employee as u_sort', 'purchase_request.user_id', '=', 'u_sort.id')
+                        ->orderBy('u_sort.full_name', $order);
+                })
+                ->orderColumn('department', function ($query, $order) {
+                    $query->join('department as d_sort', 'purchase_request.department_id', '=', 'd_sort.id')
+                        ->orderBy('d_sort.name', $order);
                 })
                 ->rawColumns(['action'])
                 ->make(true);
         }
     }
+
 
     public function index()
     {
