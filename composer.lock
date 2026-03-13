@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "e1fa752961ef6d9ad51ce40356cff5d4",
+    "content-hash": "a62c99677d666e6e9e413bf57038162f",
     "packages": [
         {
             "name": "almasaeed2010/adminlte",
@@ -5847,6 +5847,63 @@
                 }
             ],
             "time": "2024-06-11T12:45:25+00:00"
+        },
+        {
+            "name": "resend/resend-php",
+            "version": "v0.8.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/resend/resend-php.git",
+                "reference": "59a96844f5a0878ceb9ebbeb7fddb0829d59d7d4"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/resend/resend-php/zipball/59a96844f5a0878ceb9ebbeb7fddb0829d59d7d4",
+                "reference": "59a96844f5a0878ceb9ebbeb7fddb0829d59d7d4",
+                "shasum": ""
+            },
+            "require": {
+                "guzzlehttp/guzzle": "^7.5",
+                "php": "^8.1.0"
+            },
+            "require-dev": {
+                "friendsofphp/php-cs-fixer": "^3.13",
+                "pestphp/pest": "^2.0",
+                "pestphp/pest-plugin-mock": "^2.0"
+            },
+            "type": "library",
+            "autoload": {
+                "files": [
+                    "src/Resend.php"
+                ],
+                "psr-4": {
+                    "Resend\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Resend and contributors",
+                    "homepage": "https://github.com/resendlabs/resend-php/contributors"
+                }
+            ],
+            "description": "Resend PHP library.",
+            "homepage": "https://resend.com/",
+            "keywords": [
+                "api",
+                "client",
+                "php",
+                "resend",
+                "sdk"
+            ],
+            "support": {
+                "issues": "https://github.com/resend/resend-php/issues",
+                "source": "https://github.com/resend/resend-php/tree/v0.8.0"
+            },
+            "time": "2023-09-15T21:28:40+00:00"
         },
         {
             "name": "symfony/clock",
