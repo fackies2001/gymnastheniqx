@@ -6,7 +6,6 @@
     "license": "MIT",
     "require": {
         "php": "^8.2",
-        "resend/resend-php": "^0.8.0",
         "cloudinary/cloudinary_php": "^3.1",
         "jeroennoten/laravel-adminlte": "^3.15",
         "laravel/breeze": "^2.3",
@@ -22,6 +21,8 @@
         "owen-it/laravel-auditing": "^14.0",
         "picqer/php-barcode-generator": "^3.2",
         "pusher/pusher-php-server": "^7.2",
+        "resend/resend-php": "^0.8.0",
+        "symfony/resend-mailer": "^8.0",
         "yajra/laravel-datatables-oracle": "^11.1"
     },
     "require-dev": {
