@@ -18,9 +18,14 @@ class UserManagementController extends Controller
     public function index()
     {
         $employees = User::with(['role', 'warehouse', 'department'])->get();
-        $roles = Role::all();
+
+        // ✅ Show only admin, staff, manager roles
+        $roles = Role::whereIn('role_name', ['admin', 'staff', 'manager'])->get();
+
         $warehouses = Warehouse::all();
-        $departments = \App\Models\Department::all(); // ✅ Dagdag
+
+        // ✅ Show only Operations department
+        $departments = \App\Models\Department::where('name', 'Operations')->get();
 
         return view('settings.user-management.index', compact('employees', 'roles', 'warehouses', 'departments'));
     }
