@@ -15,8 +15,8 @@
 @push('css')
     <style>
         /* ============================================
-               SMALL STAT BOXES
-            ============================================ */
+                               SMALL STAT BOXES
+                            ============================================ */
         .stat-box {
             border-radius: 10px;
             padding: 20px 18px 14px;
@@ -94,8 +94,8 @@
         }
 
         /* ============================================
-               ACTIVITY FEED
-            ============================================ */
+                               ACTIVITY FEED
+                            ============================================ */
         .activity-item {
             padding: 10px 12px;
             border-left: 3px solid #667eea;
@@ -128,8 +128,8 @@
         }
 
         /* ============================================
-               FILTER BUTTONS
-            ============================================ */
+                               FILTER BUTTONS
+                            ============================================ */
         .filter-btn-group .btn {
             border-radius: 20px;
             padding: 5px 14px;
@@ -143,8 +143,8 @@
         }
 
         /* ============================================
-               DARK MODE TOGGLE
-            ============================================ */
+                               DARK MODE TOGGLE
+                            ============================================ */
         .dark-mode-toggle {
             position: fixed;
             bottom: 20px;
@@ -522,46 +522,44 @@
                 @endif
             </div>
 
-            {{-- Recent Activity --}}
-            <div class="card card-outline card-primary shadow-sm">
-                <div class="card-header">
-                    <h3 class="card-title font-weight-bold">
-                        <i class="fas fa-history mr-1"></i> Recent Activity
-                    </h3>
-                </div>
-                <div class="card-body p-2" style="max-height:380px; overflow-y:auto;">
-                    @forelse($recent_activities as $activity)
-                        <div class="activity-item">
-                            <div class="d-flex align-items-start">
-                                <div class="activity-icon bg-{{ $activity->type_color ?? 'primary' }} text-white mr-2">
-                                    <i class="fas fa-{{ $activity->icon ?? 'info' }}"></i>
-                                </div>
-                                <div class="flex-grow-1">
-                                    <div class="font-weight-bold" style="font-size:0.83rem;">{{ $activity->user_name }}
+            {{-- Recent Activity - Admin and Manager only --}}
+            @if (auth()->user()->isAdmin() || auth()->user()->isManager())
+                <div class="card card-outline card-primary shadow-sm">
+                    <div class="card-header">
+                        <h3 class="card-title font-weight-bold">
+                            <i class="fas fa-history mr-1"></i> Recent Activity
+                        </h3>
+                    </div>
+                    <div class="card-body p-2" style="max-height:380px; overflow-y:auto;">
+                        @forelse($recent_activities as $activity)
+                            <div class="activity-item">
+                                <div class="d-flex align-items-start">
+                                    <div
+                                        class="activity-icon bg-{{ $activity->type_color ?? 'primary' }} text-white mr-2">
+                                        <i class="fas fa-{{ $activity->icon ?? 'info' }}"></i>
                                     </div>
-                                    <div style="font-size:0.78rem;">{{ $activity->description }}</div>
-                                    <div class="activity-time">
-                                        <i class="far fa-clock"></i> {{ $activity->time_ago ?? 'Just now' }}
+                                    <div class="flex-grow-1">
+                                        <div class="font-weight-bold" style="font-size:0.83rem;">
+                                            {{ $activity->user_name }}</div>
+                                        <div style="font-size:0.78rem;">{{ $activity->description }}</div>
+                                        <div class="activity-time">
+                                            <i class="far fa-clock"></i> {{ $activity->time_ago ?? 'Just now' }}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    @empty
-                        <div class="text-center text-muted py-4">
-                            <i class="fas fa-inbox mb-2" style="font-size:2rem; display:block; opacity:0.4;"></i>
-                            <div>No recent activities</div>
-                        </div>
-                    @endforelse
+                        @empty
+                            <div class="text-center text-muted py-4">
+                                <i class="fas fa-inbox mb-2" style="font-size:2rem; display:block; opacity:0.4;"></i>
+                                <div>No recent activities</div>
+                            </div>
+                        @endforelse
+                    </div>
                 </div>
-            </div>
+            @endif
 
         </div>
     </div>
-
-    {{--
-        ❌ TINANGGAL: @include('components.bootstrap.pincode')
-        ✅ DAHIL: Ang PIN modal ay nasa layouts/adminlte.blade.php na — hindi na kailangan dito
-    --}}
 
 @stop
 
