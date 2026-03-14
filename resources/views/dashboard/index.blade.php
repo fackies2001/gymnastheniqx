@@ -15,8 +15,8 @@
 @push('css')
     <style>
         /* ============================================
-                               SMALL STAT BOXES
-                            ============================================ */
+                                           SMALL STAT BOXES
+                                        ============================================ */
         .stat-box {
             border-radius: 10px;
             padding: 20px 18px 14px;
@@ -94,8 +94,8 @@
         }
 
         /* ============================================
-                               ACTIVITY FEED
-                            ============================================ */
+                                           ACTIVITY FEED
+                                        ============================================ */
         .activity-item {
             padding: 10px 12px;
             border-left: 3px solid #667eea;
@@ -128,8 +128,8 @@
         }
 
         /* ============================================
-                               FILTER BUTTONS
-                            ============================================ */
+                                           FILTER BUTTONS
+                                        ============================================ */
         .filter-btn-group .btn {
             border-radius: 20px;
             padding: 5px 14px;
@@ -143,8 +143,8 @@
         }
 
         /* ============================================
-                               DARK MODE TOGGLE
-                            ============================================ */
+                                           DARK MODE TOGGLE
+                                        ============================================ */
         .dark-mode-toggle {
             position: fixed;
             bottom: 20px;
@@ -522,16 +522,16 @@
                 @endif
             </div>
 
-            {{-- Recent Activity - Admin and Manager only --}}
-            @if (auth()->user()->isAdmin() || auth()->user()->isManager())
-                <div class="card card-outline card-primary shadow-sm">
-                    <div class="card-header">
-                        <h3 class="card-title font-weight-bold">
-                            <i class="fas fa-history mr-1"></i> Recent Activity
-                        </h3>
-                    </div>
-                    <div class="card-body p-2" style="max-height:380px; overflow-y:auto;">
-                        @forelse($recent_activities as $activity)
+            {{-- ✅ Recent Activity - Admin sees all, Manager & Staff see own only --}}
+            <div class="card card-outline card-primary shadow-sm">
+                <div class="card-header">
+                    <h3 class="card-title font-weight-bold">
+                        <i class="fas fa-history mr-1"></i> Recent Activity
+                    </h3>
+                </div>
+                <div class="card-body p-2" style="max-height:380px; overflow-y:auto;">
+                    @forelse($recent_activities as $activity)
+                        @if (auth()->user()->isAdmin() || $activity->user_name === auth()->user()->full_name)
                             <div class="activity-item">
                                 <div class="d-flex align-items-start">
                                     <div
@@ -548,15 +548,15 @@
                                     </div>
                                 </div>
                             </div>
-                        @empty
-                            <div class="text-center text-muted py-4">
-                                <i class="fas fa-inbox mb-2" style="font-size:2rem; display:block; opacity:0.4;"></i>
-                                <div>No recent activities</div>
-                            </div>
-                        @endforelse
-                    </div>
+                        @endif
+                    @empty
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-inbox mb-2" style="font-size:2rem; display:block; opacity:0.4;"></i>
+                            <div>No recent activities</div>
+                        </div>
+                    @endforelse
                 </div>
-            @endif
+            </div>
 
         </div>
     </div>
