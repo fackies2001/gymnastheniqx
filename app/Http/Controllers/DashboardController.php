@@ -310,11 +310,11 @@ class DashboardController extends Controller
                 ]);
             }
 
-            // ✅ Retailer Orders
-            $recentRO = \App\Models\RetailerOrder::with(['creator'])->latest()->limit(3)->get();
+            // ✅ Retailer Orders - fixed relationship
+            $recentRO = \App\Models\RetailerOrder::with(['creatorUser'])->latest()->limit(3)->get();
             foreach ($recentRO as $ro) {
                 $activities->push((object)[
-                    'user_name' => $ro->creator->full_name ?? 'System',
+                    'user_name' => $ro->creatorUser->full_name ?? $ro->created_by ?? 'System',
                     'description' => "Created Retailer Order #" . ($ro->id) . " for " . ($ro->retailer_name ?? 'Unknown Retailer'),
                     'time_ago' => (string) $ro->created_at->diffForHumans(),
                     'icon' => 'store',

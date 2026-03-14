@@ -89,4 +89,9 @@ class RetailerOrder extends Model
     {
         return $query->where('status', 'Completed');
     }
+
+    public function creatorUser()
+    {
+        return $this->belongsTo(User::class, 'created_by_user_id');
+    }
 }
