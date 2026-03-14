@@ -310,6 +310,19 @@ class DashboardController extends Controller
                 ]);
             }
 
+            // ✅ Retailer Orders
+            $recentRO = \App\Models\RetailerOrder::with(['creator'])->latest()->limit(3)->get();
+            foreach ($recentRO as $ro) {
+                $activities->push((object)[
+                    'user_name' => $ro->creator->full_name ?? 'System',
+                    'description' => "Created Retailer Order #" . ($ro->id) . " for " . ($ro->retailer_name ?? 'Unknown Retailer'),
+                    'time_ago' => (string) $ro->created_at->diffForHumans(),
+                    'icon' => 'store',
+                    'type_color' => 'warning',
+                    'created_at' => $ro->created_at,
+                ]);
+            }
+
             return $activities->sortByDesc('created_at')->take(10)->values();
         } catch (\Exception $e) {
             \Log::error('RECENT ACTIVITIES ERROR: ' . $e->getMessage());
