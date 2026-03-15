@@ -43,7 +43,7 @@ class BrevoTransport extends AbstractTransport
         ]);
 
         // ✅ Log the response
-        \Log::info('Brevo API Response', [
+        \Log::error('Brevo API Response', [
             'status' => $response->status(),
             'body' => $response->body()
         ]);
