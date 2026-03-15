@@ -26,7 +26,7 @@ class BrevoTransport extends AbstractTransport
             foreach ($email->getTo() as $address) {
                 $to[] = [
                     'email' => $address->getAddress(),
-                    'name' => $address->getName() ?? $address->getAddress()
+                    'name' => $address->getName() ?: $address->getAddress() // ✅ use email as name if no name
                 ];
             }
 
