@@ -22,6 +22,12 @@ class AppServiceProvider extends ServiceProvider
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }
 
+        \Log::info('Mail Mailer Config', [
+            'mailer' => config('mail.default'),
+            'brevo_key' => config('services.brevo.api_key') ? 'SET' : 'NOT SET'
+        ]);
+
+
         Mail::extend('brevo', function () {
             return new \App\Mail\Transport\BrevoTransport(config('services.brevo.api_key'));
         });
