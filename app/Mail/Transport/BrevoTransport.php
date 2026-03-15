@@ -29,7 +29,7 @@ class BrevoTransport extends AbstractTransport
             ];
         }
 
-        Http::withHeaders([
+        $response = Http::withHeaders([
             'api-key' => $this->apiKey,
             'Content-Type' => 'application/json',
         ])->post('https://api.brevo.com/v3/smtp/email', [
@@ -40,6 +40,12 @@ class BrevoTransport extends AbstractTransport
             'to' => $to,
             'subject' => $email->getSubject(),
             'htmlContent' => $email->getHtmlBody() ?? $email->getTextBody(),
+        ]);
+
+        // ✅ Log the response
+        \Log::info('Brevo API Response', [
+            'status' => $response->status(),
+            'body' => $response->body()
         ]);
     }
 
