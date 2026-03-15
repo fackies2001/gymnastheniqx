@@ -9,6 +9,8 @@ use App\Models\SupplierProduct;
 use Carbon\Carbon;
 use JeroenNoten\LaravelAdminLte\Events\BuildingMenu;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Mail;
+use App\Mail\Transport\BrevoTransport;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -19,6 +21,10 @@ class AppServiceProvider extends ServiceProvider
         if (env('APP_ENV') === 'production') {
             \Illuminate\Support\Facades\URL::forceScheme('https');
         }
+
+        Mail::extend('brevo', function () {
+            return new BrevoTransport(config('services.brevo.api_key'));
+        });
 
         \Illuminate\Support\Facades\View::composer('*', function ($view) {
             if (auth()->check()) {
