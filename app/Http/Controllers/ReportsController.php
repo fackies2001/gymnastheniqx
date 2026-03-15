@@ -130,65 +130,37 @@ class ReportsController extends Controller
                 try {
                     \Log::info("Fetching Scanned Products from PO...");
 
-                    // ⭐ UPDATED: Build query with flexible date filtering
                     $query = SerializedProduct::with(['supplierProducts.supplier', 'supplierProducts.category', 'productStatus'])
-                        ->whereNotNull('purchase_order_id'); // Must have PO ID (from scanning)
+                        ->whereNotNull('purchase_order_id');
 
-                    // Apply date filter based on filter type
                     if ($date) {
-                        // Single date filter
                         $query->whereDate('created_at', $date);
                     } elseif ($dateQuery) {
-                        // Date range filter
                         $query->whereBetween('created_at', [$dateQuery['start'], $dateQuery['end']]);
                     }
-                    // If no date filter, show all records
 
                     $serializedProducts = $query->get();
 
-                    $groupedProducts = [];
-
+                    // ✅ Bawat item ay sariling row na — hindi na grouped!
                     foreach ($serializedProducts as $item) {
-                        $productId = ($item->supplierProducts && $item->supplierProducts->id) ? $item->supplierProducts->id : 'unknown';
-                        $productName = ($item->supplierProducts && $item->supplierProducts->name) ? $item->supplierProducts->name : 'Unnamed Product';
-
-                        if (!isset($groupedProducts[$productId])) {
-                            $categoryName = ($item->productStatus && $item->productStatus->name) ? $item->productStatus->name : 'General';
-                            $supplierName = 'N/A';
-                            if ($item->supplierProducts && $item->supplierProducts->supplier) {
-                                $supplierName = $item->supplierProducts->supplier->name ?? 'N/A';
-                            }
-                            $productImage = ($item->supplierProducts && $item->supplierProducts->thumbnail) ? $item->supplierProducts->thumbnail : null;
-
-                            $groupedProducts[$productId] = [
-                                'product_name' => $productName,
-                                'category_name' => $categoryName,
-                                'supplier_name' => $supplierName,
-                                'quantity' => 0,
-                                'image' => $productImage,
-                                'serial_numbers' => [],
-                                'first_received' => $item->created_at
-                            ];
-                        }
-
-                        $groupedProducts[$productId]['quantity']++;
-                        $groupedProducts[$productId]['serial_numbers'][] = $item->serial_number ?? 'N/A';
-                    }
-
-                    foreach ($groupedProducts as $productData) {
-                        $serialNumbersList = implode(', ', array_slice($productData['serial_numbers'], 0, 5));
-                        if (count($productData['serial_numbers']) > 5) {
-                            $serialNumbersList .= '... +' . (count($productData['serial_numbers']) - 5) . ' more';
-                        }
-
-                        $receivedDate = Carbon::parse($productData['first_received'])->format('M d, Y h:i A');
+                        $productName = $item->supplierProducts->name ?? 'Unnamed Product';
+                        $supplierName = $item->supplierProducts->supplier->name ?? 'N/A';
+                        $categoryName = $item->productStatus->name ?? 'General';
+                        $receivedDate = Carbon::parse($item->created_at)->format('M d, Y h:i A');
 
                         $data[] = [
-                            'product_name' => '<strong style="font-size: 16px; color: black;">' . $productData['product_name'] . '</strong><br><span style="font-size: 13px; color: #666;">Serial Numbers: ' . $serialNumbersList . '</span><br><span style="font-size: 12px; color: #999;"><i class="far fa-clock"></i> ' . $receivedDate . '</span>',
-                            'category_name' => '<span class="badge badge-info">' . $productData['category_name'] . '</span>',
-                            'traceability' => '<small><strong>Type:</strong> Scanned from PO<br><strong>Supplier:</strong> ' . $productData['supplier_name'] . '<br><strong>Total Received:</strong> ' . $productData['quantity'] . ' pcs<br><strong>Date Received:</strong> ' . $receivedDate . '</small>',
-                            'quantity' => $productData['quantity'],
-                            'image' => $productData['image'],
+                            'product_name' => '<strong style="font-size: 16px; color: black;">' . e($productName) . '</strong><br>
+                    <span style="font-size: 13px; color: #666;">SN: ' . e($item->serial_number ?? 'N/A') . '</span><br>
+                    <span style="font-size: 12px; color: #999;"><i class="far fa-clock"></i> ' . $receivedDate . '</span>',
+                            'category_name' => '<span class="badge badge-info">' . e($categoryName) . '</span>',
+                            'traceability' => '<small>
+                    <strong>Type:</strong> Scanned from PO<br>
+                    <strong>Serial No:</strong> ' . e($item->serial_number ?? 'N/A') . '<br>
+                    <strong>Supplier:</strong> ' . e($supplierName) . '<br>
+                    <strong>Date Received:</strong> ' . $receivedDate . '
+                    </small>',
+                            'quantity' => 1,
+                            'image' => $item->supplierProducts->thumbnail ?? null,
                             'status' => 'Received'
                         ];
                     }
@@ -200,11 +172,9 @@ class ReportsController extends Controller
             // ===== OUTFLOW =====
             if (!$type || $type === 'outflow') {
                 try {
-                    // ⭐ Build query with flexible date filtering
                     $query = RetailerOrder::with(['product'])
                         ->whereIn('status', ['Approved', 'Completed']);
 
-                    // Apply date filter
                     if ($date) {
                         $query->whereDate('updated_at', $date);
                     } elseif ($dateQuery) {
@@ -213,38 +183,27 @@ class ReportsController extends Controller
 
                     $retailerOrders = $query->get();
 
-                    $groupedOrders = [];
-
+                    // ✅ Bawat order ay sariling row na — hindi na grouped!
                     foreach ($retailerOrders as $order) {
-                        $productKey = $order->product_name ?? 'Unknown Product';
                         $updatedDate = Carbon::parse($order->updated_at)->format('M d, Y h:i A');
-
-                        if (!isset($groupedOrders[$productKey])) {
-                            $groupedOrders[$productKey] = [
-                                'product_name' => $productKey,
-                                'total_qty' => 0,
-                                'total_amount' => 0,
-                                'retailer_names' => [],
-                                'serial_numbers' => [],
-                                'last_updated' => $updatedDate,
-                                'image' => $order->product->thumbnail ?? null,
-                            ];
-                        }
-
-                        $groupedOrders[$productKey]['total_qty'] += (int) $order->quantity;
-                        $groupedOrders[$productKey]['total_amount'] += (float) $order->total_amount;
-                        $groupedOrders[$productKey]['retailer_names'][] = $order->retailer_name ?? 'N/A';
-                    }
-
-                    foreach ($groupedOrders as $orderData) {
-                        $retailerList = implode(', ', array_unique($orderData['retailer_names']));
+                        $productName = $order->product_name ?? 'Unknown Product';
+                        $retailerName = $order->retailer_name ?? 'N/A';
 
                         $data[] = [
-                            'product_name' => '<strong style="font-size: 16px; color: black;">' . e($orderData['product_name']) . '</strong><br><span style="font-size: 13px; color: #666;">Distributed to: ' . e($retailerList) . '</span><br><span style="font-size: 12px; color: #999;"><i class="far fa-clock"></i> ' . $orderData['last_updated'] . '</span>',
+                            'product_name' => '<strong style="font-size: 16px; color: black;">' . e($productName) . '</strong><br>
+                    <span style="font-size: 13px; color: #666;">Retailer: ' . e($retailerName) . '</span><br>
+                    <span style="font-size: 12px; color: #999;"><i class="far fa-clock"></i> ' . $updatedDate . '</span>',
                             'category_name' => '<span class="badge badge-success">Outflow</span>',
-                            'traceability' => '<small><strong>Type:</strong> Retailer Order<br><strong>Total Qty Out:</strong> ' . $orderData['total_qty'] . ' pcs<br><strong>Date:</strong> ' . $orderData['last_updated'] . '</small>',
-                            'quantity' => $orderData['total_qty'],
-                            'image' => $orderData['image'],
+                            'traceability' => '<small>
+                    <strong>Type:</strong> Retailer Order<br>
+                    <strong>Order #:</strong> ' . e($order->id) . '<br>
+                    <strong>Retailer:</strong> ' . e($retailerName) . '<br>
+                    <strong>Qty Out:</strong> ' . $order->quantity . ' pcs<br>
+                    <strong>Total Amount:</strong> ₱' . number_format($order->total_amount, 2) . '<br>
+                    <strong>Date:</strong> ' . $updatedDate . '
+                    </small>',
+                            'quantity' => $order->quantity,
+                            'image' => $order->product->thumbnail ?? null,
                             'status' => 'Outflow'
                         ];
                     }
@@ -253,14 +212,13 @@ class ReportsController extends Controller
                 }
             }
 
+
             // ===== DAMAGED =====
             if (!$type || $type === 'damage') {
                 try {
-                    // ⭐ Build query with flexible date filtering
                     $query = SerializedProduct::with(['supplierProducts.supplier'])
                         ->whereIn('status', [4, 5]);
 
-                    // Apply date filter
                     if ($date) {
                         $query->whereDate('updated_at', $date);
                     } elseif ($dateQuery) {
@@ -269,46 +227,29 @@ class ReportsController extends Controller
 
                     $damagedItems = $query->get();
 
-                    $groupedDamaged = [];
-
+                    // ✅ Bawat item ay sariling row na — hindi na grouped!
                     foreach ($damagedItems as $item) {
-                        $productId = ($item->supplierProducts && $item->supplierProducts->id) ? $item->supplierProducts->id : 'unknown';
-                        $productName = ($item->supplierProducts && $item->supplierProducts->name) ? $item->supplierProducts->name : 'Unnamed Product';
+                        $productName = $item->supplierProducts->name ?? 'Unnamed Product';
+                        $supplierName = $item->supplierProducts->supplier->name ?? 'N/A';
                         $updatedDate = Carbon::parse($item->updated_at)->format('M d, Y h:i A');
-
-                        if (!isset($groupedDamaged[$productId])) {
-                            $supplierName = 'N/A';
-                            if ($item->supplierProducts && $item->supplierProducts->supplier) {
-                                $supplierName = $item->supplierProducts->supplier->name ?? 'N/A';
-                            }
-
-                            $groupedDamaged[$productId] = [
-                                'product_name' => $productName,
-                                'supplier_name' => $supplierName,
-                                'quantity' => 0,
-                                'serial_numbers' => [],
-                                'last_updated' => $updatedDate,
-                                'image' => $item->supplierProducts->thumbnail ?? null,
-                            ];
-                        }
-
-                        $groupedDamaged[$productId]['quantity']++;
-                        $groupedDamaged[$productId]['serial_numbers'][] = $item->serial_number ?? 'N/A';
-                    }
-
-                    foreach ($groupedDamaged as $damagedData) {
-                        $serialNumbersList = implode(', ', array_slice($damagedData['serial_numbers'], 0, 5));
-                        if (count($damagedData['serial_numbers']) > 5) {
-                            $serialNumbersList .= ' ... +' . (count($damagedData['serial_numbers']) - 5) . ' more';
-                        }
+                        $statusName = $item->status == 4 ? 'Damaged' : 'Lost';
+                        $badgeColor = $item->status == 4 ? 'badge-danger' : 'badge-dark';
 
                         $data[] = [
-                            'product_name' => '<strong style="font-size: 16px; color: black;">' . e($damagedData['product_name']) . '</strong><br><span style="font-size: 13px; color: #666;">Serial Numbers: ' . $serialNumbersList . '</span><br><span style="font-size: 12px; color: #999;"><i class="far fa-clock"></i> ' . $damagedData['last_updated'] . '</span>',
-                            'category_name' => '<span class="badge badge-danger">Damaged</span>',
-                            'traceability' => '<small><strong>Type:</strong> Damaged<br><strong>Total Damaged:</strong> ' . $damagedData['quantity'] . ' pcs<br><strong>Date:</strong> ' . $damagedData['last_updated'] . '</small>',
-                            'quantity' => $damagedData['quantity'],
-                            'image' => $damagedData['image'],
-                            'status' => 'Damaged'
+                            'product_name' => '<strong style="font-size: 16px; color: black;">' . e($productName) . '</strong><br>
+                    <span style="font-size: 13px; color: #666;">SN: ' . e($item->serial_number ?? 'N/A') . '</span><br>
+                    <span style="font-size: 12px; color: #999;"><i class="far fa-clock"></i> ' . $updatedDate . '</span>',
+                            'category_name' => '<span class="badge ' . $badgeColor . '">' . $statusName . '</span>',
+                            'traceability' => '<small>
+                    <strong>Type:</strong> ' . $statusName . '<br>
+                    <strong>Serial No:</strong> ' . e($item->serial_number ?? 'N/A') . '<br>
+                    <strong>Supplier:</strong> ' . e($supplierName) . '<br>
+                    <strong>Remarks:</strong> ' . e($item->remarks ?? 'No remarks') . '<br>
+                    <strong>Date:</strong> ' . $updatedDate . '
+                    </small>',
+                            'quantity' => 1,
+                            'image' => $item->supplierProducts->thumbnail ?? null,
+                            'status' => $statusName
                         ];
                     }
                 } catch (\Exception $e) {
