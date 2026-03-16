@@ -94,10 +94,8 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
         Route::get('admin/register/form', [RegisteredUserController::class, 'create'])->name('register');
         Route::post('/employee/register', [RegisteredUserController::class, 'store'])->name('employee.register');
 
-        // ✅ Purchase Request — Admin: view, approve, reject, show
+        // ✅ Purchase Request — Admin only: approve, reject, show details
         Route::prefix('purchase-request')->group(function () {
-            Route::get('/', [PurchaseRequestController::class, 'index'])->name('pr.index');
-            Route::get('/datatable', [PurchaseRequestController::class, 'getPurchaseRequestTable'])->name('pr.datatable');
             Route::post('/approve/{id}', [PurchaseRequestController::class, 'approve'])->name('pr.approve');
             Route::post('/reject/{id}', [PurchaseRequestController::class, 'reject'])->name('pr.reject');
             Route::get('/{id}', [PurchaseRequestController::class, 'show'])->name('pr.show');
@@ -216,9 +214,11 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
 
     Route::get('/suppliers/{id}/products', [PurchaseRequestController::class, 'getSupplierProducts'])->name('suppliers.products');
 
-    // ✅ Purchase Request — Staff & Admin pwede mag-create
-    // (Approve/Reject/View list = Admin only, nasa taas na)
+    // ✅ Purchase Request — All roles: view own PRs + create
+    // Controller already handles filtering: Staff sees own only, Admin sees all
     Route::prefix('purchase-request')->group(function () {
+        Route::get('/', [PurchaseRequestController::class, 'index'])->name('pr.index');
+        Route::get('/datatable', [PurchaseRequestController::class, 'getPurchaseRequestTable'])->name('pr.datatable');
         Route::get('/generate-number', [PurchaseRequestController::class, 'generatePRNumber'])->name('pr.generate-number');
         Route::get('/supplier-products/{id}', [PurchaseRequestController::class, 'getSupplierProducts'])->name('pr.supplier-products');
         Route::post('/store', [PurchaseRequestController::class, 'store'])->name('pr.store');
