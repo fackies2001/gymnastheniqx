@@ -179,6 +179,8 @@ class SerializedProductsController extends Controller
         }
 
         $generator = new BarcodeGeneratorPNG();
+
+        // ✅ Serial Number Barcode (existing)
         $barcodeImage = base64_encode(
             $generator->getBarcode($serial_number, $generator::TYPE_CODE_128, 3, 80)
         );
@@ -190,11 +192,23 @@ class SerializedProductsController extends Controller
             $productImage = $this->generateProductPlaceholder($productName);
         }
 
+        // ✅ DAGDAG: Product Barcode mula sa supplier_product table
+        $productBarcode = $serialized_product_details->supplierProducts->barcode ?? null;
+        $productBarcodeImage = null;
+
+        if ($productBarcode) {
+            $productBarcodeImage = base64_encode(
+                $generator->getBarcode($productBarcode, $generator::TYPE_CODE_128, 3, 80)
+            );
+        }
+
         return view('serialized_products.overview', compact(
             'serialized_product_details',
             'serial_number',
             'barcodeImage',
-            'productImage'
+            'productImage',
+            'productBarcode',       // ✅ DAGDAG
+            'productBarcodeImage'   // ✅ DAGDAG
         ));
     }
 
