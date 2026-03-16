@@ -47,6 +47,7 @@
                     </table>
                 </div>
             </div>
+
             {{-- MODAL --}}
             <div class="modal fade" id="createCoachModal" tabindex="-1" role="dialog" aria-hidden="true">
                 <div class="modal-dialog modal-lg modal-dialog-centered" role="document">
@@ -55,8 +56,7 @@
                             @csrf
                             <div id="methodField"></div>
                             <div class="modal-header bg-primary">
-                                <h5 class="modal-title font-weight-bold text-white" id="modalTitle">Create New Coach
-                                </h5>
+                                <h5 class="modal-title font-weight-bold text-white" id="modalTitle">Create New Coach</h5>
                                 <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
                             </div>
                             <div class="modal-body">
@@ -83,18 +83,29 @@
                                         <label class="small font-weight-bold">Email Address</label>
                                         <input type="email" name="email" id="email" class="form-control" required>
                                     </div>
-                                    <div class="col-md-4 mb-3">
+
+                                    {{-- Row: Position, Designated Area, Date Hired, Status --}}
+                                    <div class="col-md-3 mb-3">
                                         <label class="small font-weight-bold">Position</label>
                                         <select name="position" id="position" class="form-control">
                                             <option value="Head Coach">Head Coach</option>
                                         </select>
                                     </div>
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-3 mb-3">
+                                        <label class="small font-weight-bold">Designated Area</label>
+                                        <select name="designated_area" id="designated_area" class="form-control">
+                                            <option value="">-- Select Warehouse --</option>
+                                            @foreach ($warehouses as $warehouse)
+                                                <option value="{{ $warehouse->id }}">{{ $warehouse->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
                                         <label class="small font-weight-bold">Date Hired</label>
                                         <input type="date" name="date_hired" id="date_hired" class="form-control"
                                             required>
                                     </div>
-                                    <div class="col-md-4 mb-3">
+                                    <div class="col-md-3 mb-3">
                                         <label class="small font-weight-bold">Current Status</label>
                                         <select name="status" id="status" class="form-control">
                                             <option value="Active">Active</option>
@@ -102,16 +113,19 @@
                                             <option value="On Leave">On Leave</option>
                                         </select>
                                     </div>
+
                                 </div>
                             </div>
                             <div class="modal-footer bg-light">
-                                <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Close</button>
+                                <button type="button" class="btn btn-secondary btn-sm"
+                                    data-dismiss="modal">Close</button>
                                 <button type="submit" class="btn btn-primary btn-sm">Save Details</button>
                             </div>
                         </form>
                     </div>
                 </div>
             </div>
+
         </div>
     </div>
 
@@ -121,13 +135,10 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         $(document).ready(function() {
-            // STEP 1: Iwas sa reinitialise error
-            if ($.fn.dataTable.isDataTable(
-                '#coachTable')) { // TAMA - "isDataTable" (may capital D at T)/ ✅ TAMA - small "d"
+            if ($.fn.dataTable.isDataTable('#coachTable')) {
                 $('#coachTable').DataTable().destroy();
             }
 
-            // STEP 2: Initialize DataTable
             var table = $('#coachTable').DataTable({
                 processing: true,
                 serverSide: true,
@@ -182,15 +193,12 @@
                 $('#modalTitle').text('Create New Coach').removeClass('text-warning').addClass(
                     'text-white');
                 $('.modal-header').removeClass('bg-warning').addClass('bg-primary');
-
-                // ✅ RESET FORM ACTION TO STORE
                 $('#coachForm').attr('action', "{{ route('manpower.store') }}");
                 $('#methodField').empty();
-
                 $('#createCoachModal').modal('show');
             });
 
-            // FORM SUBMIT (Save & Update)
+            // FORM SUBMIT
             $('#coachForm').off('submit').on('submit', function(e) {
                 e.preventDefault();
                 e.stopImmediatePropagation();
@@ -205,7 +213,6 @@
                     data: formData,
                     success: function(response) {
                         $('#createCoachModal').modal('hide');
-
                         Swal.fire({
                             icon: 'success',
                             title: 'Tagumpay!',
@@ -213,7 +220,6 @@
                             timer: 2000,
                             showConfirmButton: false
                         });
-
                         table.ajax.reload();
                     },
                     error: function(xhr) {
@@ -231,28 +237,25 @@
                 });
             });
 
-            // ✅ EDIT ACTION - FIXED NA ITO!
+            // EDIT ACTION
             $(document).on('click', '.edit-coach', function() {
                 var id = $(this).data('id');
                 let editUrl = "{{ route('manpower.edit', ':id') }}".replace(':id', id);
                 let updateUrl = "{{ route('manpower.update', ':id') }}".replace(':id', id);
 
                 $.get(editUrl, function(data) {
-                    $('#modalTitle').text('Edit Coach Details').removeClass('text-white').addClass(
-                        'text-white');
+                    $('#modalTitle').text('Edit Coach Details');
                     $('.modal-header').removeClass('bg-primary').addClass('bg-warning');
-
-                    // ✅ SET FORM ACTION ATTRIBUTE - ITO YUNG KULANG SA CODE MO!
                     $('#coachForm').attr('action', updateUrl);
                     $('#methodField').html('<input type="hidden" name="_method" value="PUT">');
 
-                    // Fill fields
                     $('#full_name').val(data.full_name);
                     $('#birth_date').val(data.birth_date);
                     $('#address').val(data.address);
                     $('#contact_no').val(data.contact_no);
                     $('#email').val(data.email);
                     $('#position').val(data.position);
+                    $('#designated_area').val(data.designated_area); // ✅
                     $('#date_hired').val(data.date_hired);
                     $('#status').val(data.status);
 

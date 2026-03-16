@@ -11,7 +11,8 @@ class ManpowerController extends Controller
 {
     public function index()
     {
-        return view('manpower.index');
+        $warehouses = \App\Models\Warehouse::select('id', 'name')->get(); // ✅ DAGDAG
+        return view('manpower.index', compact('warehouses'));
     }
 
     public function get_coaches_data()
@@ -23,6 +24,7 @@ class ManpowerController extends Controller
             'email',
             'address',
             'position',
+            'designated_area', // ✅ DAGDAG
             'date_hired',
             'status'
         ]);
@@ -55,14 +57,15 @@ class ManpowerController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'full_name'  => 'required|string|max:255',
-            'birth_date' => 'required|date',
-            'contact_no' => 'required|string',
-            'email'      => 'required|email|unique:coaches,email',
-            'address'    => 'required|string',
-            'position'   => 'required|string',
-            'date_hired' => 'required|date',
-            'status'     => 'required|string',
+            'full_name'       => 'required|string|max:255',
+            'birth_date'      => 'required|date',
+            'contact_no'      => 'required|string',
+            'email'           => 'required|email|unique:coaches,email',
+            'address'         => 'required|string',
+            'position'        => 'required|string',
+            'designated_area' => 'nullable|string', // ✅ DAGDAG
+            'date_hired'      => 'required|date',
+            'status'          => 'required|string',
         ]);
 
         try {
@@ -90,6 +93,7 @@ class ManpowerController extends Controller
         $request->validate([
             'full_name'  => 'required',
             'email'      => 'required|email|unique:coaches,email,' . $id,
+            'designated_area' => 'nullable|string', // ✅ DAGDAG    
         ]);
 
         $coach = Coach::findOrFail($id);

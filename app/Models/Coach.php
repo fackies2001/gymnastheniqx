@@ -20,5 +20,6 @@ class Coach extends Model
         'position',
         'date_hired',
         'status',
+        'designated_area',
     ];
 }
