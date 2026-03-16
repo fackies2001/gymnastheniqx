@@ -108,14 +108,21 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
             Route::get('/{id}', [PurchaseOrderController::class, 'show'])->name('purchase-order.show');
         });
 
-        // ✅ Retailer Orders — Admin only: approve, reject, complete
-        Route::controller(RetailerOrderController::class)->group(function () {
+       
+       // ✅ Retailer Orders — Admin only: approve, reject, complete
+        Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin')->group(function () {
+            Route::controller(RetailerOrderController::class)->group(function () {
             Route::post('/retailer-orders/{id}/approve', 'approve')->name('retailer.orders.approve');
             Route::post('/retailer-orders/{id}/reject', 'reject')->name('retailer.orders.reject');
             Route::post('/retailer-orders/{id}/complete', 'complete')->name('retailer.orders.complete');
         });
-    }); // END ADMIN ONLY
+    });
 
+    // ✅ Retailer Orders — Admin & Manager: view all + indexAll
+     Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager')->group(function () {
+        Route::get('/retailer-orders/all', [RetailerOrderController::class, 'indexAll'])->name('retailer.orders.all');
+    });
+    
     // =========================================================
     // ✅ PROFILE MANAGEMENT — All roles
     // =========================================================

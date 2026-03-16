@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Carbon\Carbon;
+use Illuminate\Cache\RateLimiting\Limit;
 
 class DashboardController extends Controller
 {
@@ -27,10 +28,9 @@ class DashboardController extends Controller
         // ============================================================
         if ($user->isManager()) {
             $small_boxes = [
-                'serial_number_counts'      => $this->getAvailableProductCount(),
+                'serial_number_counts'      => $this->getAvailableProductCount(), // ✅ Serialized Products
                 'total_sales_today'         => $this->getTotalSalesToday(),
                 'total_sales_alltime'       => $this->getTotalSalesAllTime(),
-                'low_stock_count'           => $this->getLowStockCount(),
             ];
 
             $doughnut = [
@@ -42,15 +42,16 @@ class DashboardController extends Controller
                 'monthly_products_in' => $this->getMonthlyProductsScanned($request),
             ];
 
-            $low_stock_products = $this->getLowStockProducts();
-            $recent_activities  = $this->getRecentActivities();
+            $recent_activities   = $this->getRecentActivities();
+            $retailer_orders     = $this->getRecentRetailerOrders(); // ✅ DAGDAG
 
             return view('dashboard.index', compact(
                 'small_boxes',
                 'doughnut',
                 'bar',
-                'low_stock_products',
-                'recent_activities'
+                'recent_activities',
+                'retailer_orders'   // ✅ DAGDAG
+
             ));
         }
 
@@ -75,13 +76,15 @@ class DashboardController extends Controller
 
         $low_stock_products = $this->getLowStockProducts();
         $recent_activities  = $this->getRecentActivities();
+        $retailer_orders    = collect(); // ✅ Empty para sa admin/staff
 
         return view('dashboard.index', compact(
             'small_boxes',
             'doughnut',
             'bar',
             'low_stock_products',
-            'recent_activities'
+            'recent_activities',
+            'retailer_orders'
         ));
     }
 
@@ -488,5 +491,18 @@ class DashboardController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    private function getRecentRetailerOrders()
+    {
+        try {
+            return RetailerOrder::with(['creatorUser'])
+                ->latest()
+                ->limit(10)
+                ->get();
+        } catch (\Exception $e) {
+            \Log::error('Error getting retailer orders: ' . $e->getMessage());
+            return collect();
+        }
     }
 }

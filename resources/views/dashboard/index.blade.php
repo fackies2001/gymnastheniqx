@@ -10,15 +10,13 @@
     $monthly_products_in = $bar['monthly_products_in'];
     $low_stock_products = $low_stock_products ?? [];
     $recent_activities = $recent_activities ?? [];
+    $retailer_orders = $retailer_orders ?? collect();
     $isManager = auth()->user()->isManager();
     $isAdmin = auth()->user()->isAdmin();
 @endphp
 
 @push('css')
     <style>
-        /* ============================================
-               SMALL STAT BOXES
-            ============================================ */
         .stat-box {
             border-radius: 10px;
             padding: 20px 18px 14px;
@@ -95,7 +93,6 @@
             background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
         }
 
-        /* ✅ Manager-specific stat box colors */
         .stat-box-sales-today {
             background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
         }
@@ -104,11 +101,6 @@
             background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
         }
 
-        .stat-box-lowstock {
-            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
-        }
-
-        /* ✅ Manager Report Shortcut Cards */
         .report-shortcut-card {
             border-radius: 10px;
             padding: 18px 16px;
@@ -156,25 +148,10 @@
             margin-top: 10px;
         }
 
-        .shortcut-daily {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-
-        .shortcut-weekly {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-        }
-
-        .shortcut-monthly {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-
         .shortcut-yearly {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
-        /* ============================================
-               ACTIVITY FEED
-            ============================================ */
         .activity-item {
             padding: 10px 12px;
             border-left: 3px solid #667eea;
@@ -206,9 +183,6 @@
             margin-top: 2px;
         }
 
-        /* ============================================
-               DARK MODE TOGGLE
-            ============================================ */
         .dark-mode-toggle {
             position: fixed;
             bottom: 20px;
@@ -242,17 +216,13 @@
 
 @section('content_body')
 
-    {{-- ============================================
-         DARK MODE TOGGLE
-    ============================================ --}}
+    {{-- DARK MODE TOGGLE --}}
     <button class="dark-mode-toggle" id="darkModeToggle" title="Toggle Dark/Light Mode">
         <i class="fas fa-moon" id="darkModeIcon"></i>
     </button>
 
-    {{-- ============================================
-         DATE FILTER BAR
-    ============================================ --}}
-    <div class="card shadow mb-4 no-print">
+    {{-- DATE FILTER BAR --}}
+    <div class="card shadow mb-3 no-print">
         <div class="card-header bg-gradient-primary">
             <h3 class="card-title font-weight-bold text-white">
                 <i class="fas fa-filter"></i> FILTER BY DATE
@@ -271,8 +241,8 @@
                             </option>
                             <option value="yesterday" {{ request('filter_type') == 'yesterday' ? 'selected' : '' }}>
                                 Yesterday</option>
-                            <option value="last_7_days" {{ request('filter_type') == 'last_7_days' ? 'selected' : '' }}>Last
-                                7 Days</option>
+                            <option value="last_7_days"{{ request('filter_type') == 'last_7_days' ? 'selected' : '' }}>Last 7
+                                Days</option>
                             <option value="last_30_days"{{ request('filter_type') == 'last_30_days' ? 'selected' : '' }}>Last
                                 30 Days</option>
                             <option value="this_month" {{ request('filter_type') == 'this_month' ? 'selected' : '' }}>This
@@ -319,45 +289,41 @@
 
                 @if (request('filter_type'))
                     <div class="alert alert-info mt-3 mb-0">
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div>
-                                <i class="fas fa-info-circle"></i>
-                                <strong>Active Filter:</strong>
-                                @switch(request('filter_type'))
-                                    @case('today')
-                                        Today's Records
-                                    @break
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Active Filter:</strong>
+                        @switch(request('filter_type'))
+                            @case('today')
+                                Today's Records
+                            @break
 
-                                    @case('yesterday')
-                                        Yesterday's Records
-                                    @break
+                            @case('yesterday')
+                                Yesterday's Records
+                            @break
 
-                                    @case('last_7_days')
-                                        Last 7 Days
-                                    @break
+                            @case('last_7_days')
+                                Last 7 Days
+                            @break
 
-                                    @case('last_30_days')
-                                        Last 30 Days
-                                    @break
+                            @case('last_30_days')
+                                Last 30 Days
+                            @break
 
-                                    @case('this_month')
-                                        This Month
-                                    @break
+                            @case('this_month')
+                                This Month
+                            @break
 
-                                    @case('last_month')
-                                        Last Month
-                                    @break
+                            @case('last_month')
+                                Last Month
+                            @break
 
-                                    @case('this_year')
-                                        This Year
-                                    @break
+                            @case('this_year')
+                                This Year
+                            @break
 
-                                    @case('custom')
-                                        {{ request('start_date') }} to {{ request('end_date') }}
-                                    @break
-                                @endswitch
-                            </div>
-                        </div>
+                            @case('custom')
+                                {{ request('start_date') }} to {{ request('end_date') }}
+                            @break
+                        @endswitch
                     </div>
                 @endif
             </form>
@@ -416,7 +382,7 @@
                 </div>
             </div>
 
-            {{-- Available Stock --}}
+            {{-- Serialized Products --}}
             <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                 <div class="stat-box stat-box-stock shadow-sm">
                     <i class="fas fa-boxes stat-bg-icon"></i>
@@ -441,13 +407,13 @@
     @if ($isManager)
         <div class="row mb-3">
 
-            {{-- Available Stock --}}
-            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
+            {{-- Serialized Products --}}
+            <div class="col-lg-4 col-md-6 col-sm-6 mb-3">
                 <div class="stat-box stat-box-stock shadow-sm">
                     <i class="fas fa-boxes stat-bg-icon"></i>
                     <div>
                         <div class="stat-number">{{ $small_boxes['serial_number_counts'] }}</div>
-                        <div class="stat-label">Available Stock</div>
+                        <div class="stat-label">Serialized Products</div>
                     </div>
                     <div class="stat-footer">
                         <span><i class="fas fa-barcode mr-1"></i> Status: available</span>
@@ -458,7 +424,7 @@
             </div>
 
             {{-- Total Sales Today --}}
-            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
+            <div class="col-lg-4 col-md-6 col-sm-6 mb-3">
                 <div class="stat-box stat-box-sales-today shadow-sm">
                     <i class="fas fa-coins stat-bg-icon"></i>
                     <div>
@@ -473,7 +439,7 @@
             </div>
 
             {{-- Total Sales All Time --}}
-            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
+            <div class="col-lg-4 col-md-6 col-sm-6 mb-3">
                 <div class="stat-box stat-box-sales-total shadow-sm">
                     <i class="fas fa-chart-line stat-bg-icon"></i>
                     <div>
@@ -482,86 +448,31 @@
                     </div>
                     <div class="stat-footer">
                         <span><i class="fas fa-infinity mr-1"></i> All time</span>
-                        <span>Completed orders</span>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Low Stock Alert Count --}}
-            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                <div class="stat-box stat-box-lowstock shadow-sm">
-                    <i class="fas fa-exclamation-triangle stat-bg-icon"></i>
-                    <div>
-                        <div class="stat-number">{{ $small_boxes['low_stock_count'] }}</div>
-                        <div class="stat-label">Low Stock Items</div>
-                    </div>
-                    <div class="stat-footer">
-                        <span><i class="fas fa-boxes mr-1"></i> Below 20 units</span>
-                        <span>Needs restocking</span>
+                        <a href="{{ route('retailer.orders.index') }}">View Orders <i
+                                class="fas fa-arrow-circle-right"></i></a>
                     </div>
                 </div>
             </div>
 
         </div>
 
-        {{-- ============================================
-             MANAGER: REPORT SHORTCUT CARDS
-        ============================================ --}}
+        {{-- REPORTS — Isang card lang --}}
         <div class="row mb-4">
             <div class="col-12 mb-2">
                 <h5 class="font-weight-bold text-muted">
                     <i class="fas fa-chart-bar mr-1"></i> Quick Access — Reports
                 </h5>
             </div>
-
-            {{-- Daily Reports --}}
-            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                <a href="{{ route('reports.daily') }}" class="report-shortcut-card shortcut-daily shadow-sm d-block">
-                    <i class="fas fa-calendar-day shortcut-bg-icon"></i>
+            <div class="col-12">
+                <a href="{{ route('reports.daily') }}" class="report-shortcut-card shortcut-yearly shadow-sm d-block">
+                    <i class="fas fa-file-export shortcut-bg-icon"></i>
                     <div>
-                        <div class="shortcut-label"><i class="fas fa-calendar-day mr-1"></i> Daily Reports</div>
-                        <div class="shortcut-sub">Today's transactions & activity</div>
+                        <div class="shortcut-label"><i class="fas fa-file-export mr-1"></i> View Reports</div>
+                        <div class="shortcut-sub">Daily, Weekly, Monthly & Yearly reports available</div>
                     </div>
-                    <div class="shortcut-arrow">View Report <i class="fas fa-arrow-right"></i></div>
+                    <div class="shortcut-arrow">Go to Reports <i class="fas fa-arrow-right"></i></div>
                 </a>
             </div>
-
-            {{-- Weekly Reports --}}
-            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                <a href="{{ route('reports.weekly') }}" class="report-shortcut-card shortcut-weekly shadow-sm d-block">
-                    <i class="fas fa-calendar-week shortcut-bg-icon"></i>
-                    <div>
-                        <div class="shortcut-label"><i class="fas fa-calendar-week mr-1"></i> Weekly Reports</div>
-                        <div class="shortcut-sub">7-day performance summary</div>
-                    </div>
-                    <div class="shortcut-arrow">View Report <i class="fas fa-arrow-right"></i></div>
-                </a>
-            </div>
-
-            {{-- Monthly Reports --}}
-            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                <a href="{{ route('reports.monthly') }}" class="report-shortcut-card shortcut-monthly shadow-sm d-block">
-                    <i class="fas fa-calendar-alt shortcut-bg-icon"></i>
-                    <div>
-                        <div class="shortcut-label"><i class="fas fa-calendar-alt mr-1"></i> Monthly Reports</div>
-                        <div class="shortcut-sub">Month-to-date overview</div>
-                    </div>
-                    <div class="shortcut-arrow">View Report <i class="fas fa-arrow-right"></i></div>
-                </a>
-            </div>
-
-            {{-- Yearly Reports --}}
-            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                <a href="{{ route('reports.yearly') }}" class="report-shortcut-card shortcut-yearly shadow-sm d-block">
-                    <i class="fas fa-calendar shortcut-bg-icon"></i>
-                    <div>
-                        <div class="shortcut-label"><i class="fas fa-calendar mr-1"></i> Yearly Reports</div>
-                        <div class="shortcut-sub">Annual performance & trends</div>
-                    </div>
-                    <div class="shortcut-arrow">View Report <i class="fas fa-arrow-right"></i></div>
-                </a>
-            </div>
-
         </div>
     @endif
 
@@ -597,7 +508,7 @@
                 @endif
 
                 {{-- Doughnut: Product Status --}}
-                <div class="{{ $isManager ? 'col-md-6' : 'col-md-6' }}">
+                <div class="col-md-6">
                     <div class="card">
                         <div class="card-header">
                             <h3 class="card-title">
@@ -639,83 +550,85 @@
             </div>
         </div>
 
-        {{-- RIGHT: LOW STOCK + RECENT ACTIVITY --}}
+        {{-- RIGHT: LOW STOCK (admin/staff) + RECENT ACTIVITY --}}
         <div class="col-md-3 col-sm-12">
 
-            {{-- Low Stock Alert --}}
-            <div class="card card-outline card-danger shadow-sm">
-                <div class="card-header">
-                    <h3 class="card-title font-weight-bold text-danger">
-                        <i class="fas fa-exclamation-triangle mr-1"></i> Low Stock Alert
-                    </h3>
+            {{-- Low Stock Alert — ADMIN/STAFF ONLY --}}
+            @if (!$isManager)
+                <div class="card card-outline card-danger shadow-sm">
+                    <div class="card-header">
+                        <h3 class="card-title font-weight-bold text-danger">
+                            <i class="fas fa-exclamation-triangle mr-1"></i> Low Stock Alert
+                        </h3>
+                        @if (count($low_stock_products) > 0)
+                            <span class="badge badge-danger float-right">{{ count($low_stock_products) }} items</span>
+                        @endif
+                    </div>
+                    <div class="card-body p-0" style="max-height:280px; overflow-y:auto;">
+                        <table class="table table-striped table-sm mb-0">
+                            <thead class="sticky-top bg-white">
+                                <tr>
+                                    <th class="pl-3" style="width:60%">Product</th>
+                                    <th class="text-center" style="width:40%">
+                                        Qty <small class="text-muted d-block"
+                                            style="font-size:0.68rem; font-weight:normal;">(Below 20)</small>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($low_stock_products as $item)
+                                    <tr>
+                                        <td class="pl-3 small align-middle" style="line-height:1.2;">
+                                            <strong>{{ $item->name }}</strong><br>
+                                            <small class="text-muted">{{ $item->system_sku ?? 'N/A' }}</small>
+                                        </td>
+                                        <td class="text-center align-middle">
+                                            @php
+                                                $qty = $item->available_count ?? 0;
+                                                $badgeClass =
+                                                    $qty <= 5
+                                                        ? 'badge-danger'
+                                                        : ($qty <= 10
+                                                            ? 'badge-warning'
+                                                            : 'badge-info');
+                                                $icon =
+                                                    $qty <= 5
+                                                        ? 'fas fa-exclamation-circle'
+                                                        : ($qty <= 10
+                                                            ? 'fas fa-exclamation-triangle'
+                                                            : 'fas fa-info-circle');
+                                            @endphp
+                                            <span class="badge {{ $badgeClass }}"
+                                                style="font-size:0.9rem; padding:0.35rem 0.55rem;">
+                                                <i class="{{ $icon }}" style="font-size:0.7rem;"></i>
+                                                {{ $qty }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="2" class="text-center text-muted py-4">
+                                            <i class="fas fa-check-circle text-success mb-2"
+                                                style="font-size:2rem; display:block;"></i>
+                                            <div class="font-weight-bold">All stocks are good!</div>
+                                            <small>No items below 20 units</small>
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                     @if (count($low_stock_products) > 0)
-                        <span class="badge badge-danger float-right">{{ count($low_stock_products) }} items</span>
+                        <div class="card-footer text-center small text-muted py-1">
+                            <div class="d-flex justify-content-around">
+                                <span><i class="fas fa-circle text-danger" style="font-size:0.55rem;"></i> ≤5</span>
+                                <span><i class="fas fa-circle text-warning" style="font-size:0.55rem;"></i> 6-10</span>
+                                <span><i class="fas fa-circle text-info" style="font-size:0.55rem;"></i> 11-19</span>
+                            </div>
+                        </div>
                     @endif
                 </div>
-                <div class="card-body p-0" style="max-height:280px; overflow-y:auto;">
-                    <table class="table table-striped table-sm mb-0">
-                        <thead class="sticky-top bg-white">
-                            <tr>
-                                <th class="pl-3" style="width:60%">Product</th>
-                                <th class="text-center" style="width:40%">
-                                    Qty <small class="text-muted d-block"
-                                        style="font-size:0.68rem; font-weight:normal;">(Below 20)</small>
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @forelse($low_stock_products as $item)
-                                <tr>
-                                    <td class="pl-3 small align-middle" style="line-height:1.2;">
-                                        <strong>{{ $item->name }}</strong><br>
-                                        <small class="text-muted">{{ $item->system_sku ?? 'N/A' }}</small>
-                                    </td>
-                                    <td class="text-center align-middle">
-                                        @php
-                                            $qty = $item->available_count ?? 0;
-                                            $badgeClass =
-                                                $qty <= 5
-                                                    ? 'badge-danger'
-                                                    : ($qty <= 10
-                                                        ? 'badge-warning'
-                                                        : 'badge-info');
-                                            $icon =
-                                                $qty <= 5
-                                                    ? 'fas fa-exclamation-circle'
-                                                    : ($qty <= 10
-                                                        ? 'fas fa-exclamation-triangle'
-                                                        : 'fas fa-info-circle');
-                                        @endphp
-                                        <span class="badge {{ $badgeClass }}"
-                                            style="font-size:0.9rem; padding:0.35rem 0.55rem;">
-                                            <i class="{{ $icon }}" style="font-size:0.7rem;"></i>
-                                            {{ $qty }}
-                                        </span>
-                                    </td>
-                                </tr>
-                            @empty
-                                <tr>
-                                    <td colspan="2" class="text-center text-muted py-4">
-                                        <i class="fas fa-check-circle text-success mb-2"
-                                            style="font-size:2rem; display:block;"></i>
-                                        <div class="font-weight-bold">All stocks are good!</div>
-                                        <small>No items below 20 units</small>
-                                    </td>
-                                </tr>
-                            @endforelse
-                        </tbody>
-                    </table>
-                </div>
-                @if (count($low_stock_products) > 0)
-                    <div class="card-footer text-center small text-muted py-1">
-                        <div class="d-flex justify-content-around">
-                            <span><i class="fas fa-circle text-danger" style="font-size:0.55rem;"></i> ≤5</span>
-                            <span><i class="fas fa-circle text-warning" style="font-size:0.55rem;"></i> 6-10</span>
-                            <span><i class="fas fa-circle text-info" style="font-size:0.55rem;"></i> 11-19</span>
-                        </div>
-                    </div>
-                @endif
-            </div>
+            @endif
 
             {{-- Recent Activity --}}
             <div class="card card-outline card-primary shadow-sm">
@@ -726,7 +639,7 @@
                 </div>
                 <div class="card-body p-2" style="max-height:380px; overflow-y:auto;">
                     @forelse($recent_activities as $activity)
-                        @if ($isAdmin || $activity->user_name === auth()->user()->full_name)
+                        @if ($isAdmin || $isManager || $activity->user_name === auth()->user()->full_name)
                             <div class="activity-item">
                                 <div class="d-flex align-items-start">
                                     <div
@@ -755,6 +668,83 @@
 
         </div>
     </div>
+
+    {{-- ============================================
+         MANAGER: Retailer Orders Table
+    ============================================ --}}
+    @if ($isManager)
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0 font-weight-bold">
+                            <i class="fas fa-store mr-2"></i> Retailer Orders
+                        </h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover table-striped mb-0">
+                                <thead class="bg-dark text-white">
+                                    <tr>
+                                        <th class="pl-3">#</th>
+                                        <th>Retailer Name</th>
+                                        <th>Product</th>
+                                        <th>Qty</th>
+                                        <th>Total Amount</th>
+                                        <th>Created By</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @forelse($retailer_orders as $order)
+                                        <tr>
+                                            <td class="pl-3">{{ $order->id }}</td>
+                                            <td>{{ $order->retailer_name ?? 'N/A' }}</td>
+                                            <td>{{ $order->product_name ?? 'N/A' }}</td>
+                                            <td>{{ $order->quantity ?? 'N/A' }}</td>
+                                            <td class="text-success font-weight-bold">
+                                                ₱{{ number_format($order->total_amount ?? 0, 2) }}
+                                            </td>
+                                            <td>{{ $order->creatorUser->full_name ?? ($order->created_by ?? 'N/A') }}</td>
+                                            <td>{{ $order->created_at->format('M d, Y') }}</td>
+                                            <td>
+                                                @php
+                                                    $statusColors = [
+                                                        'completed' => 'success',
+                                                        'approved' => 'primary',
+                                                        'pending' => 'warning',
+                                                        'rejected' => 'danger',
+                                                    ];
+                                                    $color = $statusColors[$order->status] ?? 'secondary';
+                                                @endphp
+                                                <span class="badge badge-{{ $color }}">
+                                                    {{ ucfirst($order->status ?? 'N/A') }}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    @empty
+                                        <tr>
+                                            <td colspan="8" class="text-center text-muted py-4">
+                                                <i class="fas fa-inbox mb-2"
+                                                    style="font-size:2rem; display:block; opacity:0.4;"></i>
+                                                No retailer orders found.
+                                            </td>
+                                        </tr>
+                                    @endforelse
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer text-right">
+                        <a href="{{ route('retailer.orders.index') }}" class="btn btn-primary btn-sm">
+                            <i class="fas fa-eye mr-1"></i> View All Orders
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 
 @stop
 

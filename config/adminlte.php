@@ -420,7 +420,7 @@ return [
         [
             'text' => 'Retailers',
             'icon' => 'fas fa-print',
-            'role' => ['admin', 'staff'], // ✅ Manager hidden
+            'role' => ['admin', 'staff', 'manager'], // ✅ Dagdag manager
             'submenu' => [
                 [
                     'text' => 'Orders',
