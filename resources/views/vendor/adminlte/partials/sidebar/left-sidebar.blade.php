@@ -55,18 +55,22 @@
                     <small class="d-block text-muted">
                         {{ Auth::user()->role?->role_name ?? 'No Role' }}
                     </small>
+                    @if (Auth::user()->warehouse)
+                        <small class="d-block text-muted">
+                            <i class="fas fa-warehouse mr-1" style="font-size: 0.65rem;"></i>
+                            {{ Auth::user()->warehouse->name }}
+                        </small>
+                    @endif
                 </div>
-            </div>
-        @endif
 
-        <nav class="pt-2">
-            <ul class="nav nav-pills nav-sidebar flex-column {{ config('adminlte.classes_sidebar_nav', '') }}"
-                data-widget="treeview" role="menu"
-                @if (config('adminlte.sidebar_nav_animation_speed') != 300) data-animation-speed="{{ config('adminlte.sidebar_nav_animation_speed') }}" @endif
-                @if (!config('adminlte.sidebar_nav_accordion')) data-accordion="false" @endif>
-                @each('adminlte::partials.sidebar.menu-item', $adminlte->menu('sidebar'), 'item')
-            </ul>
-        </nav>
-    </div>
+                <nav class="pt-2">
+                    <ul class="nav nav-pills nav-sidebar flex-column {{ config('adminlte.classes_sidebar_nav', '') }}"
+                        data-widget="treeview" role="menu"
+                        @if (config('adminlte.sidebar_nav_animation_speed') != 300) data-animation-speed="{{ config('adminlte.sidebar_nav_animation_speed') }}" @endif
+                        @if (!config('adminlte.sidebar_nav_accordion')) data-accordion="false" @endif>
+                        @each('adminlte::partials.sidebar.menu-item', $adminlte->menu('sidebar'), 'item')
+                    </ul>
+                </nav>
+            </div>
 
 </aside>

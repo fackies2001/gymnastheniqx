@@ -215,7 +215,7 @@
                         $('#createCoachModal').modal('hide');
                         Swal.fire({
                             icon: 'success',
-                            title: 'Tagumpay!',
+                            title: 'Successfully Added!',
                             text: response.success,
                             timer: 2000,
                             showConfirmButton: false
