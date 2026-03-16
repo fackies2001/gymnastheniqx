@@ -1,24 +1,22 @@
 {{-- 📁 resources/views/dashboard/index.blade.php --}}
-@extends('layouts.adminlte')
+{{-- @extends('layouts.adminlte')
 
 @section('subtitle', 'Dashboard')
-@section('content_header_title', 'Dashboard')
-
+@section('content_header_title', 'Dashboard') --}}
+{{-- 
 @php
     $product_status_counts = $doughnut['product_status_counts'];
     $purchase_request_status_counts = $doughnut['purchase_request_status_counts'];
     $monthly_products_in = $bar['monthly_products_in'];
     $low_stock_products = $low_stock_products ?? [];
     $recent_activities = $recent_activities ?? [];
-    $isManager = auth()->user()->isManager();
-    $isAdmin = auth()->user()->isAdmin();
-@endphp
+@endphp --}}
 
-@push('css')
+{{-- @push('css')
     <style>
         /* ============================================
-               SMALL STAT BOXES
-            ============================================ */
+                                           SMALL STAT BOXES
+                                        ============================================ */
         .stat-box {
             border-radius: 10px;
             padding: 20px 18px 14px;
@@ -95,86 +93,9 @@
             background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
         }
 
-        /* ✅ Manager-specific stat box colors */
-        .stat-box-sales-today {
-            background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
-        }
-
-        .stat-box-sales-total {
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
-        }
-
-        .stat-box-lowstock {
-            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
-        }
-
-        /* ✅ Manager Report Shortcut Cards */
-        .report-shortcut-card {
-            border-radius: 10px;
-            padding: 18px 16px;
-            color: #fff;
-            position: relative;
-            overflow: hidden;
-            transition: transform 0.25s ease, box-shadow 0.25s ease;
-            min-height: 100px;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            text-decoration: none !important;
-        }
-
-        .report-shortcut-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2) !important;
-            color: #fff;
-        }
-
-        .report-shortcut-card .shortcut-bg-icon {
-            position: absolute;
-            right: -8px;
-            top: -8px;
-            font-size: 4.5rem;
-            opacity: 0.12;
-        }
-
-        .report-shortcut-card .shortcut-label {
-            font-size: 0.95rem;
-            font-weight: 700;
-            letter-spacing: 0.02em;
-        }
-
-        .report-shortcut-card .shortcut-sub {
-            font-size: 0.75rem;
-            opacity: 0.85;
-            margin-top: 4px;
-        }
-
-        .report-shortcut-card .shortcut-arrow {
-            font-size: 0.78rem;
-            opacity: 0.9;
-            font-weight: 600;
-            margin-top: 10px;
-        }
-
-        .shortcut-daily {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-
-        .shortcut-weekly {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-        }
-
-        .shortcut-monthly {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-
-        .shortcut-yearly {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
         /* ============================================
-               ACTIVITY FEED
-            ============================================ */
+                                           ACTIVITY FEED
+                                        ============================================ */
         .activity-item {
             padding: 10px 12px;
             border-left: 3px solid #667eea;
@@ -207,8 +128,23 @@
         }
 
         /* ============================================
-               DARK MODE TOGGLE
-            ============================================ */
+                                           FILTER BUTTONS
+                                        ============================================ */
+        .filter-btn-group .btn {
+            border-radius: 20px;
+            padding: 5px 14px;
+            font-size: 0.85rem;
+        }
+
+        .filter-btn-group .btn.active {
+            background-color: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        /* ============================================
+                                           DARK MODE TOGGLE
+                                        ============================================ */
         .dark-mode-toggle {
             position: fixed;
             bottom: 20px;
@@ -238,9 +174,9 @@
             transition: transform 0.3s ease;
         }
     </style>
-@endpush
+@endpush --}}
 
-@section('content_body')
+{{-- @section('content_body')
 
     {{-- ============================================
          DARK MODE TOGGLE
@@ -261,31 +197,32 @@
         <div class="card-body">
             <form method="GET" action="{{ route('dashboard') }}" id="dateFilterForm">
                 <div class="row">
+                    {{-- Filter Dropdown --}}
                     <div class="col-lg-5 col-md-6 mb-3">
                         <label class="font-weight-bold">
                             <i class="fas fa-calendar text-primary"></i> Select Time Period
                         </label>
                         <select name="filter_type" id="filterType" class="form-control form-control-lg shadow-sm">
                             <option value="">All Time Records</option>
-                            <option value="today" {{ request('filter_type') == 'today' ? 'selected' : '' }}>Today
-                            </option>
+                            <option value="today" {{ request('filter_type') == 'today' ? 'selected' : '' }}>Today</option>
                             <option value="yesterday" {{ request('filter_type') == 'yesterday' ? 'selected' : '' }}>
                                 Yesterday</option>
                             <option value="last_7_days" {{ request('filter_type') == 'last_7_days' ? 'selected' : '' }}>Last
                                 7 Days</option>
-                            <option value="last_30_days"{{ request('filter_type') == 'last_30_days' ? 'selected' : '' }}>Last
-                                30 Days</option>
+                            <option value="last_30_days" {{ request('filter_type') == 'last_30_days' ? 'selected' : '' }}>
+                                Last 30 Days</option>
                             <option value="this_month" {{ request('filter_type') == 'this_month' ? 'selected' : '' }}>This
                                 Month</option>
                             <option value="last_month" {{ request('filter_type') == 'last_month' ? 'selected' : '' }}>Last
                                 Month</option>
                             <option value="this_year" {{ request('filter_type') == 'this_year' ? 'selected' : '' }}>This
                                 Year</option>
-                            <option value="custom" {{ request('filter_type') == 'custom' ? 'selected' : '' }}>Custom
-                                Range</option>
+                            <option value="custom" {{ request('filter_type') == 'custom' ? 'selected' : '' }}>Custom Range
+                            </option>
                         </select>
                     </div>
 
+                    {{-- Custom Start Date --}}
                     <div class="col-lg-2 col-md-6 mb-3" id="customDateRange"
                         style="display: {{ request('filter_type') == 'custom' ? 'block' : 'none' }};">
                         <label class="font-weight-bold">
@@ -295,6 +232,7 @@
                             class="form-control form-control-lg shadow-sm" value="{{ request('start_date') }}">
                     </div>
 
+                    {{-- Custom End Date --}}
                     <div class="col-lg-2 col-md-6 mb-3" id="customDateRangeEnd"
                         style="display: {{ request('filter_type') == 'custom' ? 'block' : 'none' }};">
                         <label class="font-weight-bold">
@@ -304,6 +242,7 @@
                             value="{{ request('end_date') }}">
                     </div>
 
+                    {{-- Action Buttons --}}
                     <div class="col-lg-3 col-md-6 mb-3">
                         <label class="d-block">&nbsp;</label>
                         <div class="btn-group btn-block">
@@ -317,6 +256,7 @@
                     </div>
                 </div>
 
+                {{-- Active Filter Badge --}}
                 @if (request('filter_type'))
                     <div class="alert alert-info mt-3 mb-0">
                         <div class="d-flex align-items-center justify-content-between">
@@ -365,205 +305,72 @@
     </div>
 
     {{-- ============================================
-         STAT BOXES — ADMIN / STAFF
+         SMALL STAT BOXES
     ============================================ --}}
-    @if (!$isManager)
-        <div class="row mb-3">
+    <div class="row mb-3">
 
-            {{-- Suppliers --}}
-            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                <div class="stat-box stat-box-suppliers shadow-sm">
-                    <i class="fas fa-truck stat-bg-icon"></i>
-                    <div>
-                        <div class="stat-number">{{ $small_boxes['supplier_counts'] }}</div>
-                        <div class="stat-label">Suppliers</div>
-                    </div>
-                    <div class="stat-footer">
-                        <span><i class="fas fa-users mr-1"></i> All time</span>
-                        <a href="{{ route('suppliers.index') }}">More info <i class="fas fa-arrow-circle-right"></i></a>
-                    </div>
+        {{-- Suppliers --}}
+        <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
+            <div class="stat-box stat-box-suppliers shadow-sm">
+                <i class="fas fa-truck stat-bg-icon"></i>
+                <div>
+                    <div class="stat-number">{{ $small_boxes['supplier_counts'] }}</div>
+                    <div class="stat-label">Suppliers</div>
+                </div>
+                <div class="stat-footer">
+                    <span><i class="fas fa-users mr-1"></i> All time</span>
+                    <a href="{{ route('suppliers.index') }}">More info <i class="fas fa-arrow-circle-right"></i></a>
                 </div>
             </div>
-
-            {{-- Purchase Requests --}}
-            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                <div class="stat-box stat-box-pr shadow-sm">
-                    <i class="fas fa-file-alt stat-bg-icon"></i>
-                    <div>
-                        <div class="stat-number">{{ $small_boxes['purchase_request_counts'] }}</div>
-                        <div class="stat-label">Purchase Requests</div>
-                    </div>
-                    <div class="stat-footer">
-                        <span><i class="fas fa-filter mr-1"></i> Filtered period</span>
-                        <a href="{{ route('pr.index') }}">More info <i class="fas fa-arrow-circle-right"></i></a>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Purchase Orders --}}
-            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                <div class="stat-box stat-box-po shadow-sm">
-                    <i class="fas fa-shopping-cart stat-bg-icon"></i>
-                    <div>
-                        <div class="stat-number">{{ $small_boxes['purchase_order_counts'] }}</div>
-                        <div class="stat-label">Purchase Orders</div>
-                    </div>
-                    <div class="stat-footer">
-                        <span><i class="fas fa-filter mr-1"></i> Filtered period</span>
-                        <a href="{{ route('purchase-order.index') }}">More info <i
-                                class="fas fa-arrow-circle-right"></i></a>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Available Stock --}}
-            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                <div class="stat-box stat-box-stock shadow-sm">
-                    <i class="fas fa-boxes stat-bg-icon"></i>
-                    <div>
-                        <div class="stat-number">{{ $small_boxes['serial_number_counts'] }}</div>
-                        <div class="stat-label">Serialized Products</div>
-                    </div>
-                    <div class="stat-footer">
-                        <span><i class="fas fa-barcode mr-1"></i> Status: available</span>
-                        <a href="{{ route('serialized_products.index') }}">More info <i
-                                class="fas fa-arrow-circle-right"></i></a>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    @endif
-
-    {{-- ============================================
-         STAT BOXES — MANAGER ONLY
-    ============================================ --}}
-    @if ($isManager)
-        <div class="row mb-3">
-
-            {{-- Available Stock --}}
-            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                <div class="stat-box stat-box-stock shadow-sm">
-                    <i class="fas fa-boxes stat-bg-icon"></i>
-                    <div>
-                        <div class="stat-number">{{ $small_boxes['serial_number_counts'] }}</div>
-                        <div class="stat-label">Available Stock</div>
-                    </div>
-                    <div class="stat-footer">
-                        <span><i class="fas fa-barcode mr-1"></i> Status: available</span>
-                        <a href="{{ route('serialized_products.index') }}">More info <i
-                                class="fas fa-arrow-circle-right"></i></a>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Total Sales Today --}}
-            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                <div class="stat-box stat-box-sales-today shadow-sm">
-                    <i class="fas fa-coins stat-bg-icon"></i>
-                    <div>
-                        <div class="stat-number">₱{{ number_format($small_boxes['total_sales_today'], 2) }}</div>
-                        <div class="stat-label">Sales Today</div>
-                    </div>
-                    <div class="stat-footer">
-                        <span><i class="fas fa-calendar-day mr-1"></i> Today only</span>
-                        <span>Completed orders</span>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Total Sales All Time --}}
-            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                <div class="stat-box stat-box-sales-total shadow-sm">
-                    <i class="fas fa-chart-line stat-bg-icon"></i>
-                    <div>
-                        <div class="stat-number">₱{{ number_format($small_boxes['total_sales_alltime'], 2) }}</div>
-                        <div class="stat-label">Total Sales (All Time)</div>
-                    </div>
-                    <div class="stat-footer">
-                        <span><i class="fas fa-infinity mr-1"></i> All time</span>
-                        <span>Completed orders</span>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Low Stock Alert Count --}}
-            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                <div class="stat-box stat-box-lowstock shadow-sm">
-                    <i class="fas fa-exclamation-triangle stat-bg-icon"></i>
-                    <div>
-                        <div class="stat-number">{{ $small_boxes['low_stock_count'] }}</div>
-                        <div class="stat-label">Low Stock Items</div>
-                    </div>
-                    <div class="stat-footer">
-                        <span><i class="fas fa-boxes mr-1"></i> Below 20 units</span>
-                        <span>Needs restocking</span>
-                    </div>
-                </div>
-            </div>
-
         </div>
 
-        {{-- ============================================
-             MANAGER: REPORT SHORTCUT CARDS
-        ============================================ --}}
-        <div class="row mb-4">
-            <div class="col-12 mb-2">
-                <h5 class="font-weight-bold text-muted">
-                    <i class="fas fa-chart-bar mr-1"></i> Quick Access — Reports
-                </h5>
+        {{-- Purchase Requests --}}
+        <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
+            <div class="stat-box stat-box-pr shadow-sm">
+                <i class="fas fa-file-alt stat-bg-icon"></i>
+                <div>
+                    <div class="stat-number">{{ $small_boxes['purchase_request_counts'] }}</div>
+                    <div class="stat-label">Purchase Requests</div>
+                </div>
+                <div class="stat-footer">
+                    <span><i class="fas fa-filter mr-1"></i> Filtered period</span>
+                    <a href="{{ route('pr.index') }}">More info <i class="fas fa-arrow-circle-right"></i></a>
+                </div>
             </div>
-
-            {{-- Daily Reports --}}
-            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                <a href="{{ route('reports.daily') }}" class="report-shortcut-card shortcut-daily shadow-sm d-block">
-                    <i class="fas fa-calendar-day shortcut-bg-icon"></i>
-                    <div>
-                        <div class="shortcut-label"><i class="fas fa-calendar-day mr-1"></i> Daily Reports</div>
-                        <div class="shortcut-sub">Today's transactions & activity</div>
-                    </div>
-                    <div class="shortcut-arrow">View Report <i class="fas fa-arrow-right"></i></div>
-                </a>
-            </div>
-
-            {{-- Weekly Reports --}}
-            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                <a href="{{ route('reports.weekly') }}" class="report-shortcut-card shortcut-weekly shadow-sm d-block">
-                    <i class="fas fa-calendar-week shortcut-bg-icon"></i>
-                    <div>
-                        <div class="shortcut-label"><i class="fas fa-calendar-week mr-1"></i> Weekly Reports</div>
-                        <div class="shortcut-sub">7-day performance summary</div>
-                    </div>
-                    <div class="shortcut-arrow">View Report <i class="fas fa-arrow-right"></i></div>
-                </a>
-            </div>
-
-            {{-- Monthly Reports --}}
-            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                <a href="{{ route('reports.monthly') }}" class="report-shortcut-card shortcut-monthly shadow-sm d-block">
-                    <i class="fas fa-calendar-alt shortcut-bg-icon"></i>
-                    <div>
-                        <div class="shortcut-label"><i class="fas fa-calendar-alt mr-1"></i> Monthly Reports</div>
-                        <div class="shortcut-sub">Month-to-date overview</div>
-                    </div>
-                    <div class="shortcut-arrow">View Report <i class="fas fa-arrow-right"></i></div>
-                </a>
-            </div>
-
-            {{-- Yearly Reports --}}
-            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                <a href="{{ route('reports.yearly') }}" class="report-shortcut-card shortcut-yearly shadow-sm d-block">
-                    <i class="fas fa-calendar shortcut-bg-icon"></i>
-                    <div>
-                        <div class="shortcut-label"><i class="fas fa-calendar mr-1"></i> Yearly Reports</div>
-                        <div class="shortcut-sub">Annual performance & trends</div>
-                    </div>
-                    <div class="shortcut-arrow">View Report <i class="fas fa-arrow-right"></i></div>
-                </a>
-            </div>
-
         </div>
-    @endif
+
+        {{-- Purchase Orders --}}
+        <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
+            <div class="stat-box stat-box-po shadow-sm">
+                <i class="fas fa-shopping-cart stat-bg-icon"></i>
+                <div>
+                    <div class="stat-number">{{ $small_boxes['purchase_order_counts'] }}</div>
+                    <div class="stat-label">Purchase Orders</div>
+                </div>
+                <div class="stat-footer">
+                    <span><i class="fas fa-filter mr-1"></i> Filtered period</span>
+                    <a href="{{ route('purchase-order.index') }}">More info <i class="fas fa-arrow-circle-right"></i></a>
+                </div>
+            </div>
+        </div>
+
+        {{-- Available Stock --}}
+        <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
+            <div class="stat-box stat-box-stock shadow-sm">
+                <i class="fas fa-boxes stat-bg-icon"></i>
+                <div>
+                    <div class="stat-number">{{ $small_boxes['serial_number_counts'] }}</div>
+                    <div class="stat-label">Serialized Products</div>
+                </div>
+                <div class="stat-footer">
+                    <span><i class="fas fa-barcode mr-1"></i> Status: available</span>
+                    <a href="{{ route('serialized_products.index') }}">More info <i
+                            class="fas fa-arrow-circle-right"></i></a>
+                </div>
+            </div>
+        </div>
+
+    </div>
 
     {{-- ============================================
          CHARTS + SIDEBAR
@@ -574,30 +381,28 @@
         <div class="col-md-9 col-sm-12">
             <div class="row">
 
-                {{-- Doughnut: Purchase Request Status — ADMIN/STAFF ONLY --}}
-                @if (!$isManager)
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <h3 class="card-title">
-                                    <i class="fas fa-chart-pie mr-1 text-primary"></i> Purchase Request Status
-                                </h3>
-                                <div class="card-tools">
-                                    <button type="button" class="btn btn-tool" data-card-widget="collapse">
-                                        <i class="fas fa-minus"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            <div class="card-body">
-                                <canvas id="monthlyProductReceived"
-                                    style="min-height:250px; height:250px; max-height:250px; max-width:100%;"></canvas>
+                {{-- Doughnut: Purchase Request Status --}}
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h3 class="card-title">
+                                <i class="fas fa-chart-pie mr-1 text-primary"></i> Purchase Request Status
+                            </h3>
+                            <div class="card-tools">
+                                <button type="button" class="btn btn-tool" data-card-widget="collapse">
+                                    <i class="fas fa-minus"></i>
+                                </button>
                             </div>
                         </div>
+                        <div class="card-body">
+                            <canvas id="monthlyProductReceived"
+                                style="min-height:250px; height:250px; max-height:250px; max-width:100%;"></canvas>
+                        </div>
                     </div>
-                @endif
+                </div>
 
                 {{-- Doughnut: Product Status --}}
-                <div class="{{ $isManager ? 'col-md-6' : 'col-md-6' }}">
+                <div class="col-md-6">
                     <div class="card">
                         <div class="card-header">
                             <h3 class="card-title">
@@ -717,7 +522,7 @@
                 @endif
             </div>
 
-            {{-- Recent Activity --}}
+            {{-- ✅ Recent Activity - Admin sees all, Manager & Staff see own only --}}
             <div class="card card-outline card-primary shadow-sm">
                 <div class="card-header">
                     <h3 class="card-title font-weight-bold">
@@ -726,7 +531,7 @@
                 </div>
                 <div class="card-body p-2" style="max-height:380px; overflow-y:auto;">
                     @forelse($recent_activities as $activity)
-                        @if ($isAdmin || $activity->user_name === auth()->user()->full_name)
+                        @if (auth()->user()->isAdmin() || $activity->user_name === auth()->user()->full_name)
                             <div class="activity-item">
                                 <div class="d-flex align-items-start">
                                     <div
@@ -756,22 +561,34 @@
         </div>
     </div>
 
-@stop
+@stop --}}
 
-@push('js')
+{{-- @push('js')
+    {{-- ============================================
+         GLOBAL DATA FOR CHARTS
+    ============================================ --}}
     <script>
         window.monthly_products_in = @json($monthly_products_in);
         window.product_status_counts = @json($product_status_counts);
         window.purchase_request_status_counts = @json($purchase_request_status_counts);
-        window.isManager = {{ $isManager ? 'true' : 'false' }};
     </script>
 
+    {{-- ============================================
+         LOAD DASHBOARD SCRIPTS
+    ============================================ --}}
     @vite(['resources/js/dashboard.js'])
 
+    {{-- ============================================
+         DATE FILTER FUNCTIONALITY ONLY
+         ❌ TINANGGAL: PIN modal JS — nasa layouts/adminlte.blade.php na
+    ============================================ --}}
     <script>
         $(document).ready(function() {
             console.log('🚀 Dashboard Initialized');
 
+            // ============================================
+            // DATE FILTER FUNCTIONALITY
+            // ============================================
             $('#filterType').on('change', function() {
                 if ($(this).val() === 'custom') {
                     $('#customDateRange, #customDateRangeEnd').slideDown();
@@ -783,6 +600,7 @@
                 }
             });
 
+            // Date range validation
             $('#startDate, #endDate').on('change', function() {
                 const startDate = new Date($('#startDate').val());
                 const endDate = new Date($('#endDate').val());
@@ -792,6 +610,7 @@
                 }
             });
 
+            // Auto-reset at midnight
             function checkMidnightReset() {
                 const now = new Date();
                 if (now.getHours() === 0 && now.getMinutes() === 0) {
@@ -804,4 +623,7 @@
             setInterval(checkMidnightReset, 60000);
         });
     </script>
-@endpush
+@endpush --}}
+
+
+march 16

@@ -7,6 +7,7 @@ use App\Models\Supplier;
 use App\Models\PurchaseRequest;
 use App\Models\PurchaseOrder;
 use App\Models\SerializedProduct;
+use App\Models\RetailerOrder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -19,28 +20,61 @@ class DashboardController extends Controller
     // ============================================================
     public function index(Request $request)
     {
-        // Small boxes data
+        $user = auth()->user();
+
+        // ============================================================
+        // ✅ MANAGER DASHBOARD — Sales, Inventory, Reports focus lang
+        // ============================================================
+        if ($user->isManager()) {
+            $small_boxes = [
+                'serial_number_counts'      => $this->getAvailableProductCount(),
+                'total_sales_today'         => $this->getTotalSalesToday(),
+                'total_sales_alltime'       => $this->getTotalSalesAllTime(),
+                'low_stock_count'           => $this->getLowStockCount(),
+            ];
+
+            $doughnut = [
+                'product_status_counts'             => $this->getSerializedProductStatusCounts($request),
+                'purchase_request_status_counts'    => [], // hindi na kailangan ng manager
+            ];
+
+            $bar = [
+                'monthly_products_in' => $this->getMonthlyProductsScanned($request),
+            ];
+
+            $low_stock_products = $this->getLowStockProducts();
+            $recent_activities  = $this->getRecentActivities();
+
+            return view('dashboard.index', compact(
+                'small_boxes',
+                'doughnut',
+                'bar',
+                'low_stock_products',
+                'recent_activities'
+            ));
+        }
+
+        // ============================================================
+        // ✅ ADMIN & STAFF DASHBOARD — Full data
+        // ============================================================
         $small_boxes = [
-            'supplier_counts' => Supplier::count(),
-            'purchase_request_counts' => $this->getPurchaseRequestCount($request),
-            'purchase_order_counts' => $this->getPurchaseOrderCount($request),
-            'serial_number_counts' => $this->getAvailableProductCount(),
+            'supplier_counts'           => Supplier::count(),
+            'purchase_request_counts'   => $this->getPurchaseRequestCount($request),
+            'purchase_order_counts'     => $this->getPurchaseOrderCount($request),
+            'serial_number_counts'      => $this->getAvailableProductCount(),
         ];
 
-        // Doughnut chart data
         $doughnut = [
-            'product_status_counts' => $this->getSerializedProductStatusCounts($request),
-            'purchase_request_status_counts' => $this->getPurchaseRequestStatusCounts($request),
+            'product_status_counts'             => $this->getSerializedProductStatusCounts($request),
+            'purchase_request_status_counts'    => $this->getPurchaseRequestStatusCounts($request),
         ];
 
-        // Bar chart data
         $bar = [
             'monthly_products_in' => $this->getMonthlyProductsScanned($request),
         ];
 
-        // Low stock products and recent activities
         $low_stock_products = $this->getLowStockProducts();
-        $recent_activities = $this->getRecentActivities();
+        $recent_activities  = $this->getRecentActivities();
 
         return view('dashboard.index', compact(
             'small_boxes',
@@ -49,6 +83,52 @@ class DashboardController extends Controller
             'low_stock_products',
             'recent_activities'
         ));
+    }
+
+    // ============================================================
+    // ✅ MANAGER HELPER: Total Sales Today (Retailer Orders)
+    // ============================================================
+    private function getTotalSalesToday()
+    {
+        try {
+            return RetailerOrder::whereDate('created_at', Carbon::today())
+                ->where('status', 'completed')
+                ->sum('total_amount') ?? 0;
+        } catch (\Exception $e) {
+            \Log::error('Error getting total sales today: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    // ============================================================
+    // ✅ MANAGER HELPER: Total Sales All Time (Retailer Orders)
+    // ============================================================
+    private function getTotalSalesAllTime()
+    {
+        try {
+            return RetailerOrder::where('status', 'completed')
+                ->sum('total_amount') ?? 0;
+        } catch (\Exception $e) {
+            \Log::error('Error getting total sales all time: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    // ============================================================
+    // ✅ MANAGER HELPER: Low Stock Count
+    // ============================================================
+    private function getLowStockCount()
+    {
+        try {
+            return SupplierProduct::select(
+                DB::raw("(SELECT COUNT(*) FROM serialized_product WHERE serialized_product.product_id = supplier_product.id AND serialized_product.status = 1) as available_count")
+            )
+                ->having('available_count', '<', 20)
+                ->count();
+        } catch (\Exception $e) {
+            \Log::error('Error getting low stock count: ' . $e->getMessage());
+            return 0;
+        }
     }
 
     // ============================================================
@@ -68,40 +148,33 @@ class DashboardController extends Controller
             case 'today':
                 $query->whereDate($createdAtColumn, $today);
                 break;
-
             case 'yesterday':
                 $query->whereDate($createdAtColumn, $today->copy()->subDay());
                 break;
-
             case 'last_7_days':
                 $query->whereBetween($createdAtColumn, [
                     $today->copy()->subDays(6)->startOfDay(),
                     Carbon::now()->endOfDay()
                 ]);
                 break;
-
             case 'last_30_days':
                 $query->whereBetween($createdAtColumn, [
                     $today->copy()->subDays(29)->startOfDay(),
                     Carbon::now()->endOfDay()
                 ]);
                 break;
-
             case 'this_month':
                 $query->whereMonth($createdAtColumn, Carbon::now()->month)
                     ->whereYear($createdAtColumn, Carbon::now()->year);
                 break;
-
             case 'last_month':
                 $lastMonth = Carbon::now()->subMonth();
                 $query->whereMonth($createdAtColumn, $lastMonth->month)
                     ->whereYear($createdAtColumn, $lastMonth->year);
                 break;
-
             case 'this_year':
                 $query->whereYear($createdAtColumn, Carbon::now()->year);
                 break;
-
             case 'custom':
                 if ($request->filled('start_date') && $request->filled('end_date')) {
                     $query->whereBetween($createdAtColumn, [
@@ -148,7 +221,6 @@ class DashboardController extends Controller
             } elseif (Schema::hasColumn('serialized_product', 'status')) {
                 return SerializedProduct::where('status', 1)->count();
             }
-
             return SerializedProduct::count();
         } catch (\Exception $e) {
             \Log::error('Error counting available products: ' . $e->getMessage());
@@ -168,14 +240,11 @@ class DashboardController extends Controller
             )
                 ->join('product_status', 'serialized_product.status', '=', 'product_status.id');
 
-            // ✅ Apply date filter with table name specified
             $this->applyDateFilter($query, $request, 'serialized_product');
 
             $results = $query->groupBy('product_status.name', 'product_status.id')
                 ->pluck('count', 'status_name')
                 ->toArray();
-
-            \Log::info('Product Status Counts:', $results);
 
             return $results;
         } catch (\Exception $e) {
@@ -196,14 +265,11 @@ class DashboardController extends Controller
             )
                 ->join('purchase_status_library', 'purchase_request.status_id', '=', 'purchase_status_library.id');
 
-            // ✅ Apply date filter with table name specified
             $this->applyDateFilter($query, $request, 'purchase_request');
 
             $results = $query->groupBy('purchase_status_library.name', 'purchase_status_library.id')
                 ->pluck('count', 'status_name')
                 ->toArray();
-
-            \Log::info('Purchase Request Status Counts:', $results);
 
             return $results;
         } catch (\Exception $e) {
@@ -223,15 +289,12 @@ class DashboardController extends Controller
                 DB::raw('COUNT(*) as count')
             );
 
-            // ✅ Apply date filter with table name specified
             $this->applyDateFilter($query, $request, 'serialized_product');
 
             $results = $query->groupBy('month')
                 ->orderBy('month')
                 ->pluck('count', 'month')
                 ->toArray();
-
-            \Log::info('Monthly Products Scanned:', $results);
 
             return $results;
         } catch (\Exception $e) {
@@ -263,63 +326,61 @@ class DashboardController extends Controller
             return collect();
         }
     }
+
     // ============================================================
     // ✅ HELPER: Get recent activities
+    // ============================================================
     private function getRecentActivities()
     {
         $activities = collect();
 
         try {
-            // Purchase Requests
             $recentPR = PurchaseRequest::with(['user', 'supplier'])->latest()->limit(3)->get();
             foreach ($recentPR as $pr) {
                 $activities->push((object)[
-                    'user_name' => $pr->user->full_name ?? 'System',
+                    'user_name'   => $pr->user->full_name ?? 'System',
                     'description' => "Created PR #" . ($pr->request_number ?? 'N/A') . " from " . ($pr->supplier->name ?? 'Unknown Supplier'),
-                    'time_ago' => (string) $pr->created_at->diffForHumans(),
-                    'icon' => 'file-alt',
-                    'type_color' => 'primary',
-                    'created_at' => $pr->created_at,
+                    'time_ago'    => (string) $pr->created_at->diffForHumans(),
+                    'icon'        => 'file-alt',
+                    'type_color'  => 'primary',
+                    'created_at'  => $pr->created_at,
                 ]);
             }
 
-            // Purchase Orders
             $recentPO = PurchaseOrder::with(['approvedBy', 'supplier'])->latest()->limit(3)->get();
             foreach ($recentPO as $po) {
                 $activities->push((object)[
-                    'user_name' => $po->approvedBy->full_name ?? 'System',
+                    'user_name'   => $po->approvedBy->full_name ?? 'System',
                     'description' => "Created PO #" . ($po->po_number ?? 'N/A') . " from " . ($po->supplier->name ?? 'Unknown Supplier'),
-                    'time_ago' => (string) $po->created_at->diffForHumans(),
-                    'icon' => 'shopping-cart',
-                    'type_color' => 'success',
-                    'created_at' => $po->created_at,
+                    'time_ago'    => (string) $po->created_at->diffForHumans(),
+                    'icon'        => 'shopping-cart',
+                    'type_color'  => 'success',
+                    'created_at'  => $po->created_at,
                 ]);
             }
 
-            // Serialized Products
             $recentSP = SerializedProduct::with(['scannedBy', 'supplierProducts'])->latest()->limit(3)->get();
             foreach ($recentSP as $sp) {
                 $serialNum = $sp->serial_number ?? $sp->id;
                 $activities->push((object)[
-                    'user_name' => $sp->scannedBy->full_name ?? 'System',
+                    'user_name'   => $sp->scannedBy->full_name ?? 'System',
                     'description' => "Scanned " . ($sp->supplierProducts->name ?? 'Unknown Product') . " (Serial: {$serialNum})",
-                    'time_ago' => (string) $sp->created_at->diffForHumans(),
-                    'icon' => 'barcode',
-                    'type_color' => 'info',
-                    'created_at' => $sp->created_at,
+                    'time_ago'    => (string) $sp->created_at->diffForHumans(),
+                    'icon'        => 'barcode',
+                    'type_color'  => 'info',
+                    'created_at'  => $sp->created_at,
                 ]);
             }
 
-            // ✅ Retailer Orders - fixed relationship
-            $recentRO = \App\Models\RetailerOrder::with(['creatorUser'])->latest()->limit(3)->get();
+            $recentRO = RetailerOrder::with(['creatorUser'])->latest()->limit(3)->get();
             foreach ($recentRO as $ro) {
                 $activities->push((object)[
-                    'user_name' => $ro->creatorUser->full_name ?? $ro->created_by ?? 'System',
+                    'user_name'   => $ro->creatorUser->full_name ?? $ro->created_by ?? 'System',
                     'description' => "Created Retailer Order #" . ($ro->id) . " for " . ($ro->retailer_name ?? 'Unknown Retailer'),
-                    'time_ago' => (string) $ro->created_at->diffForHumans(),
-                    'icon' => 'store',
-                    'type_color' => 'warning',
-                    'created_at' => $ro->created_at,
+                    'time_ago'    => (string) $ro->created_at->diffForHumans(),
+                    'icon'        => 'store',
+                    'type_color'  => 'warning',
+                    'created_at'  => $ro->created_at,
                 ]);
             }
 
@@ -329,6 +390,7 @@ class DashboardController extends Controller
             return collect();
         }
     }
+
     // ============================================================
     // ✅ EXPORT METHODS
     // ============================================================
@@ -336,7 +398,7 @@ class DashboardController extends Controller
     {
         $format = $request->get('format', 'pdf');
         $filter = $request->get('filter', 'today');
-        $data = $this->getFilteredData($filter);
+        $data   = $this->getFilteredData($filter);
 
         switch ($format) {
             case 'pdf':
@@ -353,39 +415,39 @@ class DashboardController extends Controller
     private function getFilteredData($filter)
     {
         $startDate = null;
-        $endDate = null;
+        $endDate   = null;
 
         switch ($filter) {
             case 'today':
                 $startDate = Carbon::today();
-                $endDate = Carbon::today()->endOfDay();
+                $endDate   = Carbon::today()->endOfDay();
                 break;
             case 'week':
                 $startDate = Carbon::now()->startOfWeek();
-                $endDate = Carbon::now()->endOfWeek();
+                $endDate   = Carbon::now()->endOfWeek();
                 break;
             case 'month':
                 $startDate = Carbon::now()->startOfMonth();
-                $endDate = Carbon::now()->endOfMonth();
+                $endDate   = Carbon::now()->endOfMonth();
                 break;
             case 'custom':
                 if (request()->filled('start_date') && request()->filled('end_date')) {
                     $startDate = Carbon::parse(request()->start_date);
-                    $endDate = Carbon::parse(request()->end_date)->endOfDay();
+                    $endDate   = Carbon::parse(request()->end_date)->endOfDay();
                 }
                 break;
         }
 
         return [
             'small_boxes' => [
-                'supplier_counts' => Supplier::count(),
+                'supplier_counts'         => Supplier::count(),
                 'purchase_request_counts' => PurchaseRequest::when($startDate && $endDate, function ($q) use ($startDate, $endDate) {
                     return $q->whereBetween('created_at', [$startDate, $endDate]);
                 })->count(),
-                'purchase_order_counts' => PurchaseOrder::when($startDate && $endDate, function ($q) use ($startDate, $endDate) {
+                'purchase_order_counts'   => PurchaseOrder::when($startDate && $endDate, function ($q) use ($startDate, $endDate) {
                     return $q->whereBetween('created_at', [$startDate, $endDate]);
                 })->count(),
-                'serial_number_counts' => $this->getAvailableProductCount(),
+                'serial_number_counts'    => $this->getAvailableProductCount(),
             ],
             'low_stock_products' => $this->getLowStockProducts(),
         ];
@@ -393,8 +455,8 @@ class DashboardController extends Controller
 
     private function exportPDF($data)
     {
-        $filter = request()->get('filter', 'today');
-        $pdf = \PDF::loadView('dashboard.export-pdf', compact('data', 'filter'));
+        $filter   = request()->get('filter', 'today');
+        $pdf      = \PDF::loadView('dashboard.export-pdf', compact('data', 'filter'));
         $pdf->setPaper('A4', 'portrait');
         $filename = 'dashboard-report-' . now()->format('Y-m-d-His') . '.pdf';
         return $pdf->download($filename);
@@ -402,7 +464,7 @@ class DashboardController extends Controller
 
     private function exportExcel($data)
     {
-        $filter = request()->get('filter', 'today');
+        $filter   = request()->get('filter', 'today');
         $filename = 'dashboard-report-' . now()->format('Y-m-d-His') . '.xlsx';
         return \Excel::download(new \App\Exports\DashboardExport($data, $filter), $filename);
     }
@@ -410,9 +472,8 @@ class DashboardController extends Controller
     private function exportCSV($data)
     {
         $filename = 'dashboard-report-' . now()->format('Y-m-d') . '.csv';
-
-        $headers = [
-            'Content-Type' => 'text/csv',
+        $headers  = [
+            'Content-Type'        => 'text/csv',
             'Content-Disposition' => "attachment; filename=\"$filename\"",
         ];
 

@@ -1,192 +1,434 @@
 <?php
 /*
+
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use App\Services\SupplierProductServices;
-use App\Services\SystemProductServices;
+use App\Models\SupplierProduct;
+use App\Models\Supplier;
+use App\Models\PurchaseRequest;
 use App\Models\PurchaseOrder;
 use App\Models\SerializedProduct;
-use App\Models\SupplierProduct;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
-    protected $supplierProductServices;
-    protected $systemProductServices;
-
-    public function __construct(
-        SupplierProductServices $supplierProductServices,
-        SystemProductServices $systemProductServices,
-    ) {
-        $this->supplierProductServices = $supplierProductServices;
-        $this->systemProductServices = $systemProductServices;
-    }
-
-    public function index()
+    // ============================================================
+    // ✅ MAIN INDEX METHOD WITH DATE FILTERING
+    // ============================================================
+    public function index(Request $request)
     {
-        Log::info('========================================');
-        Log::info('📊 DASHBOARD LOADED - Session Check:', [
-            'user_id' => auth()->id(),
-            'user_name' => auth()->user()->full_name ?? 'Unknown',
-            'has_pin' => !empty(auth()->user()->pin) ? 'YES' : 'NO',
-            'session_show_pin_modal' => session('show_pin_modal'),
-            'session_pin_verified' => session('pin_verified'),
-            'session_pin_mode' => session('pin_mode'),
-            'warehouse_id' => auth()->user()->warehouse_id ?? null,
-            'session_warehouse' => session('warehouse_id'),
-            'time' => now()
-        ]);
-        Log::info('========================================');
-
-        // ✅ Suppliers count
-        $supplier_counts = $this->supplierProductServices->get_all_supplier()->count();
-
-        // ✅ Purchase Requests count
-        $purchase_request_counts = $this->systemProductServices->get_all_purchase_request()->count();
-
-        // ✅ Purchase Orders count
-        $purchase_order_counts = PurchaseOrder::query()
-            ->filterByStudent()
-            ->filterByWarehouse()
-            ->count();
-
-        // ✅ Count AVAILABLE serialized products only
-        $serial_number_counts = SerializedProduct::query()
-            ->filterByStudent()
-            ->filterByWarehouse()
-            ->where('status', 1)
-            ->count();
-
-        // ✅ Monthly Products Scanned
-        $serial_numbers = SerializedProduct::select(
-            DB::raw('MONTH(created_at) as month'),
-            DB::raw('COUNT(*) as total')
-        )
-            ->whereYear('created_at', date('Y'))
-            ->groupBy('month')
-            ->pluck('total', 'month');
-
-        $months = collect(range(1, 12))
-            ->mapWithKeys(fn($m) => [$m => $serial_numbers[$m] ?? 0]);
-
-        // ✅ Product Status Counts
-        $product_status_counts = $this->getProductStatusCounts();
-
-        // ✅ Purchase Request Status Counts
-        $purchase_request_status_counts = $this->systemProductServices->get_count_purchase_request_per_status();
-
-        // 🔥 LOW STOCK ALERT - SIMPLIFIED APPROACH
-        // Using RAW SQL for maximum reliability
-        $warehouseId = session('warehouse_id') ?? auth()->user()->warehouse_id ?? null;
-
-        $sql = "
-            SELECT 
-                sp.id,
-                sp.name,
-                sp.system_sku,
-                COUNT(CASE WHEN ser.status = 1 THEN 1 END) as available_count
-            FROM supplier_product sp
-            LEFT JOIN serialized_product ser ON ser.product_id = sp.id
-        ";
-
-        // Add warehouse filter only if warehouse_id is set
-        if ($warehouseId) {
-            $sql .= " AND (ser.warehouse_id = ? OR ser.warehouse_id IS NULL)";
-            $low_stock_products = DB::select($sql . "
-                GROUP BY sp.id, sp.name, sp.system_sku
-                HAVING available_count < 20 AND available_count > 0
-                ORDER BY available_count ASC
-                LIMIT 20
-            ", [$warehouseId]);
-        } else {
-            // No warehouse filter
-            $low_stock_products = DB::select($sql . "
-                GROUP BY sp.id, sp.name, sp.system_sku
-                HAVING available_count < 20 AND available_count > 0
-                ORDER BY available_count ASC
-                LIMIT 20
-            ");
-        }
-
-        // Convert to collection for blade compatibility
-        $low_stock_products = collect($low_stock_products)->map(function ($item) {
-            return (object)[
-                'id' => $item->id,
-                'name' => $item->name,
-                'system_sku' => $item->system_sku,
-                'available_count' => $item->available_count
-            ];
-        });
-
-        Log::info('🔍 LOW STOCK RESULTS:', [
-            'warehouse_id' => $warehouseId,
-            'count' => $low_stock_products->count(),
-            'data' => $low_stock_products->toArray()
-        ]);
-
+        // Small boxes data
         $small_boxes = [
-            'supplier_counts' => $supplier_counts,
-            'purchase_request_counts' => $purchase_request_counts,
-            'purchase_order_counts' => $purchase_order_counts,
-            'serial_number_counts' => $serial_number_counts,
+            'supplier_counts' => Supplier::count(),
+            'purchase_request_counts' => $this->getPurchaseRequestCount($request),
+            'purchase_order_counts' => $this->getPurchaseOrderCount($request),
+            'serial_number_counts' => $this->getAvailableProductCount(),
         ];
 
+        // Doughnut chart data
         $doughnut = [
-            'product_status_counts' => $product_status_counts,
-            'purchase_request_status_counts' => $purchase_request_status_counts,
+            'product_status_counts' => $this->getSerializedProductStatusCounts($request),
+            'purchase_request_status_counts' => $this->getPurchaseRequestStatusCounts($request),
         ];
 
+        // Bar chart data
         $bar = [
-            'monthly_products_in' => $months->values()->toArray(),
+            'monthly_products_in' => $this->getMonthlyProductsScanned($request),
         ];
 
-        $list = [
-            'serialized_products' => [],
-        ];
+        // Low stock products and recent activities
+        $low_stock_products = $this->getLowStockProducts();
+        $recent_activities = $this->getRecentActivities();
 
-        return view('dashboard.index', compact('small_boxes', 'doughnut', 'bar', 'list', 'low_stock_products'));
+        return view('dashboard.index', compact(
+            'small_boxes',
+            'doughnut',
+            'bar',
+            'low_stock_products',
+            'recent_activities'
+        ));
     }
 
-    private function getProductStatusCounts()
+    // ============================================================
+    // ✅ HELPER: Apply date filter to query
+    // ============================================================
+    private function applyDateFilter($query, Request $request, $tableName = null)
     {
-        $columns = Schema::getColumnListing('product_status');
+        if (!$request->filled('filter_type')) {
+            return $query;
+        }
 
-        $possibleNames = [
-            'status_name',
-            'name',
-            'product_status_name',
-            'status',
-            'label',
-            'title'
-        ];
+        $filterType = $request->filter_type;
+        $today = Carbon::today()->startOfDay();
+        $createdAtColumn = $tableName ? "{$tableName}.created_at" : 'created_at';
 
-        $nameColumn = null;
-        foreach ($possibleNames as $possible) {
-            if (in_array($possible, $columns)) {
-                $nameColumn = $possible;
+        switch ($filterType) {
+            case 'today':
+                $query->whereDate($createdAtColumn, $today);
                 break;
-            }
+
+            case 'yesterday':
+                $query->whereDate($createdAtColumn, $today->copy()->subDay());
+                break;
+
+            case 'last_7_days':
+                $query->whereBetween($createdAtColumn, [
+                    $today->copy()->subDays(6)->startOfDay(),
+                    Carbon::now()->endOfDay()
+                ]);
+                break;
+
+            case 'last_30_days':
+                $query->whereBetween($createdAtColumn, [
+                    $today->copy()->subDays(29)->startOfDay(),
+                    Carbon::now()->endOfDay()
+                ]);
+                break;
+
+            case 'this_month':
+                $query->whereMonth($createdAtColumn, Carbon::now()->month)
+                    ->whereYear($createdAtColumn, Carbon::now()->year);
+                break;
+
+            case 'last_month':
+                $lastMonth = Carbon::now()->subMonth();
+                $query->whereMonth($createdAtColumn, $lastMonth->month)
+                    ->whereYear($createdAtColumn, $lastMonth->year);
+                break;
+
+            case 'this_year':
+                $query->whereYear($createdAtColumn, Carbon::now()->year);
+                break;
+
+            case 'custom':
+                if ($request->filled('start_date') && $request->filled('end_date')) {
+                    $query->whereBetween($createdAtColumn, [
+                        $request->start_date . ' 00:00:00',
+                        $request->end_date . ' 23:59:59'
+                    ]);
+                }
+                break;
         }
 
-        if (!$nameColumn) {
-            Log::warning('Could not find name column in product_status table. Using id instead.');
-            $nameColumn = 'id';
-        }
+        return $query;
+    }
 
+    // ============================================================
+    // ✅ HELPER: Get purchase request count
+    // ============================================================
+    private function getPurchaseRequestCount(Request $request)
+    {
+        $query = PurchaseRequest::query();
+        $this->applyDateFilter($query, $request, 'purchase_request');
+        return $query->count();
+    }
+
+    // ============================================================
+    // ✅ HELPER: Get purchase order count
+    // ============================================================
+    private function getPurchaseOrderCount(Request $request)
+    {
+        $query = PurchaseOrder::query();
+        $this->applyDateFilter($query, $request, 'purchase_order');
+        return $query->count();
+    }
+
+    // ============================================================
+    // ✅ HELPER: Get available product count
+    // ============================================================
+    private function getAvailableProductCount()
+    {
         try {
-            $result = SerializedProduct::join('product_status', 'serialized_product.status', '=', 'product_status.id')
-                ->select("product_status.{$nameColumn} as name", DB::raw('count(serialized_product.id) as total'))
-                ->groupBy("product_status.{$nameColumn}")
-                ->get()
+            if (Schema::hasColumn('serialized_product', 'product_status_id')) {
+                return SerializedProduct::where('product_status_id', 1)->count();
+            } elseif (Schema::hasColumn('serialized_product', 'status_id')) {
+                return SerializedProduct::where('status_id', 1)->count();
+            } elseif (Schema::hasColumn('serialized_product', 'status')) {
+                return SerializedProduct::where('status', 1)->count();
+            }
+
+            return SerializedProduct::count();
+        } catch (\Exception $e) {
+            \Log::error('Error counting available products: ' . $e->getMessage());
+            return 0;
+        }
+    }
+
+    // ============================================================
+    // ✅ HELPER: Get serialized product status counts
+    // ============================================================
+    private function getSerializedProductStatusCounts(Request $request)
+    {
+        try {
+            $query = SerializedProduct::select(
+                'product_status.name as status_name',
+                DB::raw('count(serialized_product.id) as count')
+            )
+                ->join('product_status', 'serialized_product.status', '=', 'product_status.id');
+
+            // ✅ Apply date filter with table name specified
+            $this->applyDateFilter($query, $request, 'serialized_product');
+
+            $results = $query->groupBy('product_status.name', 'product_status.id')
+                ->pluck('count', 'status_name')
                 ->toArray();
 
-            return $result;
+            \Log::info('Product Status Counts:', $results);
+
+            return $results;
         } catch (\Exception $e) {
-            Log::error('Error getting product status counts: ' . $e->getMessage());
+            \Log::error('Error getting serialized product status counts: ' . $e->getMessage());
             return [];
         }
     }
+
+    // ============================================================
+    // ✅ HELPER: Get purchase request status counts
+    // ============================================================
+    private function getPurchaseRequestStatusCounts(Request $request)
+    {
+        try {
+            $query = PurchaseRequest::select(
+                'purchase_status_library.name as status_name',
+                DB::raw('count(purchase_request.id) as count')
+            )
+                ->join('purchase_status_library', 'purchase_request.status_id', '=', 'purchase_status_library.id');
+
+            // ✅ Apply date filter with table name specified
+            $this->applyDateFilter($query, $request, 'purchase_request');
+
+            $results = $query->groupBy('purchase_status_library.name', 'purchase_status_library.id')
+                ->pluck('count', 'status_name')
+                ->toArray();
+
+            \Log::info('Purchase Request Status Counts:', $results);
+
+            return $results;
+        } catch (\Exception $e) {
+            \Log::error('Error getting purchase request status counts: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    // ============================================================
+    // ✅ HELPER: Get monthly products scanned
+    // ============================================================
+    private function getMonthlyProductsScanned(Request $request)
+    {
+        try {
+            $query = SerializedProduct::select(
+                DB::raw('MONTH(serialized_product.created_at) as month'),
+                DB::raw('COUNT(*) as count')
+            );
+
+            // ✅ Apply date filter with table name specified
+            $this->applyDateFilter($query, $request, 'serialized_product');
+
+            $results = $query->groupBy('month')
+                ->orderBy('month')
+                ->pluck('count', 'month')
+                ->toArray();
+
+            \Log::info('Monthly Products Scanned:', $results);
+
+            return $results;
+        } catch (\Exception $e) {
+            \Log::error('Error getting monthly products scanned: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    // ============================================================
+    // ✅ HELPER: Get low stock products
+    // ============================================================
+    private function getLowStockProducts()
+    {
+        try {
+            $lowStockProducts = SupplierProduct::select(
+                'supplier_product.id',
+                'supplier_product.name',
+                'supplier_product.system_sku',
+                DB::raw("(SELECT COUNT(*) FROM serialized_product WHERE serialized_product.product_id = supplier_product.id AND serialized_product.status = 1) as available_count")
+            )
+                ->having('available_count', '<', 20)
+                ->orderBy('available_count', 'asc')
+                ->limit(10)
+                ->get();
+
+            return $lowStockProducts->values();
+        } catch (\Exception $e) {
+            \Log::error('LOW STOCK ERROR: ' . $e->getMessage());
+            return collect();
+        }
+    }
+    // ============================================================
+    // ✅ HELPER: Get recent activities
+    private function getRecentActivities()
+    {
+        $activities = collect();
+
+        try {
+            // Purchase Requests
+            $recentPR = PurchaseRequest::with(['user', 'supplier'])->latest()->limit(3)->get();
+            foreach ($recentPR as $pr) {
+                $activities->push((object)[
+                    'user_name' => $pr->user->full_name ?? 'System',
+                    'description' => "Created PR #" . ($pr->request_number ?? 'N/A') . " from " . ($pr->supplier->name ?? 'Unknown Supplier'),
+                    'time_ago' => (string) $pr->created_at->diffForHumans(),
+                    'icon' => 'file-alt',
+                    'type_color' => 'primary',
+                    'created_at' => $pr->created_at,
+                ]);
+            }
+
+            // Purchase Orders
+            $recentPO = PurchaseOrder::with(['approvedBy', 'supplier'])->latest()->limit(3)->get();
+            foreach ($recentPO as $po) {
+                $activities->push((object)[
+                    'user_name' => $po->approvedBy->full_name ?? 'System',
+                    'description' => "Created PO #" . ($po->po_number ?? 'N/A') . " from " . ($po->supplier->name ?? 'Unknown Supplier'),
+                    'time_ago' => (string) $po->created_at->diffForHumans(),
+                    'icon' => 'shopping-cart',
+                    'type_color' => 'success',
+                    'created_at' => $po->created_at,
+                ]);
+            }
+
+            // Serialized Products
+            $recentSP = SerializedProduct::with(['scannedBy', 'supplierProducts'])->latest()->limit(3)->get();
+            foreach ($recentSP as $sp) {
+                $serialNum = $sp->serial_number ?? $sp->id;
+                $activities->push((object)[
+                    'user_name' => $sp->scannedBy->full_name ?? 'System',
+                    'description' => "Scanned " . ($sp->supplierProducts->name ?? 'Unknown Product') . " (Serial: {$serialNum})",
+                    'time_ago' => (string) $sp->created_at->diffForHumans(),
+                    'icon' => 'barcode',
+                    'type_color' => 'info',
+                    'created_at' => $sp->created_at,
+                ]);
+            }
+
+            // ✅ Retailer Orders - fixed relationship
+            $recentRO = \App\Models\RetailerOrder::with(['creatorUser'])->latest()->limit(3)->get();
+            foreach ($recentRO as $ro) {
+                $activities->push((object)[
+                    'user_name' => $ro->creatorUser->full_name ?? $ro->created_by ?? 'System',
+                    'description' => "Created Retailer Order #" . ($ro->id) . " for " . ($ro->retailer_name ?? 'Unknown Retailer'),
+                    'time_ago' => (string) $ro->created_at->diffForHumans(),
+                    'icon' => 'store',
+                    'type_color' => 'warning',
+                    'created_at' => $ro->created_at,
+                ]);
+            }
+
+            return $activities->sortByDesc('created_at')->take(10)->values();
+        } catch (\Exception $e) {
+            \Log::error('RECENT ACTIVITIES ERROR: ' . $e->getMessage());
+            return collect();
+        }
+    }
+    // ============================================================
+    // ✅ EXPORT METHODS
+    // ============================================================
+    public function export(Request $request)
+    {
+        $format = $request->get('format', 'pdf');
+        $filter = $request->get('filter', 'today');
+        $data = $this->getFilteredData($filter);
+
+        switch ($format) {
+            case 'pdf':
+                return $this->exportPDF($data);
+            case 'excel':
+                return $this->exportExcel($data);
+            case 'csv':
+                return $this->exportCSV($data);
+            default:
+                return redirect()->back()->with('error', 'Invalid export format');
+        }
+    }
+
+    private function getFilteredData($filter)
+    {
+        $startDate = null;
+        $endDate = null;
+
+        switch ($filter) {
+            case 'today':
+                $startDate = Carbon::today();
+                $endDate = Carbon::today()->endOfDay();
+                break;
+            case 'week':
+                $startDate = Carbon::now()->startOfWeek();
+                $endDate = Carbon::now()->endOfWeek();
+                break;
+            case 'month':
+                $startDate = Carbon::now()->startOfMonth();
+                $endDate = Carbon::now()->endOfMonth();
+                break;
+            case 'custom':
+                if (request()->filled('start_date') && request()->filled('end_date')) {
+                    $startDate = Carbon::parse(request()->start_date);
+                    $endDate = Carbon::parse(request()->end_date)->endOfDay();
+                }
+                break;
+        }
+
+        return [
+            'small_boxes' => [
+                'supplier_counts' => Supplier::count(),
+                'purchase_request_counts' => PurchaseRequest::when($startDate && $endDate, function ($q) use ($startDate, $endDate) {
+                    return $q->whereBetween('created_at', [$startDate, $endDate]);
+                })->count(),
+                'purchase_order_counts' => PurchaseOrder::when($startDate && $endDate, function ($q) use ($startDate, $endDate) {
+                    return $q->whereBetween('created_at', [$startDate, $endDate]);
+                })->count(),
+                'serial_number_counts' => $this->getAvailableProductCount(),
+            ],
+            'low_stock_products' => $this->getLowStockProducts(),
+        ];
+    }
+
+    private function exportPDF($data)
+    {
+        $filter = request()->get('filter', 'today');
+        $pdf = \PDF::loadView('dashboard.export-pdf', compact('data', 'filter'));
+        $pdf->setPaper('A4', 'portrait');
+        $filename = 'dashboard-report-' . now()->format('Y-m-d-His') . '.pdf';
+        return $pdf->download($filename);
+    }
+
+    private function exportExcel($data)
+    {
+        $filter = request()->get('filter', 'today');
+        $filename = 'dashboard-report-' . now()->format('Y-m-d-His') . '.xlsx';
+        return \Excel::download(new \App\Exports\DashboardExport($data, $filter), $filename);
+    }
+
+    private function exportCSV($data)
+    {
+        $filename = 'dashboard-report-' . now()->format('Y-m-d') . '.csv';
+
+        $headers = [
+            'Content-Type' => 'text/csv',
+            'Content-Disposition' => "attachment; filename=\"$filename\"",
+        ];
+
+        $callback = function () use ($data) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, ['Metric', 'Value', 'Date']);
+            fputcsv($file, ['Suppliers', $data['small_boxes']['supplier_counts'], now()->format('Y-m-d')]);
+            fputcsv($file, ['Purchase Requests', $data['small_boxes']['purchase_request_counts'], now()->format('Y-m-d')]);
+            fputcsv($file, ['Purchase Orders', $data['small_boxes']['purchase_order_counts'], now()->format('Y-m-d')]);
+            fputcsv($file, ['Available Stock', $data['small_boxes']['serial_number_counts'], now()->format('Y-m-d')]);
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
+    }
 }
+
+march 16

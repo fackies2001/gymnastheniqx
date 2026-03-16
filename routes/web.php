@@ -53,35 +53,39 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
     Route::get('/debug-image', function () {
         $user = Auth::user();
         return response()->json([
-            'user_id' => $user->id,
-            'full_name' => $user->full_name,
-            'profile_photo' => $user->profile_photo,
-            'storage_path' => $user->profile_photo ? storage_path('app/public/' . $user->profile_photo) : null,
-            'file_exists' => $user->profile_photo ? file_exists(storage_path('app/public/' . $user->profile_photo)) : false,
-            'asset_url' => $user->profile_photo ? asset('storage/' . $user->profile_photo) : null,
-            'adminlte_image' => $user->adminlte_image(),
-            'role' => $user->role?->role_name,
-            'warehouse' => $user->warehouse?->name,
+            'user_id'              => $user->id,
+            'full_name'            => $user->full_name,
+            'profile_photo'        => $user->profile_photo,
+            'storage_path'         => $user->profile_photo ? storage_path('app/public/' . $user->profile_photo) : null,
+            'file_exists'          => $user->profile_photo ? file_exists(storage_path('app/public/' . $user->profile_photo)) : false,
+            'asset_url'            => $user->profile_photo ? asset('storage/' . $user->profile_photo) : null,
+            'adminlte_image'       => $user->adminlte_image(),
+            'role'                 => $user->role?->role_name,
+            'warehouse'            => $user->warehouse?->name,
             'public_storage_exists' => file_exists(public_path('storage')),
-            'is_symlink' => is_link(public_path('storage')),
+            'is_symlink'           => is_link(public_path('storage')),
         ]);
     });
 
     Route::get('/test-user-methods', function () {
         $user = Auth::user();
         return response()->json([
-            'full_name' => $user->full_name,
-            'adminlte_image' => $user->adminlte_image(),
-            'adminlte_desc' => $user->adminlte_desc(),
-            'adminlte_role' => $user->adminlte_role(),
+            'full_name'         => $user->full_name,
+            'adminlte_image'    => $user->adminlte_image(),
+            'adminlte_desc'     => $user->adminlte_desc(),
+            'adminlte_role'     => $user->adminlte_role(),
             'adminlte_warehouse' => $user->adminlte_warehouse(),
-            'role_object' => $user->role,
-            'warehouse_object' => $user->warehouse,
+            'role_object'       => $user->role,
+            'warehouse_object'  => $user->warehouse,
         ]);
     });
 
-    // ✅ ADMIN ONLY - User Management
+    // =========================================================
+    // ✅ ADMIN ONLY
+    // =========================================================
     Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin')->group(function () {
+
+        // User Management
         Route::get('/user-management', [UserManagementController::class, 'index'])->name('user.management');
         Route::post('/user-management/store', [UserManagementController::class, 'store'])->name('user.management.store');
         Route::post('/user-management/update', [UserManagementController::class, 'update'])->name('user.management.update');
@@ -89,27 +93,61 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
         Route::post('/user-management/reset-pin', [UserManagementController::class, 'resetPin'])->name('admin.reset.pin');
         Route::get('admin/register/form', [RegisteredUserController::class, 'create'])->name('register');
         Route::post('/employee/register', [RegisteredUserController::class, 'store'])->name('employee.register');
-    });
 
-    // PROFILE MANAGEMENT
+        // ✅ Purchase Request — Admin: view, approve, reject, show
+        Route::prefix('purchase-request')->group(function () {
+            Route::get('/', [PurchaseRequestController::class, 'index'])->name('pr.index');
+            Route::get('/datatable', [PurchaseRequestController::class, 'getPurchaseRequestTable'])->name('pr.datatable');
+            Route::post('/approve/{id}', [PurchaseRequestController::class, 'approve'])->name('pr.approve');
+            Route::post('/reject/{id}', [PurchaseRequestController::class, 'reject'])->name('pr.reject');
+            Route::get('/{id}', [PurchaseRequestController::class, 'show'])->name('pr.show');
+        });
+
+        // ✅ Purchase Order — Admin only
+        Route::prefix('purchase-order')->group(function () {
+            Route::get('/', [PurchaseOrderController::class, 'index'])->name('purchase-order.index');
+            Route::get('/generate-number', [PurchaseOrderController::class, 'generatePONumber'])->name('purchase-order.generate-number');
+            Route::get('/scan/{id}', [PurchaseOrderController::class, 'scanView'])->name('purchase-order.scan');
+            Route::get('/details/{id}', [PurchaseOrderController::class, 'getDetailsJson'])->name('purchase-order.details');
+            Route::post('/{id}/scan-item', [PurchaseOrderController::class, 'scanItem'])->name('purchase-order.scan-item');
+            Route::post('/{id}/complete-scan', [PurchaseOrderController::class, 'completeScan'])->name('purchase-order.complete-scan');
+            Route::post('/receive', [PurchaseOrderController::class, 'receiveItems'])->name('purchase-order.receive');
+            Route::get('/{id}', [PurchaseOrderController::class, 'show'])->name('purchase-order.show');
+        });
+
+        // ✅ Retailer Orders — Admin only
+        Route::controller(RetailerOrderController::class)->group(function () {
+            Route::get('/orders', 'index')->name('retailer.orders.index');
+            Route::post('/retailer-orders/store', 'store')->name('retailer.orders.store');
+            Route::post('/retailer-orders/{id}/approve', 'approve')->name('retailer.orders.approve');
+            Route::post('/retailer-orders/{id}/reject', 'reject')->name('retailer.orders.reject');
+            Route::post('/retailer-orders/{id}/complete', 'complete')->name('retailer.orders.complete');
+        });
+    }); // END ADMIN ONLY
+
+    // =========================================================
+    // ✅ PROFILE MANAGEMENT — All roles
+    // =========================================================
     Route::controller(ProfileController::class)->group(function () {
         Route::get('/profile', 'edit')->name('profile.edit');
         Route::patch('/profile', 'update')->name('profile.update');
         Route::delete('/profile', 'destroy')->name('profile.destroy');
     });
 
-    // NOTIFICATIONS
+    // NOTIFICATIONS — All roles
     Route::prefix('notifications')->group(function () {
-        Route::get('/get',          [NotificationsController::class, 'getNotificationsData'])->name('notifications.get');
-        Route::get('/count',        [NotificationsController::class, 'getCount'])->name('notifications.count');
-        Route::post('/read/{id}',   [NotificationsController::class, 'markAsRead'])->name('notifications.read');
-        Route::post('/read-all',    [NotificationsController::class, 'markAllRead'])->name('notifications.read-all');
+        Route::get('/get',         [NotificationsController::class, 'getNotificationsData'])->name('notifications.get');
+        Route::get('/count',       [NotificationsController::class, 'getCount'])->name('notifications.count');
+        Route::post('/read/{id}',  [NotificationsController::class, 'markAsRead'])->name('notifications.read');
+        Route::post('/read-all',   [NotificationsController::class, 'markAllRead'])->name('notifications.read-all');
     });
 
     // ✅ Staff pwede mag-scan
     Route::get('/scan', [ScanController::class, 'index'])->name('scan.index');
 
-    // ✅ ADMIN & MANAGER ONLY ROUTES
+    // =========================================================
+    // ✅ ADMIN & MANAGER ONLY
+    // =========================================================
     Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager')->group(function () {
 
         // WAREHOUSE
@@ -170,35 +208,21 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
             Route::put('/manpower/{id}', 'update')->name('manpower.update');
             Route::delete('/manpower/{id}', 'destroy')->name('manpower.delete');
         });
-    }); // END ADMIN & MANAGER ROUTES
+    }); // END ADMIN & MANAGER
 
+    // =========================================================
     // ✅ ALL AUTHENTICATED USERS (Admin, Manager, Staff)
+    // =========================================================
 
-    // Purchase Request
+    Route::get('/suppliers/{id}/products', [PurchaseRequestController::class, 'getSupplierProducts'])->name('suppliers.products');
+
+    // ✅ Purchase Request — Staff & Admin pwede mag-create
+    // (Approve/Reject/View list = Admin only, nasa taas na)
     Route::prefix('purchase-request')->group(function () {
-        Route::get('/', [PurchaseRequestController::class, 'index'])->name('pr.index');
-        Route::get('/datatable', [PurchaseRequestController::class, 'getPurchaseRequestTable'])->name('pr.datatable');
         Route::get('/generate-number', [PurchaseRequestController::class, 'generatePRNumber'])->name('pr.generate-number');
         Route::get('/supplier-products/{id}', [PurchaseRequestController::class, 'getSupplierProducts'])->name('pr.supplier-products');
         Route::post('/store', [PurchaseRequestController::class, 'store'])->name('pr.store');
-        Route::post('/approve/{id}', [PurchaseRequestController::class, 'approve'])->name('pr.approve');
-        Route::post('/reject/{id}', [PurchaseRequestController::class, 'reject'])->name('pr.reject');
-        Route::get('/{id}', [PurchaseRequestController::class, 'show'])->name('pr.show');
     });
-
-    // Purchase Order
-    Route::prefix('purchase-order')->group(function () {
-        Route::get('/', [PurchaseOrderController::class, 'index'])->name('purchase-order.index');
-        Route::get('/generate-number', [PurchaseOrderController::class, 'generatePONumber'])->name('purchase-order.generate-number');
-        Route::get('/scan/{id}', [PurchaseOrderController::class, 'scanView'])->name('purchase-order.scan');
-        Route::get('/details/{id}', [PurchaseOrderController::class, 'getDetailsJson'])->name('purchase-order.details');
-        Route::post('/{id}/scan-item', [PurchaseOrderController::class, 'scanItem'])->name('purchase-order.scan-item');
-        Route::post('/{id}/complete-scan', [PurchaseOrderController::class, 'completeScan'])->name('purchase-order.complete-scan');
-        Route::post('/receive', [PurchaseOrderController::class, 'receiveItems'])->name('purchase-order.receive');
-        Route::get('/{id}', [PurchaseOrderController::class, 'show'])->name('purchase-order.show');
-    });
-
-    Route::get('/suppliers/{id}/products', [PurchaseRequestController::class, 'getSupplierProducts'])->name('suppliers.products');
 
     // SERIALIZED PRODUCTS
     Route::controller(SerializedProductsController::class)->group(function () {
@@ -212,15 +236,6 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
         Route::get('/serialized_products/datatable/{id}', 'serialized_product_datatable')->name('serialized_products.show_datatable');
         Route::get('/_serialized_products', '_index')->name('serialized_products._index');
         Route::put('/serialized_products/update_status/{id}', 'updateStatus')->name('serialized_products.update_status');
-    });
-
-    // RETAILER ORDERS
-    Route::controller(RetailerOrderController::class)->group(function () {
-        Route::get('/orders', 'index')->name('retailer.orders.index');
-        Route::post('/retailer-orders/store', 'store')->name('retailer.orders.store');
-        Route::post('/retailer-orders/{id}/approve', 'approve')->name('retailer.orders.approve');
-        Route::post('/retailer-orders/{id}/reject', 'reject')->name('retailer.orders.reject');
-        Route::post('/retailer-orders/{id}/complete', 'complete')->name('retailer.orders.complete');
     });
 
     // GYM EQUIPMENT
