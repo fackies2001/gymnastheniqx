@@ -218,11 +218,13 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
         Route::get('/supplier-products/{id}', [PurchaseRequestController::class, 'getSupplierProducts'])->name('pr.supplier-products');
         Route::post('/store', [PurchaseRequestController::class, 'store'])->name('pr.store');
 
-        // ✅ Admin only: approve, reject, show — guarded inside controller + middleware
+        // ✅ All roles: view own PR details (controller handles ownership check)
+        Route::get('/{id}', [PurchaseRequestController::class, 'show'])->name('pr.show');
+
+        // ✅ Admin only: approve and reject
         Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin')->group(function () {
             Route::post('/approve/{id}', [PurchaseRequestController::class, 'approve'])->name('pr.approve');
             Route::post('/reject/{id}', [PurchaseRequestController::class, 'reject'])->name('pr.reject');
-            Route::get('/{id}', [PurchaseRequestController::class, 'show'])->name('pr.show');
         });
     });
 
