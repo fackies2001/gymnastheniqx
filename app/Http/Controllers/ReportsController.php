@@ -7,6 +7,7 @@ use App\Models\SerializedProduct;
 use App\Models\Product;
 use App\Models\PurchaseRequest;
 use App\Models\PurchaseOrder;
+use App\Models\PurchaseOrderItem;
 use App\Models\Supplier;
 use App\Models\SupplierProduct;
 use App\Models\ProductStatus;
@@ -26,12 +27,11 @@ class ReportsController extends Controller
         $filterType = $request->get('filter_type', 'today');
         $customDate = $request->get('custom_date', null);
 
-        // ⭐ Calculate date/range based on filter type
         $date = null;
         $dateQuery = null;
 
         if ($filterType === 'all_time' || !$filterType) {
-            $date = null; // No filter
+            $date = null;
         } elseif ($filterType === 'today') {
             $date = Carbon::today()->toDateString();
         } elseif ($filterType === 'yesterday') {
@@ -42,16 +42,14 @@ class ReportsController extends Controller
             $date = Carbon::today()->toDateString();
         }
 
-        // ✅ FIX: i-get muna yung list, tapos count
         $lowStockCount = SupplierProduct::select(
             'supplier_product.id',
             DB::raw("(SELECT COUNT(*) FROM serialized_product WHERE serialized_product.product_id = supplier_product.id AND serialized_product.status = 1) as available_count")
         )
             ->havingRaw('available_count > 0 AND available_count < 20')
             ->get()
-            ->count(); // ✅ count() sa collection, hindi sa query
+            ->count();
 
-        // ✅ Daily Received = Scanned items from PO with status Available
         $receivedQuery = SerializedProduct::where('status', 1)
             ->whereNotNull('purchase_order_id');
         if ($date) {
@@ -59,14 +57,12 @@ class ReportsController extends Controller
         }
         $newArrivals = $receivedQuery->count();
 
-        // ✅ Daily Outflow = Retailer Orders that were Approved/Completed
         $outflowQuery = RetailerOrder::whereIn('status', ['Approved', 'Completed']);
         if ($date) {
-            $outflowQuery->whereDate('updated_at', $date);
+            $outflowQuery->whereDate('created_at', $date);
         }
         $dailyOutflow = $outflowQuery->sum('quantity');
 
-        // ✅ Damaged Count — status 4 OR 5
         $damagedQuery = SerializedProduct::whereIn('status', [4, 5]);
         if ($date) {
             $damagedQuery->whereDate('updated_at', $date);
@@ -90,14 +86,12 @@ class ReportsController extends Controller
     {
         $filterType = $request->get('filter_type', null);
         $customDate = $request->get('custom_date', null);
-        $type = $request->get('type', null);
+        $type       = $request->get('type', null);
 
-        // ⭐ Calculate date based on filter type
-        $date = null;
+        $date      = null;
         $dateQuery = null;
 
         if ($filterType === 'all_time' || !$filterType) {
-            // No date filter - show all records
             $date = null;
         } elseif ($filterType === 'today') {
             $date = Carbon::today()->toDateString();
@@ -125,11 +119,9 @@ class ReportsController extends Controller
             \Log::info("=== DAILY REPORT START ===");
             \Log::info("Filter Type: " . ($filterType ?? 'none') . " | Date: " . ($date ?? 'all') . " | Type: " . ($type ?? 'all'));
 
-            // ===== DAILY RECEIVED: SCANNED ITEMS FROM PO ONLY =====
+            // ===== DAILY RECEIVED =====
             if (!$type || $type === 'received') {
                 try {
-                    \Log::info("Fetching Scanned Products from PO...");
-
                     $query = SerializedProduct::with(['supplierProducts.supplier', 'supplierProducts.category', 'productStatus'])
                         ->whereNotNull('purchase_order_id');
 
@@ -141,27 +133,26 @@ class ReportsController extends Controller
 
                     $serializedProducts = $query->get();
 
-                    // ✅ Bawat item ay sariling row na — hindi na grouped!
                     foreach ($serializedProducts as $item) {
-                        $productName = $item->supplierProducts->name ?? 'Unnamed Product';
+                        $productName  = $item->supplierProducts->name ?? 'Unnamed Product';
                         $supplierName = $item->supplierProducts->supplier->name ?? 'N/A';
                         $categoryName = $item->productStatus->name ?? 'General';
                         $receivedDate = Carbon::parse($item->created_at)->format('M d, Y h:i A');
 
                         $data[] = [
-                            'product_name' => '<strong style="font-size: 16px; color: black;">' . e($productName) . '</strong><br>
+                            'product_name'  => '<strong style="font-size: 16px; color: black;">' . e($productName) . '</strong><br>
                     <span style="font-size: 13px; color: #666;">SN: ' . e($item->serial_number ?? 'N/A') . '</span><br>
                     <span style="font-size: 12px; color: #999;"><i class="far fa-clock"></i> ' . $receivedDate . '</span>',
                             'category_name' => '<span class="badge badge-info">' . e($categoryName) . '</span>',
-                            'traceability' => '<small>
+                            'traceability'  => '<small>
                     <strong>Type:</strong> Scanned from PO<br>
                     <strong>Serial No:</strong> ' . e($item->serial_number ?? 'N/A') . '<br>
                     <strong>Supplier:</strong> ' . e($supplierName) . '<br>
                     <strong>Date Received:</strong> ' . $receivedDate . '
                     </small>',
                             'quantity' => 1,
-                            'image' => $item->supplierProducts->thumbnail ?? null,
-                            'status' => 'Received'
+                            'image'    => $item->supplierProducts->thumbnail ?? null,
+                            'status'   => 'Received'
                         ];
                     }
                 } catch (\Exception $e) {
@@ -175,26 +166,26 @@ class ReportsController extends Controller
                     $query = RetailerOrder::with(['product'])
                         ->whereIn('status', ['Approved', 'Completed']);
 
+                    // ✅ BUG 3 FIX: Outflow — use created_at (consistent with monthly)
                     if ($date) {
-                        $query->whereDate('updated_at', $date);
+                        $query->whereDate('created_at', $date);
                     } elseif ($dateQuery) {
-                        $query->whereBetween('updated_at', [$dateQuery['start'], $dateQuery['end']]);
+                        $query->whereBetween('created_at', [$dateQuery['start'], $dateQuery['end']]);
                     }
 
                     $retailerOrders = $query->get();
 
-                    // ✅ Bawat order ay sariling row na — hindi na grouped!
                     foreach ($retailerOrders as $order) {
-                        $updatedDate = Carbon::parse($order->updated_at)->format('M d, Y h:i A');
-                        $productName = $order->product_name ?? 'Unknown Product';
+                        $updatedDate  = Carbon::parse($order->created_at)->format('M d, Y h:i A');
+                        $productName  = $order->product_name ?? 'Unknown Product';
                         $retailerName = $order->retailer_name ?? 'N/A';
 
                         $data[] = [
-                            'product_name' => '<strong style="font-size: 16px; color: black;">' . e($productName) . '</strong><br>
+                            'product_name'  => '<strong style="font-size: 16px; color: black;">' . e($productName) . '</strong><br>
                     <span style="font-size: 13px; color: #666;">Retailer: ' . e($retailerName) . '</span><br>
                     <span style="font-size: 12px; color: #999;"><i class="far fa-clock"></i> ' . $updatedDate . '</span>',
                             'category_name' => '<span class="badge badge-success">Outflow</span>',
-                            'traceability' => '<small>
+                            'traceability'  => '<small>
                     <strong>Type:</strong> Retailer Order<br>
                     <strong>Order #:</strong> ' . e($order->id) . '<br>
                     <strong>Retailer:</strong> ' . e($retailerName) . '<br>
@@ -203,15 +194,14 @@ class ReportsController extends Controller
                     <strong>Date:</strong> ' . $updatedDate . '
                     </small>',
                             'quantity' => $order->quantity,
-                            'image' => $order->product->thumbnail ?? null,
-                            'status' => 'Outflow'
+                            'image'    => $order->product->thumbnail ?? null,
+                            'status'   => 'Outflow'
                         ];
                     }
                 } catch (\Exception $e) {
                     \Log::error("Outflow Section Error: " . $e->getMessage());
                 }
             }
-
 
             // ===== DAMAGED =====
             if (!$type || $type === 'damage') {
@@ -227,20 +217,19 @@ class ReportsController extends Controller
 
                     $damagedItems = $query->get();
 
-                    // ✅ Bawat item ay sariling row na — hindi na grouped!
                     foreach ($damagedItems as $item) {
-                        $productName = $item->supplierProducts->name ?? 'Unnamed Product';
+                        $productName  = $item->supplierProducts->name ?? 'Unnamed Product';
                         $supplierName = $item->supplierProducts->supplier->name ?? 'N/A';
-                        $updatedDate = Carbon::parse($item->updated_at)->format('M d, Y h:i A');
-                        $statusName = $item->status == 4 ? 'Damaged' : 'Lost';
-                        $badgeColor = $item->status == 4 ? 'badge-danger' : 'badge-dark';
+                        $updatedDate  = Carbon::parse($item->updated_at)->format('M d, Y h:i A');
+                        $statusName   = $item->status == 4 ? 'Damaged' : 'Lost';
+                        $badgeColor   = $item->status == 4 ? 'badge-danger' : 'badge-dark';
 
                         $data[] = [
-                            'product_name' => '<strong style="font-size: 16px; color: black;">' . e($productName) . '</strong><br>
+                            'product_name'  => '<strong style="font-size: 16px; color: black;">' . e($productName) . '</strong><br>
                     <span style="font-size: 13px; color: #666;">SN: ' . e($item->serial_number ?? 'N/A') . '</span><br>
                     <span style="font-size: 12px; color: #999;"><i class="far fa-clock"></i> ' . $updatedDate . '</span>',
                             'category_name' => '<span class="badge ' . $badgeColor . '">' . $statusName . '</span>',
-                            'traceability' => '<small>
+                            'traceability'  => '<small>
                     <strong>Type:</strong> ' . $statusName . '<br>
                     <strong>Serial No:</strong> ' . e($item->serial_number ?? 'N/A') . '<br>
                     <strong>Supplier:</strong> ' . e($supplierName) . '<br>
@@ -248,8 +237,8 @@ class ReportsController extends Controller
                     <strong>Date:</strong> ' . $updatedDate . '
                     </small>',
                             'quantity' => 1,
-                            'image' => $item->supplierProducts->thumbnail ?? null,
-                            'status' => $statusName
+                            'image'    => $item->supplierProducts->thumbnail ?? null,
+                            'status'   => $statusName
                         ];
                     }
                 } catch (\Exception $e) {
@@ -282,22 +271,22 @@ class ReportsController extends Controller
 
                         if ($qty <= 5) {
                             $urgency = 'CRITICAL';
-                            $badge = 'badge-danger';
+                            $badge   = 'badge-danger';
                         } elseif ($qty <= 10) {
                             $urgency = 'WARNING';
-                            $badge = 'badge-warning';
+                            $badge   = 'badge-warning';
                         } else {
                             $urgency = 'LOW';
-                            $badge = 'badge-info';
+                            $badge   = 'badge-info';
                         }
 
                         $data[] = [
-                            'product_name' => '<strong style="font-size: 16px; color: black;">' . e($product->name) . '</strong><br><span style="font-size: 13px; color: #666;">SKU: ' . e($product->system_sku ?? 'N/A') . '</span><br><span class="badge ' . $badge . '">' . $urgency . ' - ' . $qty . ' units</span>',
+                            'product_name'  => '<strong style="font-size: 16px; color: black;">' . e($product->name) . '</strong><br><span style="font-size: 13px; color: #666;">SKU: ' . e($product->system_sku ?? 'N/A') . '</span><br><span class="badge ' . $badge . '">' . $urgency . ' - ' . $qty . ' units</span>',
                             'category_name' => '<span class="badge badge-warning">Low Stock</span>',
-                            'traceability' => '<small><strong>Type:</strong> Low Stock<br><strong>Available:</strong> ' . $qty . ' units<br><strong>Status:</strong> ' . $urgency . '</small>',
+                            'traceability'  => '<small><strong>Type:</strong> Low Stock<br><strong>Available:</strong> ' . $qty . ' units<br><strong>Status:</strong> ' . $urgency . '</small>',
                             'quantity' => $qty,
-                            'image' => $product->thumbnail,
-                            'status' => 'Low Stock'
+                            'image'    => $product->thumbnail,
+                            'status'   => 'Low Stock'
                         ];
                     }
                 } catch (\Exception $e) {
@@ -308,21 +297,20 @@ class ReportsController extends Controller
             \Log::info("Total data rows: " . count($data));
             \Log::info("=== DAILY REPORT END ===");
 
-            // ✅ CORRECT DATATABLES FORMAT
             return response()->json([
-                'draw' => (int) $request->get('draw', 1),
-                'recordsTotal' => count($data),
+                'draw'            => (int) $request->get('draw', 1),
+                'recordsTotal'    => count($data),
                 'recordsFiltered' => count($data),
-                'data' => $data
+                'data'            => $data
             ]);
         } catch (\Exception $e) {
             \Log::error('Daily Report Error: ' . $e->getMessage());
             return response()->json([
-                'draw' => 0,
-                'recordsTotal' => 0,
+                'draw'            => 0,
+                'recordsTotal'    => 0,
                 'recordsFiltered' => 0,
-                'data' => [],
-                'error' => $e->getMessage()
+                'data'            => [],
+                'error'           => $e->getMessage()
             ], 500);
         }
     }
@@ -375,7 +363,7 @@ class ReportsController extends Controller
         }
     }
 
-    // ===== WEEKLY REPORT SECTION =====
+    // ===== WEEKLY REPORT =====
     public function weeklyIndex(Request $request)
     {
         $filterType  = $request->get('filter_type', 'last_7_days');
@@ -399,7 +387,7 @@ class ReportsController extends Controller
                 $startDate = Carbon::parse($customStart)->startOfDay();
                 $endDate   = Carbon::parse($customEnd)->endOfDay();
                 break;
-            default: // last_7_days
+            default:
                 $startDate = Carbon::now()->subDays(7)->startOfDay();
                 $endDate   = Carbon::now()->endOfDay();
                 break;
@@ -411,14 +399,14 @@ class ReportsController extends Controller
             DB::raw('SUM(total_amount) as total_revenue')
         )
             ->whereIn('status', ['Approved', 'Completed'])
-            ->whereBetween('updated_at', [$startDate, $endDate])
+            ->whereBetween('created_at', [$startDate, $endDate])
             ->groupBy('product_name')
             ->orderByDesc('total_sold')
             ->take(5)
             ->get();
 
         $inventoryAnalysis = [];
-        $products = SupplierProduct::all();
+        $products          = SupplierProduct::all();
 
         foreach ($products as $prod) {
             $currentStock = SerializedProduct::where('product_id', $prod->id)
@@ -427,7 +415,7 @@ class ReportsController extends Controller
 
             $weeklySales = RetailerOrder::where('product_name', $prod->name)
                 ->whereIn('status', ['Approved', 'Completed'])
-                ->whereBetween('updated_at', [$startDate, $endDate])
+                ->whereBetween('created_at', [$startDate, $endDate])
                 ->sum('quantity');
 
             $ratio  = 0;
@@ -473,34 +461,31 @@ class ReportsController extends Controller
             'inventoryAnalysis',
             'startDate',
             'endDate',
-            'filterType'  // ✅ para ma-retain ang selected filter sa blade
+            'filterType'
         ));
     }
 
-    // ===== MONTHLY REPORT SECTION =====
-
+    // ===== MONTHLY REPORT =====
     public function monthlyIndex(Request $request)
     {
-        // ✅ FIX #1 — Month/Year Filter
-        // Get selected month and year from request, default to current month/year
         $selectedMonth = $request->get('month', Carbon::now()->month);
         $selectedYear  = $request->get('year', Carbon::now()->year);
 
-        // Build the selected date for display and range calculation
         $selectedDate     = Carbon::create($selectedYear, $selectedMonth, 1);
         $startOfMonth     = $selectedDate->copy()->startOfMonth();
         $endOfMonth       = $selectedDate->copy()->endOfMonth();
         $startOfLastMonth = $selectedDate->copy()->subMonth()->startOfMonth();
         $endOfLastMonth   = $selectedDate->copy()->subMonth()->endOfMonth();
 
-        // Available years for the year dropdown (from oldest PO or RetailerOrder up to current year)
-        $oldestOrder  = RetailerOrder::min('created_at') ?? Carbon::now();
-        $startYear    = Carbon::parse($oldestOrder)->year;
-        $currentYear  = Carbon::now()->year;
+        $oldestOrder    = RetailerOrder::min('created_at') ?? Carbon::now();
+        $startYear      = Carbon::parse($oldestOrder)->year;
+        $currentYear    = Carbon::now()->year;
         $availableYears = range($currentYear, $startYear);
 
-        // ✅ Total Inventory Asset Value (real-time, not date-filtered — reflects current stock)
-        $allProducts = SupplierProduct::all();
+        // ✅ BUG 1 FIX — Total Inventory Asset Value
+        // BEFORE: cost_price is null/0 on most products → kaya ₱50 lang
+        // AFTER:  fallback to avg unit_cost from purchase_order_item table
+        $allProducts         = SupplierProduct::all();
         $totalInventoryValue = 0;
 
         foreach ($allProducts as $product) {
@@ -508,27 +493,36 @@ class ReportsController extends Controller
                 ->where('status', 1)
                 ->count();
 
-            $totalInventoryValue += $stockCount * ($product->cost_price ?? 0);
+            $costPrice = $product->cost_price ?? 0;
+
+            if ($costPrice == 0) {
+                // Fallback: avg unit_cost mula sa purchase_order_item
+                $avgCost   = PurchaseOrderItem::where('product_id', $product->id)
+                    ->avg('unit_cost');
+                $costPrice = $avgCost ?? 0;
+            }
+
+            $totalInventoryValue += $stockCount * $costPrice;
         }
 
-        // ✅ Current Month Sales (filtered by selected month)
+        // ✅ BUG 2 FIX — Monthly Sales Growth
+        // BEFORE: updated_at → nagbabago kapag na-complete ang order kaya nawala ang Feb data
+        // AFTER:  created_at → yung actual na petsa ng pag-order
         $currentMonthSales = RetailerOrder::whereIn('status', ['Approved', 'Completed'])
-            ->whereBetween('updated_at', [$startOfMonth, $endOfMonth])
+            ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
             ->sum('total_amount');
 
-        // ✅ Last Month Sales (previous month relative to selected month)
         $lastMonthSales = RetailerOrder::whereIn('status', ['Approved', 'Completed'])
-            ->whereBetween('updated_at', [$startOfLastMonth, $endOfLastMonth])
+            ->whereBetween('created_at', [$startOfLastMonth, $endOfLastMonth])
             ->sum('total_amount');
 
-        // Growth calculation
         $growthPercentage = 0;
         $growthStatus     = 'stable';
 
         if ($lastMonthSales > 0) {
             $growthPercentage = (($currentMonthSales - $lastMonthSales) / $lastMonthSales) * 100;
         } elseif ($currentMonthSales > 0) {
-            $growthPercentage = 100;
+            $growthPercentage = 100; // walang previous month data
         }
 
         if ($growthPercentage > 0) {
@@ -537,22 +531,19 @@ class ReportsController extends Controller
             $growthStatus = 'decrease';
         }
 
-        // ✅ Top 5 Revenue Generators (filtered by selected month)
+        // ✅ Top 5 Revenue Generators — fixed to use created_at
         $topProducts = RetailerOrder::select(
             'product_name',
             DB::raw('SUM(quantity) as total_sold'),
             DB::raw('SUM(total_amount) as total_revenue')
         )
             ->whereIn('status', ['Approved', 'Completed'])
-            ->whereBetween('updated_at', [$startOfMonth, $endOfMonth])
+            ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
             ->groupBy('product_name')
             ->orderByDesc('total_revenue')
             ->take(5)
             ->get();
 
-        // ✅ FIX #3 — Supplier Performance scoped to selected month
-        // BEFORE (WRONG): No date filter — was showing all-time supplier data
-        // AFTER  (FIXED): whereBetween order_date scoped to selected month
         $supplierPerformance = PurchaseOrder::with('supplier')
             ->select('supplier_id', DB::raw('count(*) as total_pos'), DB::raw('sum(grand_total) as total_spent'))
             ->whereBetween('order_date', [$startOfMonth, $endOfMonth])
@@ -568,8 +559,8 @@ class ReportsController extends Controller
             'growthStatus',
             'topProducts',
             'supplierPerformance',
-            'selectedDate',   // ✅ replaces $now — carries selected month/year
-            'availableYears'  // ✅ for the year dropdown
+            'selectedDate',
+            'availableYears'
         ));
     }
 
@@ -578,9 +569,9 @@ class ReportsController extends Controller
     {
         $selectedYear = $request->get('year', Carbon::now()->year);
 
-        $oldestDate  = RetailerOrder::min('created_at') ?? Carbon::now();
-        $startYear   = Carbon::parse($oldestDate)->year;
-        $currentYear = Carbon::now()->year;
+        $oldestDate     = RetailerOrder::min('created_at') ?? Carbon::now();
+        $startYear      = Carbon::parse($oldestDate)->year;
+        $currentYear    = Carbon::now()->year;
         $availableYears = range($currentYear, $startYear);
 
         $monthlyRevenue = [];
@@ -601,16 +592,12 @@ class ReportsController extends Controller
             $monthName = Carbon::create()->month($m)->format('M');
             $months[]  = $monthName;
 
-            // ✅ FIX #1 — Monthly Revenue: Include BOTH 'Approved' AND 'Completed'
-            // BEFORE (WRONG): ->where('status', 'Approved')
-            // AFTER  (FIXED): ->whereIn('status', ['Approved', 'Completed'])
-            $revenue = RetailerOrder::whereIn('status', ['Approved', 'Completed'])  // ✅ FIXED
-                ->whereYear('updated_at', $selectedYear)
-                ->whereMonth('updated_at', $m)
+            // ✅ Use created_at (consistent with monthly report fix)
+            $revenue = RetailerOrder::whereIn('status', ['Approved', 'Completed'])
+                ->whereYear('created_at', $selectedYear)
+                ->whereMonth('created_at', $m)
                 ->sum('total_amount');
 
-            // Cost calculation (unchanged — queries purchase_order, was fine)
-            // ✅ FIXED — grand_total is directly on purchase_order table
             $cost = PurchaseOrder::whereYear('order_date', $selectedYear)
                 ->whereMonth('order_date', $m)
                 ->sum('grand_total');
@@ -626,30 +613,25 @@ class ReportsController extends Controller
             $quarterlyData[$quarter]['cost']    += $cost;
         }
 
-        // ✅ FIX #2 — Dead Stock: Use serialized_product count instead of $prod->stock
-        // BEFORE (WRONG): if ($prod->stock > 0) — $prod->stock doesn't exist!
-        // AFTER  (FIXED): Count serialized_product rows with status = 1
         $sixMonthsAgo = Carbon::now()->subMonths(6);
         $allProducts  = SupplierProduct::all();
         $deadStocks   = [];
 
         foreach ($allProducts as $prod) {
-            // ✅ Get actual stock count from serialized_product table
             $stockCount = SerializedProduct::where('product_id', $prod->id)
-                ->where('status', 1)   // ✅ status=1 = available/in_inventory
+                ->where('status', 1)
                 ->count();
 
             $lastSale = RetailerOrder::where('product_name', $prod->name)
-                ->whereIn('status', ['Approved', 'Completed'])  // ✅ FIXED
+                ->whereIn('status', ['Approved', 'Completed'])
                 ->latest('updated_at')
                 ->first();
 
-            // ✅ Only flag as dead stock if has physical stock but no recent sales
             if ($stockCount > 0) {
                 if (!$lastSale || $lastSale->updated_at < $sixMonthsAgo) {
                     $deadStocks[] = [
                         'name'      => $prod->name,
-                        'stock'     => $stockCount,   // ✅ real count
+                        'stock'     => $stockCount,
                         'value'     => $stockCount * ($prod->cost_price ?? 0),
                         'last_sold' => $lastSale ? $lastSale->updated_at->format('M d, Y') : 'Never Sold'
                     ];
@@ -657,25 +639,21 @@ class ReportsController extends Controller
             }
         }
 
-        // ✅ FIX #3 — Top Items for Forecast: Same status fix
         $topItems = RetailerOrder::select('product_name', DB::raw('SUM(quantity) as total_qty'))
-            ->whereIn('status', ['Approved', 'Completed'])  // ✅ FIXED
-            ->whereYear('updated_at', $selectedYear)
+            ->whereIn('status', ['Approved', 'Completed'])
+            ->whereYear('created_at', $selectedYear)
             ->groupBy('product_name')
             ->orderByDesc('total_qty')
             ->take(10)
             ->get();
 
-        // ✅ FIX #4 — Projected Stocks: Use real stock count
         $projectedStocks = [];
         foreach ($topItems as $item) {
             $prodDetails  = SupplierProduct::where('name', $item->product_name)->first();
-
-            // ✅ Real stock count instead of $prodDetails->stock
             $currentStock = 0;
             if ($prodDetails) {
                 $currentStock = SerializedProduct::where('product_id', $prodDetails->id)
-                    ->where('status', 1)   // ✅ status=1 = available
+                    ->where('status', 1)
                     ->count();
             }
 
@@ -685,7 +663,7 @@ class ReportsController extends Controller
                 'product'  => $item->product_name,
                 'sold'     => $item->total_qty,
                 'forecast' => $forecast,
-                'current'  => $currentStock   // ✅ real count
+                'current'  => $currentStock
             ];
         }
 
@@ -745,26 +723,21 @@ class ReportsController extends Controller
         return redirect()->back()->with('success', 'Product reported as damaged successfully.');
     }
 
-
     // ===== SAVE INVENTORY AUDIT =====
     public function saveAudit(Request $request)
     {
         try {
-            $auditItems  = $request->input('audit_items', []);   // array of items
+            $auditItems  = $request->input('audit_items', []);
             $auditPeriod = $request->input('audit_period', '');
             $auditedBy   = auth()->user()->full_name ?? auth()->user()->name ?? 'Unknown';
 
             if (empty($auditItems)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No audit data to save.'
-                ], 422);
+                return response()->json(['success' => false, 'message' => 'No audit data to save.'], 422);
             }
 
             $saved = 0;
 
             foreach ($auditItems as $item) {
-                // Skip rows where actual_count was not filled in
                 if (!isset($item['actual_count']) || $item['actual_count'] === '' || $item['actual_count'] === null) {
                     continue;
                 }
@@ -818,16 +791,13 @@ class ReportsController extends Controller
     // ===== VIEW AUDIT HISTORY =====
     public function auditHistory(Request $request)
     {
-        // Get distinct audit periods for the filter dropdown
         $auditPeriods = InventoryAudit::select('audit_period', DB::raw('MAX(created_at) as latest'))
             ->groupBy('audit_period')
             ->orderByDesc('latest')
             ->pluck('audit_period');
 
-        // Filter by selected period if provided
         $selectedPeriod = $request->get('period', null);
-
-        $query = InventoryAudit::orderByDesc('created_at');
+        $query          = InventoryAudit::orderByDesc('created_at');
 
         if ($selectedPeriod) {
             $query->where('audit_period', $selectedPeriod);
@@ -835,7 +805,6 @@ class ReportsController extends Controller
 
         $auditRecords = $query->get();
 
-        // Group by audit_period + audited_by + created_at date for display
         $groupedAudits = $auditRecords->groupBy(function ($item) {
             return $item->audit_period . '||' . $item->audited_by . '||' . $item->created_at->format('M d, Y h:i A');
         });
