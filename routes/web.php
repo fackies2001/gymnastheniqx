@@ -167,7 +167,7 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
             Route::get('/supplier_products/data', 'datatable')->name('supplier_products.data');
             Route::get('/supplier_products/initial_table', 'initial_table')->name('supplier_products.api_initial_table');
             Route::get('/supplier_products/list/{supplier_id}', 'getProductsBySupplier');
-            Route::get('/supplier_products/show_table/{id}', 'showTable')->name('supplier_products.show_table');
+            Route::delete('/supplier_products/{id}', 'destroy')->name('supplier_products.destroy');
         });
 
         // REPORTS

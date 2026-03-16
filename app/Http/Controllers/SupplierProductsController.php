@@ -198,4 +198,41 @@ class SupplierProductsController extends Controller
         $products = SupplierProduct::where('supplier_id', $supplier_id)->get();
         return response()->json($products);
     }
+
+    /**
+     * ✅ DELETE Supplier Product
+     * Permanently removes the product from the database
+     */
+    public function destroy($id)
+    {
+        try {
+            $product = SupplierProduct::findOrFail($id);
+            $name    = $product->name;
+
+            // ✅ Check if may serialized products pa na naka-link
+            $hasStock = \App\Models\SerializedProduct::where('product_id', $id)
+                ->where('status', 1) // available stock
+                ->count();
+
+            if ($hasStock > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Cannot delete \"{$name}\" — it still has {$hasStock} unit(s) in inventory. Please remove the stock first."
+                ], 422);
+            }
+
+            $product->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Product \"{$name}\" has been deleted successfully."
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Delete Supplier Product Error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error deleting product: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
