@@ -94,12 +94,7 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
         Route::get('admin/register/form', [RegisteredUserController::class, 'create'])->name('register');
         Route::post('/employee/register', [RegisteredUserController::class, 'store'])->name('employee.register');
 
-        // ✅ Purchase Request — Admin only: approve, reject, show details
-        Route::prefix('purchase-request')->group(function () {
-            Route::post('/approve/{id}', [PurchaseRequestController::class, 'approve'])->name('pr.approve');
-            Route::post('/reject/{id}', [PurchaseRequestController::class, 'reject'])->name('pr.reject');
-            Route::get('/{id}', [PurchaseRequestController::class, 'show'])->name('pr.show');
-        });
+
 
         // ✅ Purchase Order — Admin only
         Route::prefix('purchase-order')->group(function () {
@@ -113,10 +108,8 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
             Route::get('/{id}', [PurchaseOrderController::class, 'show'])->name('purchase-order.show');
         });
 
-        // ✅ Retailer Orders — Admin only
+        // ✅ Retailer Orders — Admin only: approve, reject, complete
         Route::controller(RetailerOrderController::class)->group(function () {
-            Route::get('/orders', 'index')->name('retailer.orders.index');
-            Route::post('/retailer-orders/store', 'store')->name('retailer.orders.store');
             Route::post('/retailer-orders/{id}/approve', 'approve')->name('retailer.orders.approve');
             Route::post('/retailer-orders/{id}/reject', 'reject')->name('retailer.orders.reject');
             Route::post('/retailer-orders/{id}/complete', 'complete')->name('retailer.orders.complete');
@@ -214,14 +207,33 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
 
     Route::get('/suppliers/{id}/products', [PurchaseRequestController::class, 'getSupplierProducts'])->name('suppliers.products');
 
-    // ✅ Purchase Request — All roles: view own PRs + create
-    // Controller already handles filtering: Staff sees own only, Admin sees all
+    // ✅ PURCHASE REQUEST ROUTES — Merged into one group to avoid route conflicts
+    // Specific routes (datatable, generate-number, etc.) must come BEFORE /{id} catch-all
     Route::prefix('purchase-request')->group(function () {
+
+        // ✅ All roles: view own list + create
         Route::get('/', [PurchaseRequestController::class, 'index'])->name('pr.index');
         Route::get('/datatable', [PurchaseRequestController::class, 'getPurchaseRequestTable'])->name('pr.datatable');
         Route::get('/generate-number', [PurchaseRequestController::class, 'generatePRNumber'])->name('pr.generate-number');
         Route::get('/supplier-products/{id}', [PurchaseRequestController::class, 'getSupplierProducts'])->name('pr.supplier-products');
         Route::post('/store', [PurchaseRequestController::class, 'store'])->name('pr.store');
+
+        // ✅ Admin only: approve, reject, show — guarded inside controller + middleware
+        Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin')->group(function () {
+            Route::post('/approve/{id}', [PurchaseRequestController::class, 'approve'])->name('pr.approve');
+            Route::post('/reject/{id}', [PurchaseRequestController::class, 'reject'])->name('pr.reject');
+            Route::get('/{id}', [PurchaseRequestController::class, 'show'])->name('pr.show');
+        });
+    });
+
+
+
+    // ✅ Retailer Orders — All roles: view own orders + create
+    // Controller handles filtering: Staff/Manager sees own only, Admin sees all
+    // Approve/Reject/Complete = Admin only (nasa taas na, at may guard sa controller)
+    Route::controller(RetailerOrderController::class)->group(function () {
+        Route::get('/orders', 'index')->name('retailer.orders.index');
+        Route::post('/retailer-orders/store', 'store')->name('retailer.orders.store');
     });
 
     // SERIALIZED PRODUCTS
