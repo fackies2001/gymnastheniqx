@@ -34,7 +34,8 @@
             </div>
         </div>
     </div>
-    {{-- ✅ 2. CLEANER DATE FILTER --}}
+
+    {{-- 2. DATE FILTER --}}
     <div class="card shadow mb-4 no-print">
         <div class="card-header bg-gradient-primary">
             <h3 class="card-title font-weight-bold text-white">
@@ -44,18 +45,18 @@
         <div class="card-body">
             <form method="GET" action="{{ route('retailer.orders.index') }}" id="dateFilterForm">
                 <div class="row">
-                    {{-- Filter Dropdown --}}
                     <div class="col-lg-5 col-md-6 mb-3">
                         <label class="font-weight-bold">
                             <i class="fas fa-calendar text-primary"></i> Select Time Period
                         </label>
                         <select name="filter_type" id="filterType" class="form-control form-control-lg shadow-sm">
                             <option value="">All Time Records</option>
-                            <option value="today" {{ request('filter_type') == 'today' ? 'selected' : '' }}>Today</option>
+                            <option value="today" {{ request('filter_type') == 'today' ? 'selected' : '' }}>Today
+                            </option>
                             <option value="yesterday" {{ request('filter_type') == 'yesterday' ? 'selected' : '' }}>
                                 Yesterday</option>
-                            <option value="last_7_days" {{ request('filter_type') == 'last_7_days' ? 'selected' : '' }}>Last
-                                7 Days</option>
+                            <option value="last_7_days" {{ request('filter_type') == 'last_7_days' ? 'selected' : '' }}>
+                                Last 7 Days</option>
                             <option value="last_30_days" {{ request('filter_type') == 'last_30_days' ? 'selected' : '' }}>
                                 Last 30 Days</option>
                             <option value="this_month" {{ request('filter_type') == 'this_month' ? 'selected' : '' }}>This
@@ -64,12 +65,11 @@
                                 Month</option>
                             <option value="this_year" {{ request('filter_type') == 'this_year' ? 'selected' : '' }}>This
                                 Year</option>
-                            <option value="custom" {{ request('filter_type') == 'custom' ? 'selected' : '' }}>Custom Range
-                            </option>
+                            <option value="custom" {{ request('filter_type') == 'custom' ? 'selected' : '' }}>Custom
+                                Range</option>
                         </select>
                     </div>
 
-                    {{-- Custom Start Date --}}
                     <div class="col-lg-2 col-md-6 mb-3" id="customDateRange"
                         style="display: {{ request('filter_type') == 'custom' ? 'block' : 'none' }};">
                         <label class="font-weight-bold">
@@ -79,7 +79,6 @@
                             class="form-control form-control-lg shadow-sm" value="{{ request('start_date') }}">
                     </div>
 
-                    {{-- Custom End Date --}}
                     <div class="col-lg-2 col-md-6 mb-3" id="customDateRangeEnd"
                         style="display: {{ request('filter_type') == 'custom' ? 'block' : 'none' }};">
                         <label class="font-weight-bold">
@@ -89,7 +88,6 @@
                             value="{{ request('end_date') }}">
                     </div>
 
-                    {{-- Action Buttons --}}
                     <div class="col-lg-3 col-md-6 mb-3">
                         <label class="d-block">&nbsp;</label>
                         <div class="btn-group btn-block">
@@ -103,7 +101,6 @@
                     </div>
                 </div>
 
-                {{-- Active Filter Badge --}}
                 @if (request('filter_type'))
                     <div class="alert alert-info mt-3 mb-0">
                         <div class="d-flex align-items-center justify-content-between">
@@ -154,9 +151,7 @@
         </div>
     </div>
 
-
-
-    {{-- 2. TABLE CARD --}}
+    {{-- 3. TABLE CARD --}}
     <div class="card card-outline card-primary shadow">
         <div class="card-header no-print">
             <h3 class="card-title font-weight-bold">RETAILER TRANSACTIONS</h3>
@@ -170,7 +165,6 @@
             </div>
         </div>
         <div class="card-body" id="printableTable">
-            {{-- PRINT HEADER (Hidden on Screen, Visible on Print) --}}
             <div class="d-none d-print-block text-center mb-4">
                 <h2 class="font-weight-bold mb-0">GYMNASTHENIQX WAREHOUSE</h2>
                 <p class="text-uppercase mb-0">Retailer Transactions Report</p>
@@ -197,7 +191,6 @@
                             <td class="text-primary font-weight-bold">₱ {{ number_format($order->total_amount, 2) }}</td>
                             <td class="no-print">
                                 @if ($order->status == 'Pending')
-                                    {{-- PENDING: Admin can click to review --}}
                                     @if (Auth::user()->role && strtolower(Auth::user()->role->role_name) === 'admin')
                                         <span class="badge badge-warning view-pending-order"
                                             style="cursor: pointer; font-size: 0.9rem;" data-id="{{ $order->id }}"
@@ -214,7 +207,6 @@
                                         </span>
                                     @endif
                                 @elseif ($order->status == 'Approved')
-                                    {{-- APPROVED: Show who approved + Ship button --}}
                                     <span class="badge badge-success">
                                         <i class="fas fa-check-circle"></i> Approved
                                     </span>
@@ -223,8 +215,6 @@
                                         <br><small
                                             class="text-muted">{{ $order->approved_at ? $order->approved_at->format('M d, Y h:i A') : '' }}</small>
                                     @endif
-
-                                    {{-- ✅ SHIP ORDER BUTTON (Admin only) --}}
                                     @if (Auth::user()->role && strtolower(Auth::user()->role->role_name) === 'admin')
                                         <br>
                                         <button class="btn btn-sm btn-primary mt-2 ship-order-btn"
@@ -235,13 +225,11 @@
                                         </button>
                                     @endif
                                 @elseif ($order->status == 'Completed')
-                                    {{-- COMPLETED: Show completion info --}}
                                     <span class="badge badge-dark">
                                         <i class="fas fa-check-double"></i> Completed
                                     </span>
                                     <br><small class="text-muted">Shipped & Sold</small>
                                 @else
-                                    {{-- REJECTED: Show who rejected --}}
                                     <span class="badge badge-danger">
                                         <i class="fas fa-times-circle"></i> Rejected
                                     </span>
@@ -257,7 +245,6 @@
                 </tbody>
             </table>
 
-            {{-- PRINT FOOTER --}}
             <div class="d-none d-print-block mt-5">
                 <div class="row">
                     <div class="col-6">
@@ -276,7 +263,7 @@
         </div>
     </div>
 
-    {{-- 3. MODAL: PENDING ORDER REVIEW (Admin Only) --}}
+    {{-- 4. MODAL: PENDING ORDER REVIEW --}}
     <div class="modal fade" id="pendingOrderModal" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content shadow-lg border-warning">
@@ -284,24 +271,18 @@
                     <h5 class="modal-title font-weight-bold">
                         <i class="fas fa-clipboard-check"></i> REVIEW PENDING ORDER
                     </h5>
-                    <button type="button" class="close" data-dismiss="modal">
-                        <span>&times;</span>
-                    </button>
+                    <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
                 </div>
                 <div class="modal-body p-4">
                     <div class="alert alert-info">
                         <i class="fas fa-info-circle"></i> Review the order details carefully before approving or
                         rejecting.
                     </div>
-
-                    {{-- Retailer Info --}}
                     <div class="mb-4">
                         <h5 class="text-primary font-weight-bold border-bottom pb-2">RETAILER INFORMATION</h5>
                         <p class="mb-1"><strong>Retailer Name:</strong> <span id="modal-retailer"
                                 class="text-uppercase"></span></p>
                     </div>
-
-                    {{-- Order Details --}}
                     <div class="mb-4">
                         <h5 class="text-primary font-weight-bold border-bottom pb-2">ORDER DETAILS</h5>
                         <table class="table table-bordered">
@@ -329,7 +310,6 @@
                             </tr>
                         </table>
                     </div>
-
                     <input type="hidden" id="modal-order-id">
                 </div>
                 <div class="modal-footer bg-light">
@@ -347,17 +327,14 @@
         </div>
     </div>
 
-    {{-- 4. MODAL: CREATE ORDER --}}
+    {{-- 5. MODAL: CREATE ORDER --}}
     <div class="modal fade" id="createOrderModal" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content shadow-lg">
                 <div class="modal-header bg-primary text-white font-weight-bold">
                     <h5 class="modal-title">CREATE RETAILERS ORDER FORM</h5>
-                    <button type="button" class="close text-white" data-dismiss="modal">
-                        <span>&times;</span>
-                    </button>
+                    <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
                 </div>
-
                 <form id="createOrderForm" action="{{ route('retailer.orders.store') }}" method="POST">
                     @csrf
                     <div class="modal-body">
@@ -377,18 +354,47 @@
                                             $displaySku =
                                                 $p->system_sku ?? ($p->supplier_sku ?? ($p->barcode ?? 'No SKU'));
                                         @endphp
-                                        <option value="{{ $p->id }}" data-price="{{ $p->cost_price }}"
+                                        {{-- ✅ UPDATED: data-price now uses selling_price with cost_price fallback --}}
+                                        <option value="{{ $p->id }}"
+                                            data-price="{{ $p->selling_price ?? $p->cost_price }}"
+                                            data-cost="{{ $p->cost_price }}"
+                                            data-has-markup="{{ $p->selling_price && $p->selling_price > $p->cost_price ? '1' : '0' }}"
                                             data-sku="{{ $displaySku }}">
                                             {{ $p->name }} (SKU: {{ $displaySku }})
+                                            @if ($p->selling_price && $p->selling_price > $p->cost_price)
+                                                — ₱{{ number_format($p->selling_price, 2) }}
+                                            @elseif (!$p->selling_price)
+                                                — ⚠️ No selling price set
+                                            @endif
                                         </option>
                                     @endforeach
                                 </select>
                             </div>
 
+                            {{-- ✅ UPDATED: Label and markup info --}}
                             <div class="col-md-6 mb-3">
-                                <label class="font-weight-bold text-success">Auto-computed Unit Price</label>
+                                <label class="font-weight-bold text-success">
+                                    Selling Price (per unit)
+                                </label>
                                 <input type="number" step="0.01" name="unit_price" id="inp_price"
                                     class="form-control shadow-sm" required readonly>
+                                {{-- Warning kapag walang selling_price --}}
+                                <div id="no_selling_price_warn" class="mt-1" style="display:none;">
+                                    <small class="text-danger">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        Walang selling price. I-set muna sa Supplier Products.
+                                    </small>
+                                </div>
+                                {{-- Markup info kapag may selling_price --}}
+                                <div id="markup_info" class="mt-1" style="display:none;">
+                                    <small class="text-success">
+                                        <i class="fas fa-tag"></i>
+                                        Cost: ₱<span id="cost_price_display">0</span>
+                                        &nbsp;|&nbsp;
+                                        Markup: ₱<span id="markup_display">0</span>
+                                        (<span id="markup_pct_display">0</span>%)
+                                    </small>
+                                </div>
                             </div>
 
                             <div class="col-md-6 mb-3">
@@ -418,13 +424,10 @@
         </div>
     </div>
 
-    {{-- Hidden Forms for Approval/Rejection --}}
-    <form id="approveForm" method="POST" style="display: none;">
-        @csrf
-    </form>
-    <form id="rejectForm" method="POST" style="display: none;">
-        @csrf
-    </form>
+    {{-- Hidden Forms --}}
+    <form id="approveForm" method="POST" style="display: none;">@csrf</form>
+    <form id="rejectForm" method="POST" style="display: none;">@csrf</form>
+
 @endsection
 
 @push('css')
@@ -475,9 +478,6 @@
             thead {
                 display: table-header-group !important;
                 visibility: visible !important;
-                background-color: #343a40 !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
             }
 
             thead tr th {
@@ -490,7 +490,6 @@
                 font-weight: bold !important;
             }
 
-            /* Hide DataTable generated elements but keep our table */
             .dataTables_scrollHead {
                 display: none !important;
             }
@@ -531,7 +530,6 @@
 
 @push('js')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
     <script>
         function printTable() {
             let now = new Date();
@@ -547,30 +545,17 @@
             });
             document.getElementById('print-date-table').textContent = dateString + ' | ' + timeString;
 
-            // Destroy DataTable
             if ($.fn.DataTable.isDataTable('#retailerTable')) {
                 $('#retailerTable').DataTable().destroy();
             }
-
-            // Manually restore headers
             $('#retailerTable thead tr').html(`
-                <th>Retailer Name</th>
-                <th>Product</th>
-                <th>Qty</th>
-                <th>Total Amount</th>
+                <th>Retailer Name</th><th>Product</th><th>Qty</th><th>Total Amount</th>
             `);
-
             window.print();
-
-            // Re-initialize DataTable after print
             window.onafterprint = function() {
                 $('#retailerTable thead tr').html(`
-            <th>Retailer Name</th>
-            <th>Product</th>
-            <th>Qty</th>
-            <th>Total Amount</th>
-            <th class="no-print">Action</th>
-        `);
+                    <th>Retailer Name</th><th>Product</th><th>Qty</th><th>Total Amount</th><th class="no-print">Action</th>
+                `);
                 $('#retailerTable').DataTable({
                     "responsive": true,
                     "autoWidth": false,
@@ -603,7 +588,6 @@
                     showConfirmButton: false
                 });
             @endif
-
             @if (session('error'))
                 Swal.fire({
                     icon: 'error',
@@ -612,7 +596,6 @@
                     confirmButtonColor: '#d33'
                 });
             @endif
-
             @if (session('info'))
                 Swal.fire({
                     icon: 'info',
@@ -622,12 +605,11 @@
                 });
             @endif
 
-            // ✅ INITIALIZE DATATABLE
+            // ✅ DATATABLE
             if ($.fn.DataTable.isDataTable('#retailerTable')) {
                 $('#retailerTable').DataTable().destroy();
             }
-
-            var table = $('#retailerTable').DataTable({
+            $('#retailerTable').DataTable({
                 "responsive": true,
                 "autoWidth": false,
                 "destroy": true,
@@ -638,38 +620,57 @@
                 "language": {
                     "emptyTable": "No records found for the selected period"
                 },
-                // ✅ DISABLE SORTING ON ACTION COLUMN (Last column)
                 "columnDefs": [{
-                    "targets": -1, // Last column (Action)
-                    "orderable": false, // Disable sorting
-                    "searchable": false // Also disable search on this column
+                    "targets": -1,
+                    "orderable": false,
+                    "searchable": false
                 }]
             });
 
-            // ✅ AUTO-COMPUTE LOGIC
+            // ✅ AUTO-COMPUTE
             function calculate() {
                 let q = parseFloat($('#inp_qty').val()) || 0;
                 let p = parseFloat($('#inp_price').val()) || 0;
                 let total = q * p;
-
                 $('#disp_total').val(total.toLocaleString(undefined, {
                     minimumFractionDigits: 2,
                     maximumFractionDigits: 2
                 }));
             }
 
+            // ✅ UPDATED: Product select with selling_price + markup info
             $('#sel_prod').on('change', function() {
-                let price = $(this).find(':selected').data('price');
-                $('#inp_price').val(price);
+                let selected = $(this).find(':selected');
+                let price = selected.data('price');
+                let cost = selected.data('cost');
+                let hasMarkup = selected.data('has-markup');
+
+                $('#inp_price').val(price || '');
+
+                if (!price || price == 0) {
+                    $('#no_selling_price_warn').show();
+                    $('#markup_info').hide();
+                } else if (hasMarkup == '1') {
+                    $('#no_selling_price_warn').hide();
+                    let markup = (price - cost).toFixed(2);
+                    let markupPct = cost > 0 ? (((price - cost) / cost) * 100).toFixed(1) : 0;
+                    $('#cost_price_display').text(parseFloat(cost).toFixed(2));
+                    $('#markup_display').text(markup);
+                    $('#markup_pct_display').text(markupPct);
+                    $('#markup_info').show();
+                } else {
+                    $('#no_selling_price_warn').hide();
+                    $('#markup_info').hide();
+                }
+
                 calculate();
             });
 
             $('#inp_qty, #inp_price').on('input', calculate);
 
-            // ✅ FORM SUBMISSION WITH SWEETALERT
+            // ✅ FORM SUBMISSION
             $('#createOrderForm').on('submit', function(e) {
                 e.preventDefault();
-
                 Swal.fire({
                     title: 'Submit Order?',
                     text: 'This order will be marked as Pending and require admin approval.',
@@ -686,31 +687,21 @@
                 });
             });
 
-            // ✅ CLICK PENDING BADGE TO OPEN MODAL
+            // ✅ PENDING BADGE CLICK
             $(document).on('click', '.view-pending-order', function() {
-                let orderId = $(this).data('id');
-                let retailer = $(this).data('retailer');
-                let sku = $(this).data('sku');
-                let product = $(this).data('product');
-                let qty = $(this).data('qty');
-                let price = $(this).data('price');
-                let total = $(this).data('total');
-
-                $('#modal-order-id').val(orderId);
-                $('#modal-retailer').text(retailer);
-                $('#modal-sku').text(sku);
-                $('#modal-product').text(product);
-                $('#modal-qty').text(qty);
-                $('#modal-price').text(price);
-                $('#modal-total').text(total);
-
+                $('#modal-order-id').val($(this).data('id'));
+                $('#modal-retailer').text($(this).data('retailer'));
+                $('#modal-sku').text($(this).data('sku'));
+                $('#modal-product').text($(this).data('product'));
+                $('#modal-qty').text($(this).data('qty'));
+                $('#modal-price').text($(this).data('price'));
+                $('#modal-total').text($(this).data('total'));
                 $('#pendingOrderModal').modal('show');
             });
 
-            // ✅ APPROVE ORDER FROM MODAL
+            // ✅ APPROVE
             $('#btn-approve-order').on('click', function() {
                 let orderId = $('#modal-order-id').val();
-
                 Swal.fire({
                     title: 'Approve Order?',
                     text: 'This will reserve stock for this retailer.',
@@ -718,8 +709,7 @@
                     showCancelButton: true,
                     confirmButtonColor: '#28a745',
                     cancelButtonColor: '#d33',
-                    confirmButtonText: 'Yes, Approve!',
-                    cancelButtonText: 'Cancel'
+                    confirmButtonText: 'Yes, Approve!'
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $('#pendingOrderModal').modal('hide');
@@ -730,10 +720,9 @@
                 });
             });
 
-            // ✅ REJECT ORDER FROM MODAL
+            // ✅ REJECT
             $('#btn-reject-order').on('click', function() {
                 let orderId = $('#modal-order-id').val();
-
                 Swal.fire({
                     title: 'Reject Order?',
                     text: 'This order will be marked as rejected.',
@@ -741,8 +730,7 @@
                     showCancelButton: true,
                     confirmButtonColor: '#d33',
                     cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Yes, Reject!',
-                    cancelButtonText: 'Cancel'
+                    confirmButtonText: 'Yes, Reject!'
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $('#pendingOrderModal').modal('hide');
@@ -753,18 +741,14 @@
                 });
             });
 
-            // ✅ SHIP ORDER (Mark as Completed/Sold)
+            // ✅ SHIP ORDER
             $(document).on('click', '.ship-order-btn', function() {
                 let orderId = $(this).data('order-id');
                 let retailer = $(this).data('retailer');
                 let qty = $(this).data('qty');
-
                 Swal.fire({
                     title: 'Ship this order?',
-                    html: `This will:<br>
-                           • Mark <b>${qty} items</b> as <b class="text-success">SOLD</b><br>
-                           • Update inventory counts<br>
-                           • Complete transaction for <b>${retailer}</b>`,
+                    html: `This will:<br>• Mark <b>${qty} items</b> as <b class="text-success">SOLD</b><br>• Update inventory counts<br>• Complete transaction for <b>${retailer}</b>`,
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonText: '<i class="fas fa-shipping-fast"></i> Yes, Ship It!',
@@ -803,48 +787,33 @@
                 });
             });
 
-
-            // ============================================================
-            // ✅ DATE FILTER HANDLERS
-            // ============================================================
-
-            // Show/hide custom date range inputs
+            // ✅ DATE FILTER
             $('#filterType').on('change', function() {
                 if ($(this).val() === 'custom') {
                     $('#customDateRange, #customDateRangeEnd').show();
                 } else {
                     $('#customDateRange, #customDateRangeEnd').hide();
+                    if ($(this).val() !== '') {
+                        $('#dateFilterForm').submit();
+                    }
                 }
             });
 
-            // ============================================================
-            // ✅ AUTO-RESET AT MIDNIGHT (12:00 AM)
-            // ============================================================
+            // ✅ MIDNIGHT RESET
             function checkMidnightReset() {
                 const now = new Date();
-                const hours = now.getHours();
-                const minutes = now.getMinutes();
-
-                // If it's 12:00 AM and filter is set to "today", auto-refresh
-                if (hours === 0 && minutes === 0) {
-                    const currentFilter = $('#filterType').val();
-                    if (currentFilter === 'today') {
-                        console.log('🌙 Midnight detected! Auto-refreshing for new day...');
+                if (now.getHours() === 0 && now.getMinutes() === 0) {
+                    if ($('#filterType').val() === 'today') {
                         location.reload();
                     }
                 }
             }
-
-            // Check every minute for midnight
             setInterval(checkMidnightReset, 60000);
 
-            // ============================================================
-            // ✅ SMART DATE RANGE VALIDATION
-            // ============================================================
+            // ✅ DATE VALIDATION
             $('#startDate, #endDate').on('change', function() {
                 const startDate = new Date($('#startDate').val());
                 const endDate = new Date($('#endDate').val());
-
                 if (startDate && endDate && startDate > endDate) {
                     Swal.fire({
                         icon: 'warning',
@@ -856,30 +825,13 @@
                 }
             });
 
-            // ============================================================
-            // ✅ KEYBOARD SHORTCUT: Press "F" to focus filter
-            // ============================================================
+            // ✅ KEYBOARD SHORTCUT
             $(document).on('keypress', function(e) {
-                if (e.key === 'f' || e.key === 'F') {
-                    if (!$('input, textarea').is(':focus')) {
-                        e.preventDefault();
-                        $('#filterType').focus();
-                    }
+                if ((e.key === 'f' || e.key === 'F') && !$('input, textarea').is(':focus')) {
+                    e.preventDefault();
+                    $('#filterType').focus();
                 }
             });
-
-            // ============================================================
-            // ✅ AUTO-SUBMIT ON PRESET SELECTION (Optional)
-            // ============================================================
-            $('#filterType').on('change', function() {
-                const selectedValue = $(this).val();
-
-                // Auto-submit for non-custom filters
-                if (selectedValue !== 'custom' && selectedValue !== '') {
-                    $('#dateFilterForm').submit();
-                }
-            });
-
         });
     </script>
 @endpush

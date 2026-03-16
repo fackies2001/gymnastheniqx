@@ -14,6 +14,7 @@ use OwenIt\Auditing\Contracts\Auditable;
  * @property string|null $supplier_sku
  * @property string $system_sku
  * @property float|null $cost_price
+ * @property float|null $selling_price
  * @property int|null $stock
  * @property string|null $availability_status
  * @property string|null $shipping_information
@@ -41,6 +42,7 @@ class SupplierProduct extends Model implements Auditable
         'supplier_sku',
         'system_sku',
         'cost_price',
+        'selling_price', // ✅ ADDED — presyo ng ibebenta sa retailer
         'discount',
         'availability_status',
         'shipping_information',
@@ -54,19 +56,17 @@ class SupplierProduct extends Model implements Auditable
     ];
 
     protected $casts = [
-        'dimensions' => 'array',
-        'images' => 'array',
-        'barcode' => 'string'
+        'dimensions'    => 'array',
+        'images'        => 'array',
+        'barcode'       => 'string',
+        'cost_price'    => 'decimal:2',
+        'selling_price' => 'decimal:2', // ✅ ADDED
     ];
 
     /* ========================================
-       🔥 ADDED: CRITICAL SCOPES FOR FILTERING
+       🔥 SCOPES
        ======================================== */
 
-    /**
-     * Filter by student source
-     * source_id = 2 for students, [1,3] for non-students
-     */
     public function scopeFilterByStudent($query)
     {
         if (auth()->check()) {
@@ -77,14 +77,8 @@ class SupplierProduct extends Model implements Auditable
         return $query;
     }
 
-    /**
-     * Filter by warehouse (if applicable)
-     * Note: SupplierProduct doesn't have warehouse_id directly,
-     * so we filter through serializedProducts relationship
-     */
     public function scopeFilterByWarehouse($query)
     {
-        // Check session first
         if (session()->has('warehouse_id')) {
             $warehouseId = session('warehouse_id');
             return $query->whereHas('serializedProducts', function ($q) use ($warehouseId) {
@@ -92,7 +86,6 @@ class SupplierProduct extends Model implements Auditable
             });
         }
 
-        // Check user's warehouse
         if (auth()->check() && auth()->user()->warehouse_id) {
             $warehouseId = auth()->user()->warehouse_id;
             return $query->whereHas('serializedProducts', function ($q) use ($warehouseId) {
@@ -132,14 +125,11 @@ class SupplierProduct extends Model implements Auditable
         return $this->hasMany(PurchaseRequest::class, 'supplier_product_id');
     }
 
-    // ✅ KEEP OLD RELATIONSHIP (for backward compatibility)
     public function serialNumbers()
     {
         return $this->hasMany(SerialNumber::class, 'sku_id', 'id');
     }
 
-    // ✅ NEW RELATIONSHIP (for new serialized_product table)
-    // 🔥 THIS IS WHAT WE USE FOR THE DASHBOARD LOW STOCK ALERT
     public function serializedProducts()
     {
         return $this->hasMany(SerializedProduct::class, 'product_id');
@@ -151,26 +141,47 @@ class SupplierProduct extends Model implements Auditable
     }
 
     /* ========================================
-       🔥 HELPER METHODS FOR DASHBOARD
+       🔥 HELPER METHODS
        ======================================== */
 
-    /**
-     * Get available stock count (status = 1 means Available)
-     * This counts serialized products that are available in warehouse
-     */
     public function getAvailableStockAttribute()
     {
         return $this->serializedProducts()
-            ->where('status', 1) // 1 = Available
+            ->where('status', 1)
             ->count();
     }
 
-    /**
-     * Check if product is low stock (below 20 units)
-     */
     public function getIsLowStockAttribute()
     {
         return $this->available_stock < 20 && $this->available_stock > 0;
+    }
+
+    /**
+     * ✅ NEW: Get effective selling price
+     * Kung walang selling_price, fallback sa cost_price
+     * Para hindi maging 0 ang unit price sa orders
+     */
+    public function getEffectiveSellingPriceAttribute()
+    {
+        return $this->selling_price ?? $this->cost_price ?? 0;
+    }
+
+    /**
+     * ✅ NEW: Get markup amount
+     */
+    public function getMarkupAmountAttribute()
+    {
+        if (!$this->selling_price || !$this->cost_price) return 0;
+        return $this->selling_price - $this->cost_price;
+    }
+
+    /**
+     * ✅ NEW: Get markup percentage
+     */
+    public function getMarkupPercentageAttribute()
+    {
+        if (!$this->cost_price || $this->cost_price == 0) return 0;
+        return round((($this->selling_price - $this->cost_price) / $this->cost_price) * 100, 2);
     }
 
     /* ========================================
@@ -182,14 +193,11 @@ class SupplierProduct extends Model implements Auditable
         parent::boot();
 
         static::creating(function ($product) {
-            // 1. Hanapin ang Category Name para makuha ang Abbreviation
             $category = \App\Models\Category::find($product->category_id);
-            $abbrv = $category ? strtoupper(substr($category->name, 0, 3)) : 'PROD';
+            $abbrv    = $category ? strtoupper(substr($category->name, 0, 3)) : 'PROD';
 
-            // 2. Tawagin ang SkuHelper para i-generate ang system_sku
             $product->system_sku = \App\Helpers\SkuHelper::generateSystemSku($abbrv);
 
-            // 3. Optional: Gawin na ring parehas ang supplier_sku kung empty
             if (empty($product->supplier_sku)) {
                 $product->supplier_sku = $product->system_sku;
             }
