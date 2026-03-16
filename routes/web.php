@@ -33,8 +33,7 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// ✅ PIN VERIFICATION ROUTES (OUTSIDE CheckPinStatus MIDDLEWARE - CRITICAL!)
-// Kailangan LABAS ng CheckPinStatus para hindi ma-intercept ang PIN submission
+// ✅ PIN VERIFICATION ROUTES
 Route::middleware(['auth'])->group(function () {
     Route::post('/verify_pin', [UserManagementController::class, 'verifyPin'])->name('user.verify.pin');
     Route::put('/update_pin', [UserManagementController::class, 'updatePin'])->name('user.update.pin');
@@ -42,15 +41,15 @@ Route::middleware(['auth'])->group(function () {
 
 // ✅ AUTHENTICATED ROUTES WITH PIN CHECK
 Route::middleware(['auth', CheckPinStatus::class])->group(function () {
-    // Keep-alive route for session timeout
+
     Route::get('/keep-alive', function () {
         return response()->json(['status' => 'ok']);
     });
 
-    // --- DASHBOARD & USER MANAGEMENT ---
+    // DASHBOARD
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
-    // ✅ DEBUG ROUTES (Remove after testing)
+    // DEBUG ROUTES
     Route::get('/debug-image', function () {
         $user = Auth::user();
         return response()->json([
@@ -92,16 +91,14 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
         Route::post('/employee/register', [RegisteredUserController::class, 'store'])->name('employee.register');
     });
 
-    // ❌ DUPLICATE PIN ROUTES REMOVED — nasa labas na ng CheckPinStatus group (lines ~34-37)
-
-    // --- PROFILE MANAGEMENT ---
+    // PROFILE MANAGEMENT
     Route::controller(ProfileController::class)->group(function () {
         Route::get('/profile', 'edit')->name('profile.edit');
         Route::patch('/profile', 'update')->name('profile.update');
         Route::delete('/profile', 'destroy')->name('profile.destroy');
     });
 
-    // --- NOTIFICATIONS & REALTIME (PUSHER) ---
+    // NOTIFICATIONS
     Route::prefix('notifications')->group(function () {
         Route::get('/get',          [NotificationsController::class, 'getNotificationsData'])->name('notifications.get');
         Route::get('/count',        [NotificationsController::class, 'getCount'])->name('notifications.count');
@@ -109,21 +106,19 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
         Route::post('/read-all',    [NotificationsController::class, 'markAllRead'])->name('notifications.read-all');
     });
 
-    // --- WAREHOUSE & SCANNING ---
-    // ✅ Admin at Manager lang
+    // ✅ Staff pwede mag-scan
+    Route::get('/scan', [ScanController::class, 'index'])->name('scan.index');
+
+    // ✅ ADMIN & MANAGER ONLY ROUTES
     Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager')->group(function () {
+
+        // WAREHOUSE
         Route::get('/warehouse', [WarehouseController::class, 'index'])->name('warehouse.index');
         Route::post('/warehouse/store', [WarehouseController::class, 'store'])->name('warehouse.store');
         Route::post('/warehouse/update', [WarehouseController::class, 'update'])->name('warehouse.update');
         Route::delete('/warehouse/delete', [WarehouseController::class, 'destroy'])->name('warehouse.delete');
-    });
 
-    // ✅ Staff pwede mag-scan
-    Route::get('/scan', [ScanController::class, 'index'])->name('scan.index');
-
-
-    // ✅ SUPPLIER MANAGEMENT — Admin at Manager lang
-    Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager')->group(function () {
+        // SUPPLIER MANAGEMENT
         Route::controller(SuppliersController::class)->group(function () {
             Route::get('/suppliers', 'index')->name('suppliers.index');
             Route::get('/suppliers/create', 'create')->name('suppliers.create');
@@ -135,7 +130,7 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
             Route::get('/suppliers/{id}', 'show')->name('suppliers.show');
         });
 
-        // SUPPLIER PRODUCTS — Admin at Manager lang
+        // SUPPLIER PRODUCTS
         Route::controller(SupplierProductsController::class)->group(function () {
             Route::get('/supplier_products', 'index')->name('supplier_products.index');
             Route::post('/supplier_products/store', 'store')->name('supplier_products.store');
@@ -145,10 +140,8 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
             Route::get('/supplier_products/list/{supplier_id}', 'getProductsBySupplier');
             Route::get('/supplier_products/show_table/{id}', 'showTable')->name('supplier_products.show_table');
         });
-    });
 
-    // ✅ DAILY REPORTS — Admin at Manager lang
-    Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager')->group(function () {
+        // REPORTS
         Route::controller(ReportsController::class)->group(function () {
             Route::post('/reports/damage', 'reportDamage')->name('reports.report.damage');
             Route::post('/reports/update-stock', 'updateStock')->name('reports.update.stock');
@@ -167,10 +160,8 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
             Route::get('/yearly-reports', 'strategicIndex')->name('reports.yearly');
             Route::get('/strategic-reports', 'strategicIndex')->name('reports.strategic');
         });
-    });
 
-    // ✅ MANPOWER — Admin at Manager lang
-    Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager')->group(function () {
+        // MANPOWER
         Route::controller(ManpowerController::class)->group(function () {
             Route::get('/manpower', 'index')->name('manpower.index');
             Route::get('/manpower/data', 'get_coaches_data')->name('manpower.data');
@@ -179,9 +170,11 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
             Route::put('/manpower/{id}', 'update')->name('manpower.update');
             Route::delete('/manpower/{id}', 'destroy')->name('manpower.delete');
         });
-    });
+    }); // END ADMIN & MANAGER ROUTES
 
-    // ✅ Purchase Request Routes
+    // ✅ ALL AUTHENTICATED USERS (Admin, Manager, Staff)
+
+    // Purchase Request
     Route::prefix('purchase-request')->group(function () {
         Route::get('/', [PurchaseRequestController::class, 'index'])->name('pr.index');
         Route::get('/datatable', [PurchaseRequestController::class, 'getPurchaseRequestTable'])->name('pr.datatable');
@@ -221,29 +214,6 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
         Route::put('/serialized_products/update_status/{id}', 'updateStatus')->name('serialized_products.update_status');
     });
 
-    // SUPPLIER MANAGEMENT
-    Route::controller(SuppliersController::class)->group(function () {
-        Route::get('/suppliers', 'index')->name('suppliers.index');
-        Route::get('/suppliers/create', 'create')->name('suppliers.create');
-        Route::post('/suppliers/store', 'store')->name('suppliers.store');
-        Route::get('/suppliers/{id}/products-table', 'showTable')->name('suppliers_products.show_table');
-        Route::get('/suppliers/{id}/edit', 'edit')->name('suppliers.edit');
-        Route::put('/suppliers/{id}', 'update')->name('suppliers.update');
-        Route::delete('/suppliers/{id}', 'destroy')->name('suppliers.destroy');
-        Route::get('/suppliers/{id}', 'show')->name('suppliers.show');
-    });
-
-    // SUPPLIER PRODUCTS
-    Route::controller(SupplierProductsController::class)->group(function () {
-        Route::get('/supplier_products', 'index')->name('supplier_products.index');
-        Route::post('/supplier_products/store', 'store')->name('supplier_products.store');
-        Route::get('/supplier_products/scan/{barcode}', 'scan')->name('supplier_products.scan');
-        Route::get('/supplier_products/data', 'datatable')->name('supplier_products.data');
-        Route::get('/supplier_products/initial_table', 'initial_table')->name('supplier_products.api_initial_table');
-        Route::get('/supplier_products/list/{supplier_id}', 'getProductsBySupplier');
-        Route::get('/supplier_products/show_table/{id}', 'showTable')->name('supplier_products.show_table');
-    });
-
     // RETAILER ORDERS
     Route::controller(RetailerOrderController::class)->group(function () {
         Route::get('/orders', 'index')->name('retailer.orders.index');
@@ -253,40 +223,7 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
         Route::post('/retailer-orders/{id}/complete', 'complete')->name('retailer.orders.complete');
     });
 
-    // REPORTS MANAGEMENT
-    Route::controller(ReportsController::class)->group(function () {
-        Route::post('/reports/damage', 'reportDamage')->name('reports.report.damage');
-        Route::post('/reports/update-stock', 'updateStock')->name('reports.update.stock');
-        Route::get('/daily-reports', 'dailyIndex')->name('reports.daily');
-        Route::get('/reports/daily/data', 'getDailyData')->name('reports.daily.data');
-        Route::get('/reports/daily/export', 'exportDaily')->name('reports.daily.export');
-        Route::post('/reports/approve/{id}/{type}', 'approve')->name('reports.approve');
-        Route::post('/reports/reject/{id}/{type}', 'reject')->name('reports.reject');
-        Route::post('/weekly-reports/save-audit', 'saveAudit')->name('reports.audit.save');
-        Route::get('/weekly-reports/audit-history', 'auditHistory')->name('reports.audit.history');
-
-        Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager')->group(function () {
-            Route::get('/weekly-reports', 'weeklyIndex')->name('reports.weekly');
-            Route::get('/weekly-reports/get-data', 'getWeeklyData')->name('reports.weekly.data');
-            Route::get('/weekly-reports/export', 'exportWeekly')->name('reports.weekly.export');
-            Route::get('/monthly-reports', 'monthlyIndex')->name('reports.monthly');
-            Route::get('/quarterly-reports', 'strategicIndex')->name('reports.quarterly');
-            Route::get('/yearly-reports', 'strategicIndex')->name('reports.yearly');
-            Route::get('/strategic-reports', 'strategicIndex')->name('reports.strategic');
-        });
-    });
-
-    // MANPOWER MANAGEMENT
-    Route::controller(ManpowerController::class)->group(function () {
-        Route::get('/manpower', 'index')->name('manpower.index');
-        Route::get('/manpower/data', 'get_coaches_data')->name('manpower.data');
-        Route::post('/manpower/store', 'store')->name('manpower.store');
-        Route::get('/manpower/{id}/edit', 'edit')->name('manpower.edit');
-        Route::put('/manpower/{id}', 'update')->name('manpower.update');
-        Route::delete('/manpower/{id}', 'destroy')->name('manpower.delete');
-    });
-
-    // GYM EQUIPMENT MANAGEMENT
+    // GYM EQUIPMENT
     Route::controller(GymEquipmentController::class)->group(function () {
         Route::get('/gym-equipments', 'index')->name('gym.index');
         Route::get('/gym-equipments/data', 'getEquipments')->name('gym.data');
@@ -296,6 +233,6 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
         Route::put('/gym-equipments/{id}', 'update')->name('gym.update');
         Route::delete('/gym-equipments/{id}', 'destroy')->name('gym.delete');
     });
-});
+}); // END AUTH ROUTES
 
 require __DIR__ . '/auth.php';
