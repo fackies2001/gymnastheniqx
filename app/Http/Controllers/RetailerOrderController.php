@@ -226,17 +226,18 @@ class RetailerOrderController extends Controller
 
         DB::beginTransaction();
         try {
+            // ✅ FIX: Alisin yung mali na remarks filter
+            // Kumuha lang ng AVAILABLE (status=1) products — FIFO (oldest first)
             $serializedProducts = SerializedProduct::where('product_id', $product->id)
-                ->whereIn('status', [1, 2])
-                ->where('remarks', 'LIKE', "%Order ID: {$order->id}%")
-                ->orderBy('created_at', 'asc')
+                ->where('status', 1) // ✅ Available lang
+                ->orderBy('created_at', 'asc') // ✅ FIFO
                 ->limit($order->quantity)
                 ->get();
 
             $serialNumbers = [];
             foreach ($serializedProducts as $sp) {
                 $sp->update([
-                    'status'  => 2,
+                    'status'  => 2, // Reserved
                     'remarks' => "Reserved for Retailer: {$order->retailer_name} (Order ID: {$order->id})",
                 ]);
                 $serialNumbers[] = $sp->serial_number;
@@ -272,7 +273,7 @@ class RetailerOrderController extends Controller
                 return back()->with('warning', "Order Approved with PARTIAL stock! Reserved: {$reservedQty}/{$order->quantity}.");
             }
 
-            return back()->with('success', 'Order Approved! Stock reserved via FIFO.');
+            return back()->with('success', "Order Approved! {$reservedQty} items reserved via FIFO.");
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Critical Error: ' . $e->getMessage());

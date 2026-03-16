@@ -238,14 +238,73 @@ class DashboardController extends Controller
     private function getSerializedProductStatusCounts(Request $request)
     {
         try {
-            // ✅ WALANG date filter — dapat palaging nakikita ang CURRENT STATUS
-            // ng lahat ng products regardless ng kung kailan nai-scan
-            $results = SerializedProduct::select(
+            $query = SerializedProduct::select(
                 'product_status.name as status_name',
                 DB::raw('count(serialized_product.id) as count')
             )
-                ->join('product_status', 'serialized_product.status', '=', 'product_status.id')
-                ->groupBy('product_status.name', 'product_status.id')
+                ->join('product_status', 'serialized_product.status', '=', 'product_status.id');
+
+            // ✅ GAMIT ang updated_at — para makita yung mga na-UPDATE na status ngayon
+            // Hindi created_at — kasi yung created_at ay kung kailan na-scan, hindi kung kailan nag-bago ang status
+            if ($request->filled('filter_type')) {
+                $this->applyDateFilter($query, $request, 'serialized_product');
+
+                // ✅ Override — gamitin updated_at instead of created_at
+                $filterType = $request->filter_type;
+                $today = Carbon::today()->startOfDay();
+
+                // Reset yung query filter at gamitin updated_at
+                $query = SerializedProduct::select(
+                    'product_status.name as status_name',
+                    DB::raw('count(serialized_product.id) as count')
+                )
+                    ->join('product_status', 'serialized_product.status', '=', 'product_status.id');
+
+                switch ($filterType) {
+                    case 'today':
+                        $query->whereDate('serialized_product.updated_at', $today);
+                        break;
+                    case 'yesterday':
+                        $query->whereDate('serialized_product.updated_at', $today->copy()->subDay());
+                        break;
+                    case 'last_7_days':
+                        $query->whereBetween('serialized_product.updated_at', [
+                            $today->copy()->subDays(6)->startOfDay(),
+                            Carbon::now()->endOfDay()
+                        ]);
+                        break;
+                    case 'last_30_days':
+                        $query->whereBetween('serialized_product.updated_at', [
+                            $today->copy()->subDays(29)->startOfDay(),
+                            Carbon::now()->endOfDay()
+                        ]);
+                        break;
+                    case 'this_month':
+                        $query->whereMonth('serialized_product.updated_at', Carbon::now()->month)
+                            ->whereYear('serialized_product.updated_at', Carbon::now()->year);
+                        break;
+                    case 'last_month':
+                        $lastMonth = Carbon::now()->subMonth();
+                        $query->whereMonth('serialized_product.updated_at', $lastMonth->month)
+                            ->whereYear('serialized_product.updated_at', $lastMonth->year);
+                        break;
+                    case 'this_year':
+                        $query->whereYear('serialized_product.updated_at', Carbon::now()->year);
+                        break;
+                    case 'custom':
+                        if ($request->filled('start_date') && $request->filled('end_date')) {
+                            $query->whereBetween('serialized_product.updated_at', [
+                                $request->start_date . ' 00:00:00',
+                                $request->end_date . ' 23:59:59'
+                            ]);
+                        }
+                        break;
+                }
+            }
+            // ✅ Kung walang filter (All Time) — lahat ng current status
+            // Walang date filter — show all
+
+            $results = $query->groupBy('product_status.name', 'product_status.id')
                 ->pluck('count', 'status_name')
                 ->toArray();
 
@@ -255,7 +314,6 @@ class DashboardController extends Controller
             return [];
         }
     }
-
     // ============================================================
     // ✅ HELPER: Get purchase request status counts
     // ============================================================
