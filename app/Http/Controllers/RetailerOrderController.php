@@ -183,6 +183,16 @@ class RetailerOrderController extends Controller
             ->where('status', 1)
             ->count();
 
+        // ✅ I-check MUNA bago mag-create ng order
+        if ($availableStock === 0) {
+            return back()->with('error', '❌ Order failed! No available stock for this product.');
+        }
+
+        if ($request->quantity > $availableStock) {
+            return back()->with('error', "❌ Insufficient stock! Available: {$availableStock} units only. You ordered: {$request->quantity} units.");
+        }
+
+        // ✅ Gumawa ng order PAGKATAPOS ng validation
         $order = RetailerOrder::create([
             'product_id'          => $product->id,
             'retailer_name'       => $request->retailer_name,
@@ -193,7 +203,7 @@ class RetailerOrderController extends Controller
             'status'              => 'Pending',
             'sku'                 => $product->supplier_sku ?? $product->system_sku ?? 'N/A',
             'created_by'          => Auth::user()->full_name ?? 'Unknown User',
-            'created_by_user_id'  => Auth::id(),   // ✅ Integer ID — para sa role-based filtering
+            'created_by_user_id'  => Auth::id(),
             'user_role'           => Auth::user()->role?->role_name ?? 'No Role',
         ]);
 
@@ -212,12 +222,6 @@ class RetailerOrderController extends Controller
             }
         } catch (\Exception $e) {
             Log::warning('Retailer order notification failed: ' . $e->getMessage());
-        }
-
-        if ($availableStock === 0) {
-            return back()->with('warning', 'Order submitted successfully! ⚠️ NO STOCK AVAILABLE - Please request stock replenishment.');
-        } elseif ($availableStock < $request->quantity) {
-            return back()->with('warning', "Order submitted successfully! ⚠️ LOW STOCK - Available: {$availableStock}, Ordered: {$request->quantity}");
         }
 
         return back()->with('success', 'Order submitted successfully! Awaiting admin approval.');
