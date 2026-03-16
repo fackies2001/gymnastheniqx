@@ -128,27 +128,27 @@
                 },
                 columns: [{
                         data: 'supplier_name',
-                        name: 'supplier.name', // ✅ FIX: dapat 'supplier.name' hindi 'supplier_name'
+                        name: 'supplier.name',
                         title: 'Supplier'
                     },
                     {
                         data: 'name',
-                        name: 'name',
+                        name: 'supplier_product.name', // ✅ FIX
                         title: 'Product Name'
                     },
                     {
                         data: 'system_sku',
-                        name: 'system_sku',
+                        name: 'supplier_product.system_sku', // ✅ FIX
                         title: 'SKU'
                     },
                     {
                         data: 'cost_price',
-                        name: 'cost_price',
+                        name: 'supplier_product.cost_price', // ✅ FIX
                         title: 'Price'
                     },
                     {
                         data: 'barcode',
-                        name: 'barcode',
+                        name: 'supplier_product.barcode', // ✅ FIX
                         title: 'Barcode'
                     }
                 ],

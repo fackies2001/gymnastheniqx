@@ -238,15 +238,14 @@ class DashboardController extends Controller
     private function getSerializedProductStatusCounts(Request $request)
     {
         try {
-            $query = SerializedProduct::select(
+            // ✅ WALANG date filter — dapat palaging nakikita ang CURRENT STATUS
+            // ng lahat ng products regardless ng kung kailan nai-scan
+            $results = SerializedProduct::select(
                 'product_status.name as status_name',
                 DB::raw('count(serialized_product.id) as count')
             )
-                ->join('product_status', 'serialized_product.status', '=', 'product_status.id');
-
-            $this->applyDateFilter($query, $request, 'serialized_product');
-
-            $results = $query->groupBy('product_status.name', 'product_status.id')
+                ->join('product_status', 'serialized_product.status', '=', 'product_status.id')
+                ->groupBy('product_status.name', 'product_status.id')
                 ->pluck('count', 'status_name')
                 ->toArray();
 
