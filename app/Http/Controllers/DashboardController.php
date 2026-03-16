@@ -29,29 +29,30 @@ class DashboardController extends Controller
         if ($user->isManager()) {
             $small_boxes = [
                 'serial_number_counts' => $this->getAvailableProductCount(),
-                'total_sales_today'    => $this->getTotalSalesFiltered($request), // ✅ PALITAN
+                'total_sales_today'    => $this->getTotalSalesFiltered($request),
                 'total_sales_alltime'  => $this->getTotalSalesAllTime(),
             ];
 
             $doughnut = [
-                'product_status_counts'             => $this->getSerializedProductStatusCounts($request),
-                'purchase_request_status_counts'    => [], // hindi na kailangan ng manager
+                'product_status_counts'          => $this->getSerializedProductStatusCounts($request),
+                'purchase_request_status_counts' => [],
             ];
 
             $bar = [
                 'monthly_products_in' => $this->getMonthlyProductsScanned($request),
             ];
 
-            $recent_activities   = $this->getRecentActivities();
-            $retailer_orders     = $this->getRecentRetailerOrders(); // ✅ DAGDAG
+            $recent_activities  = $this->getRecentActivities();
+            $retailer_orders    = $this->getRecentRetailerOrders();
+            $low_stock_products = $this->getLowStockProducts(); // ✅
 
             return view('dashboard.index', compact(
                 'small_boxes',
                 'doughnut',
                 'bar',
                 'recent_activities',
-                'retailer_orders'   // ✅ DAGDAG
-
+                'retailer_orders',
+                'low_stock_products'
             ));
         }
 

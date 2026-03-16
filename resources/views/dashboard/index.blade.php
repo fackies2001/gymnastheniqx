@@ -209,7 +209,6 @@
         .dark-mode-toggle i {
             font-size: 18px;
             color: white;
-            transition: transform 0.3s ease;
         }
     </style>
 @endpush
@@ -337,7 +336,6 @@
     @if (!$isManager)
         <div class="row mb-3">
 
-            {{-- Suppliers --}}
             <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                 <div class="stat-box stat-box-suppliers shadow-sm">
                     <i class="fas fa-truck stat-bg-icon"></i>
@@ -352,7 +350,6 @@
                 </div>
             </div>
 
-            {{-- Purchase Requests --}}
             <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                 <div class="stat-box stat-box-pr shadow-sm">
                     <i class="fas fa-file-alt stat-bg-icon"></i>
@@ -367,7 +364,6 @@
                 </div>
             </div>
 
-            {{-- Purchase Orders --}}
             <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                 <div class="stat-box stat-box-po shadow-sm">
                     <i class="fas fa-shopping-cart stat-bg-icon"></i>
@@ -383,7 +379,6 @@
                 </div>
             </div>
 
-            {{-- Serialized Products --}}
             <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                 <div class="stat-box stat-box-stock shadow-sm">
                     <i class="fas fa-boxes stat-bg-icon"></i>
@@ -403,13 +398,12 @@
     @endif
 
     {{-- ============================================
-         STAT BOXES + REPORTS CARD — MANAGER ONLY
-         ✅ 4 cards sa iisang row, same size lahat
+         STAT BOXES + REPORTS — MANAGER ONLY
+         4 cards sa iisang row, same size lahat
     ============================================ --}}
     @if ($isManager)
         <div class="row mb-3">
 
-            {{-- Serialized Products --}}
             <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                 <div class="stat-box stat-box-stock shadow-sm">
                     <i class="fas fa-boxes stat-bg-icon"></i>
@@ -425,7 +419,6 @@
                 </div>
             </div>
 
-            {{-- Sales Today --}}
             <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                 <div class="stat-box stat-box-sales-today shadow-sm">
                     <i class="fas fa-coins stat-bg-icon"></i>
@@ -444,7 +437,6 @@
                 </div>
             </div>
 
-            {{-- Total Sales All Time --}}
             <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                 <div class="stat-box stat-box-sales-total shadow-sm">
                     <i class="fas fa-chart-line stat-bg-icon"></i>
@@ -460,7 +452,7 @@
                 </div>
             </div>
 
-            {{-- ✅ Reports Card — same size as stat boxes --}}
+            {{-- Reports Card — same size --}}
             <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                 <a href="{{ route('reports.daily') }}" class="report-shortcut-card shortcut-yearly shadow-sm d-block">
                     <i class="fas fa-file-export shortcut-bg-icon"></i>
@@ -484,7 +476,6 @@
         <div class="col-md-9 col-sm-12">
             <div class="row">
 
-                {{-- Doughnut: Purchase Request Status — ADMIN/STAFF ONLY --}}
                 @if (!$isManager)
                     <div class="col-md-6">
                         <div class="card">
@@ -506,7 +497,6 @@
                     </div>
                 @endif
 
-                {{-- Doughnut: Product Status --}}
                 <div class="col-md-6">
                     <div class="card">
                         <div class="card-header">
@@ -526,7 +516,6 @@
                     </div>
                 </div>
 
-                {{-- Bar: Monthly Products Scanned --}}
                 <div class="col-md-12">
                     <div class="card">
                         <div class="card-header">
@@ -549,85 +538,83 @@
             </div>
         </div>
 
-        {{-- RIGHT: LOW STOCK (admin/staff only) + RECENT ACTIVITY --}}
+        {{-- RIGHT: LOW STOCK + RECENT ACTIVITY — LAHAT NG ROLES ✅ --}}
         <div class="col-md-3 col-sm-12">
 
-            {{-- Low Stock Alert — ADMIN/STAFF ONLY --}}
-            @if (!$isManager)
-                <div class="card card-outline card-danger shadow-sm">
-                    <div class="card-header">
-                        <h3 class="card-title font-weight-bold text-danger">
-                            <i class="fas fa-exclamation-triangle mr-1"></i> Low Stock Alert
-                        </h3>
-                        @if (count($low_stock_products) > 0)
-                            <span class="badge badge-danger float-right">{{ count($low_stock_products) }} items</span>
-                        @endif
-                    </div>
-                    <div class="card-body p-0" style="max-height:280px; overflow-y:auto;">
-                        <table class="table table-striped table-sm mb-0">
-                            <thead class="sticky-top bg-white">
-                                <tr>
-                                    <th class="pl-3" style="width:60%">Product</th>
-                                    <th class="text-center" style="width:40%">
-                                        Qty <small class="text-muted d-block"
-                                            style="font-size:0.68rem; font-weight:normal;">(Below 20)</small>
-                                    </th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @forelse($low_stock_products as $item)
-                                    <tr>
-                                        <td class="pl-3 small align-middle" style="line-height:1.2;">
-                                            <strong>{{ $item->name }}</strong><br>
-                                            <small class="text-muted">{{ $item->system_sku ?? 'N/A' }}</small>
-                                        </td>
-                                        <td class="text-center align-middle">
-                                            @php
-                                                $qty = $item->available_count ?? 0;
-                                                $badgeClass =
-                                                    $qty <= 5
-                                                        ? 'badge-danger'
-                                                        : ($qty <= 10
-                                                            ? 'badge-warning'
-                                                            : 'badge-info');
-                                                $icon =
-                                                    $qty <= 5
-                                                        ? 'fas fa-exclamation-circle'
-                                                        : ($qty <= 10
-                                                            ? 'fas fa-exclamation-triangle'
-                                                            : 'fas fa-info-circle');
-                                            @endphp
-                                            <span class="badge {{ $badgeClass }}"
-                                                style="font-size:0.9rem; padding:0.35rem 0.55rem;">
-                                                <i class="{{ $icon }}" style="font-size:0.7rem;"></i>
-                                                {{ $qty }}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="2" class="text-center text-muted py-4">
-                                            <i class="fas fa-check-circle text-success mb-2"
-                                                style="font-size:2rem; display:block;"></i>
-                                            <div class="font-weight-bold">All stocks are good!</div>
-                                            <small>No items below 20 units</small>
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
+            {{-- ✅ Low Stock Alert — LAHAT NG ROLES (admin, manager, staff) --}}
+            <div class="card card-outline card-danger shadow-sm">
+                <div class="card-header">
+                    <h3 class="card-title font-weight-bold text-danger">
+                        <i class="fas fa-exclamation-triangle mr-1"></i> Low Stock Alert
+                    </h3>
                     @if (count($low_stock_products) > 0)
-                        <div class="card-footer text-center small text-muted py-1">
-                            <div class="d-flex justify-content-around">
-                                <span><i class="fas fa-circle text-danger" style="font-size:0.55rem;"></i> ≤5</span>
-                                <span><i class="fas fa-circle text-warning" style="font-size:0.55rem;"></i> 6-10</span>
-                                <span><i class="fas fa-circle text-info" style="font-size:0.55rem;"></i> 11-19</span>
-                            </div>
-                        </div>
+                        <span class="badge badge-danger float-right">{{ count($low_stock_products) }} items</span>
                     @endif
                 </div>
-            @endif
+                <div class="card-body p-0" style="max-height:280px; overflow-y:auto;">
+                    <table class="table table-striped table-sm mb-0">
+                        <thead class="sticky-top bg-white">
+                            <tr>
+                                <th class="pl-3" style="width:60%">Product</th>
+                                <th class="text-center" style="width:40%">
+                                    Qty <small class="text-muted d-block"
+                                        style="font-size:0.68rem; font-weight:normal;">(Below 20)</small>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($low_stock_products as $item)
+                                <tr>
+                                    <td class="pl-3 small align-middle" style="line-height:1.2;">
+                                        <strong>{{ $item->name }}</strong><br>
+                                        <small class="text-muted">{{ $item->system_sku ?? 'N/A' }}</small>
+                                    </td>
+                                    <td class="text-center align-middle">
+                                        @php
+                                            $qty = $item->available_count ?? 0;
+                                            $badgeClass =
+                                                $qty <= 5
+                                                    ? 'badge-danger'
+                                                    : ($qty <= 10
+                                                        ? 'badge-warning'
+                                                        : 'badge-info');
+                                            $icon =
+                                                $qty <= 5
+                                                    ? 'fas fa-exclamation-circle'
+                                                    : ($qty <= 10
+                                                        ? 'fas fa-exclamation-triangle'
+                                                        : 'fas fa-info-circle');
+                                        @endphp
+                                        <span class="badge {{ $badgeClass }}"
+                                            style="font-size:0.9rem; padding:0.35rem 0.55rem;">
+                                            <i class="{{ $icon }}" style="font-size:0.7rem;"></i>
+                                            {{ $qty }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="2" class="text-center text-muted py-4">
+                                        <i class="fas fa-check-circle text-success mb-2"
+                                            style="font-size:2rem; display:block;"></i>
+                                        <div class="font-weight-bold">All stocks are good!</div>
+                                        <small>No items below 20 units</small>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+                @if (count($low_stock_products) > 0)
+                    <div class="card-footer text-center small text-muted py-1">
+                        <div class="d-flex justify-content-around">
+                            <span><i class="fas fa-circle text-danger" style="font-size:0.55rem;"></i> ≤5</span>
+                            <span><i class="fas fa-circle text-warning" style="font-size:0.55rem;"></i> 6-10</span>
+                            <span><i class="fas fa-circle text-info" style="font-size:0.55rem;"></i> 11-19</span>
+                        </div>
+                    </div>
+                @endif
+            </div>
 
             {{-- Recent Activity --}}
             <div class="card card-outline card-primary shadow-sm">
