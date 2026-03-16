@@ -15,9 +15,6 @@ use Illuminate\Support\Facades\Log;
 
 class RetailerOrderController extends Controller
 {
-    // ============================================================
-    // ✅ HELPER: Get all admin users
-    // ============================================================
     private function getAdmins()
     {
         return User::whereHas('role', function ($q) {
@@ -26,28 +23,28 @@ class RetailerOrderController extends Controller
         })->get();
     }
 
-    // ============================================================
-    // ✅ HELPER: Check if current user is admin
-    // ============================================================
     private function isAdmin(): bool
     {
         return strtolower(Auth::user()->role?->role_name ?? '') === 'admin';
     }
 
+    private function isManager(): bool
+    {
+        return strtolower(Auth::user()->role?->role_name ?? '') === 'manager';
+    }
+
     // ============================================================
     // ✅ INDEX METHOD — Role-based filtering
     //    Admin       → nakikita LAHAT ng orders
-    //    Manager     → sarili lang niyang orders
+    //    Manager     → nakikita LAHAT ng orders ✅ UPDATED
     //    Staff       → sarili lang niyang orders
     // ============================================================
     public function index(Request $request)
     {
-        $user    = Auth::user();
-        $isAdmin = $this->isAdmin();
+        $user      = Auth::user();
+        $isAdmin   = $this->isAdmin();
+        $isManager = $this->isManager();
 
-        // ============================================================
-        // ✅ DATE FILTER CONDITIONS
-        // ============================================================
         $dateConditions = function ($query) use ($request) {
             if ($request->filled('filter_type')) {
                 $filterType = $request->filter_type;
@@ -57,40 +54,33 @@ class RetailerOrderController extends Controller
                     case 'today':
                         $query->whereDate('created_at', $today);
                         break;
-
                     case 'yesterday':
                         $query->whereDate('created_at', $today->copy()->subDay());
                         break;
-
                     case 'last_7_days':
                         $query->whereBetween('created_at', [
                             $today->copy()->subDays(6)->startOfDay(),
                             now()->endOfDay(),
                         ]);
                         break;
-
                     case 'last_30_days':
                         $query->whereBetween('created_at', [
                             $today->copy()->subDays(29)->startOfDay(),
                             now()->endOfDay(),
                         ]);
                         break;
-
                     case 'this_month':
                         $query->whereMonth('created_at', now()->month)
                             ->whereYear('created_at', now()->year);
                         break;
-
                     case 'last_month':
                         $lastMonth = now()->subMonth();
                         $query->whereMonth('created_at', $lastMonth->month)
                             ->whereYear('created_at', $lastMonth->year);
                         break;
-
                     case 'this_year':
                         $query->whereYear('created_at', now()->year);
                         break;
-
                     case 'custom':
                         if ($request->filled('start_date') && $request->filled('end_date')) {
                             $query->whereBetween('created_at', [
@@ -103,18 +93,12 @@ class RetailerOrderController extends Controller
             }
         };
 
-        // ============================================================
-        // ✅ BASE QUERY — Admin: lahat | Manager/Staff: sarili lang
-        // ============================================================
+        // ✅ Admin & Manager: lahat ng orders | Staff: sarili lang
         $baseQuery = RetailerOrder::query()
-            ->when(!$isAdmin, function ($query) use ($user) {
-                // Use created_by_user_id (integer) — mas reliable, walang conflict sa same name
+            ->when(!$isAdmin && !$isManager, function ($query) use ($user) {
                 $query->where('created_by_user_id', $user->id);
             });
 
-        // ============================================================
-        // ✅ GET FILTERED ORDERS FOR TABLE
-        // ============================================================
         $retailer_orders = (clone $baseQuery)
             ->where($dateConditions)
             ->orderByRaw("
@@ -128,9 +112,6 @@ class RetailerOrderController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // ============================================================
-        // ✅ METRICS — Scoped din sa role
-        // ============================================================
         $totalSales = (clone $baseQuery)
             ->where($dateConditions)
             ->whereIn('status', ['Approved', 'Completed'])
@@ -146,9 +127,6 @@ class RetailerOrderController extends Controller
             ->where('status', 'Completed')
             ->count();
 
-        // ============================================================
-        // ✅ GET WAREHOUSE PRODUCTS
-        // ============================================================
         $warehouse_products = SupplierProduct::select(
             'supplier_product.*',
             DB::raw('COUNT(CASE WHEN serialized_product.status = 1 THEN 1 END) as available_quantity')
@@ -166,9 +144,6 @@ class RetailerOrderController extends Controller
         ));
     }
 
-    // ============================================================
-    // ✅ STORE METHOD
-    // ============================================================
     public function store(Request $request)
     {
         $request->validate([
@@ -183,7 +158,6 @@ class RetailerOrderController extends Controller
             ->where('status', 1)
             ->count();
 
-        // ✅ I-check MUNA bago mag-create ng order
         if ($availableStock === 0) {
             return back()->with('error', '❌ Order failed! No available stock for this product.');
         }
@@ -192,7 +166,6 @@ class RetailerOrderController extends Controller
             return back()->with('error', "❌ Insufficient stock! Available: {$availableStock} units only. You ordered: {$request->quantity} units.");
         }
 
-        // ✅ Gumawa ng order PAGKATAPOS ng validation
         $order = RetailerOrder::create([
             'product_id'          => $product->id,
             'retailer_name'       => $request->retailer_name,
@@ -207,7 +180,6 @@ class RetailerOrderController extends Controller
             'user_role'           => Auth::user()->role?->role_name ?? 'No Role',
         ]);
 
-        // Notify admins
         try {
             $admins = $this->getAdmins();
             foreach ($admins as $admin) {
@@ -227,9 +199,6 @@ class RetailerOrderController extends Controller
         return back()->with('success', 'Order submitted successfully! Awaiting admin approval.');
     }
 
-    // ============================================================
-    // ✅ APPROVE METHOD — Admin only
-    // ============================================================
     public function approve($id)
     {
         if (!$this->isAdmin()) {
@@ -282,7 +251,6 @@ class RetailerOrderController extends Controller
 
             DB::commit();
 
-            // Notify creator
             try {
                 $creator = User::find($order->created_by_user_id);
                 if ($creator) {
@@ -311,9 +279,6 @@ class RetailerOrderController extends Controller
         }
     }
 
-    // ============================================================
-    // ✅ REJECT METHOD — Admin only
-    // ============================================================
     public function reject($id)
     {
         if (!$this->isAdmin()) {
@@ -327,7 +292,6 @@ class RetailerOrderController extends Controller
             'rejected_at' => now(),
         ]);
 
-        // Notify creator
         try {
             $creator = User::find($order->created_by_user_id);
             if ($creator) {
@@ -345,9 +309,6 @@ class RetailerOrderController extends Controller
         return back()->with('info', 'Order rejected.');
     }
 
-    // ============================================================
-    // ✅ COMPLETE METHOD — Admin only
-    // ============================================================
     public function complete($id)
     {
         if (!$this->isAdmin()) {
@@ -412,7 +373,6 @@ class RetailerOrderController extends Controller
 
             DB::commit();
 
-            // Notify creator
             try {
                 $creator = User::find($order->created_by_user_id);
                 if ($creator) {

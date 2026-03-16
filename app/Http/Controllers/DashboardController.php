@@ -28,9 +28,9 @@ class DashboardController extends Controller
         // ============================================================
         if ($user->isManager()) {
             $small_boxes = [
-                'serial_number_counts'      => $this->getAvailableProductCount(), // ✅ Serialized Products
-                'total_sales_today'         => $this->getTotalSalesToday(),
-                'total_sales_alltime'       => $this->getTotalSalesAllTime(),
+                'serial_number_counts' => $this->getAvailableProductCount(),
+                'total_sales_today'    => $this->getTotalSalesFiltered($request), // ✅ PALITAN
+                'total_sales_alltime'  => $this->getTotalSalesAllTime(),
             ];
 
             $doughnut = [
@@ -503,6 +503,24 @@ class DashboardController extends Controller
         } catch (\Exception $e) {
             \Log::error('Error getting retailer orders: ' . $e->getMessage());
             return collect();
+        }
+    }
+
+    private function getTotalSalesFiltered(Request $request)
+    {
+        try {
+            $query = RetailerOrder::where('status', 'completed');
+
+            if ($request->filled('filter_type')) {
+                $this->applyDateFilter($query, $request);
+            } else {
+                $query->whereDate('created_at', Carbon::today());
+            }
+
+            return $query->sum('total_amount') ?? 0;
+        } catch (\Exception $e) {
+            \Log::error('Error getting filtered sales: ' . $e->getMessage());
+            return 0;
         }
     }
 }

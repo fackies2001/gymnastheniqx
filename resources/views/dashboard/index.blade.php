@@ -108,7 +108,7 @@
             position: relative;
             overflow: hidden;
             transition: transform 0.25s ease, box-shadow 0.25s ease;
-            min-height: 100px;
+            min-height: 120px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -241,9 +241,10 @@
                             </option>
                             <option value="yesterday" {{ request('filter_type') == 'yesterday' ? 'selected' : '' }}>
                                 Yesterday</option>
-                            <option value="last_7_days"{{ request('filter_type') == 'last_7_days' ? 'selected' : '' }}>Last 7
-                                Days</option>
-                            <option value="last_30_days"{{ request('filter_type') == 'last_30_days' ? 'selected' : '' }}>Last
+                            <option value="last_7_days" {{ request('filter_type') == 'last_7_days' ? 'selected' : '' }}>Last
+                                7 Days</option>
+                            <option value="last_30_days"{{ request('filter_type') == 'last_30_days' ? 'selected' : '' }}>
+                                Last
                                 30 Days</option>
                             <option value="this_month" {{ request('filter_type') == 'this_month' ? 'selected' : '' }}>This
                                 Month</option>
@@ -402,13 +403,14 @@
     @endif
 
     {{-- ============================================
-         STAT BOXES — MANAGER ONLY
+         STAT BOXES + REPORTS CARD — MANAGER ONLY
+         ✅ 4 cards sa iisang row, same size lahat
     ============================================ --}}
     @if ($isManager)
         <div class="row mb-3">
 
             {{-- Serialized Products --}}
-            <div class="col-lg-4 col-md-6 col-sm-6 mb-3">
+            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                 <div class="stat-box stat-box-stock shadow-sm">
                     <i class="fas fa-boxes stat-bg-icon"></i>
                     <div>
@@ -423,23 +425,27 @@
                 </div>
             </div>
 
-            {{-- Total Sales Today --}}
-            <div class="col-lg-4 col-md-6 col-sm-6 mb-3">
+            {{-- Sales Today --}}
+            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                 <div class="stat-box stat-box-sales-today shadow-sm">
                     <i class="fas fa-coins stat-bg-icon"></i>
                     <div>
                         <div class="stat-number">₱{{ number_format($small_boxes['total_sales_today'], 2) }}</div>
-                        <div class="stat-label">Sales Today</div>
+                        <div class="stat-label">
+                            {{ request('filter_type') ? 'Filtered Sales' : 'Sales Today' }}
+                        </div>
                     </div>
                     <div class="stat-footer">
-                        <span><i class="fas fa-calendar-day mr-1"></i> Today only</span>
+                        <span><i class="fas fa-calendar-day mr-1"></i>
+                            {{ request('filter_type') ? ucfirst(str_replace('_', ' ', request('filter_type'))) : 'Today only' }}
+                        </span>
                         <span>Completed orders</span>
                     </div>
                 </div>
             </div>
 
             {{-- Total Sales All Time --}}
-            <div class="col-lg-4 col-md-6 col-sm-6 mb-3">
+            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                 <div class="stat-box stat-box-sales-total shadow-sm">
                     <i class="fas fa-chart-line stat-bg-icon"></i>
                     <div>
@@ -454,16 +460,8 @@
                 </div>
             </div>
 
-        </div>
-
-        {{-- REPORTS — Isang card lang --}}
-        <div class="row mb-4">
-            <div class="col-12 mb-2">
-                <h5 class="font-weight-bold text-muted">
-                    <i class="fas fa-chart-bar mr-1"></i> Quick Access — Reports
-                </h5>
-            </div>
-            <div class="col-12">
+            {{-- ✅ Reports Card — same size as stat boxes --}}
+            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
                 <a href="{{ route('reports.daily') }}" class="report-shortcut-card shortcut-yearly shadow-sm d-block">
                     <i class="fas fa-file-export shortcut-bg-icon"></i>
                     <div>
@@ -473,11 +471,12 @@
                     <div class="shortcut-arrow">Go to Reports <i class="fas fa-arrow-right"></i></div>
                 </a>
             </div>
+
         </div>
     @endif
 
     {{-- ============================================
-         CHARTS + SIDEBAR
+         CHARTS + SIDEBAR — LAHAT NG ROLES
     ============================================ --}}
     <div class="row">
 
@@ -550,7 +549,7 @@
             </div>
         </div>
 
-        {{-- RIGHT: LOW STOCK (admin/staff) + RECENT ACTIVITY --}}
+        {{-- RIGHT: LOW STOCK (admin/staff only) + RECENT ACTIVITY --}}
         <div class="col-md-3 col-sm-12">
 
             {{-- Low Stock Alert — ADMIN/STAFF ONLY --}}
@@ -668,83 +667,6 @@
 
         </div>
     </div>
-
-    {{-- ============================================
-         MANAGER: Retailer Orders Table
-    ============================================ --}}
-    @if ($isManager)
-        <div class="row mt-3">
-            <div class="col-12">
-                <div class="card shadow-sm border-0">
-                    <div class="card-header bg-primary text-white">
-                        <h5 class="card-title mb-0 font-weight-bold">
-                            <i class="fas fa-store mr-2"></i> Retailer Orders
-                        </h5>
-                    </div>
-                    <div class="card-body p-0">
-                        <div class="table-responsive">
-                            <table class="table table-hover table-striped mb-0">
-                                <thead class="bg-dark text-white">
-                                    <tr>
-                                        <th class="pl-3">#</th>
-                                        <th>Retailer Name</th>
-                                        <th>Product</th>
-                                        <th>Qty</th>
-                                        <th>Total Amount</th>
-                                        <th>Created By</th>
-                                        <th>Date</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @forelse($retailer_orders as $order)
-                                        <tr>
-                                            <td class="pl-3">{{ $order->id }}</td>
-                                            <td>{{ $order->retailer_name ?? 'N/A' }}</td>
-                                            <td>{{ $order->product_name ?? 'N/A' }}</td>
-                                            <td>{{ $order->quantity ?? 'N/A' }}</td>
-                                            <td class="text-success font-weight-bold">
-                                                ₱{{ number_format($order->total_amount ?? 0, 2) }}
-                                            </td>
-                                            <td>{{ $order->creatorUser->full_name ?? ($order->created_by ?? 'N/A') }}</td>
-                                            <td>{{ $order->created_at->format('M d, Y') }}</td>
-                                            <td>
-                                                @php
-                                                    $statusColors = [
-                                                        'completed' => 'success',
-                                                        'approved' => 'primary',
-                                                        'pending' => 'warning',
-                                                        'rejected' => 'danger',
-                                                    ];
-                                                    $color = $statusColors[$order->status] ?? 'secondary';
-                                                @endphp
-                                                <span class="badge badge-{{ $color }}">
-                                                    {{ ucfirst($order->status ?? 'N/A') }}
-                                                </span>
-                                            </td>
-                                        </tr>
-                                    @empty
-                                        <tr>
-                                            <td colspan="8" class="text-center text-muted py-4">
-                                                <i class="fas fa-inbox mb-2"
-                                                    style="font-size:2rem; display:block; opacity:0.4;"></i>
-                                                No retailer orders found.
-                                            </td>
-                                        </tr>
-                                    @endforelse
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    <div class="card-footer text-right">
-                        <a href="{{ route('retailer.orders.index') }}" class="btn btn-primary btn-sm">
-                            <i class="fas fa-eye mr-1"></i> View All Orders
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-    @endif
 
 @stop
 
