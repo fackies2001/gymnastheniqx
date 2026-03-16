@@ -398,18 +398,18 @@ return [
         [
             'text' => 'Purchases',
             'icon' => 'fas fa-comments-dollar',
+            'role' => ['admin', 'staff'], // ✅ Manager hidden
             'submenu' => [
                 [
                     'text' => 'Purchase Request',
                     'url' => 'purchase-request',
                     'icon' => 'far fa-circle',
-                    // All users can access but with different permissions
                 ],
                 [
                     'text' => 'Purchase Order',
                     'url' => 'purchase-order',
                     'icon' => 'far fa-circle',
-                    'role' => ['admin', 'manager'], // ✅ Admin & Manager only
+                    'role' => 'admin', // ✅ Admin only
                 ],
             ],
         ],
@@ -420,11 +420,13 @@ return [
         [
             'text' => 'Retailers',
             'icon' => 'fas fa-print',
+            'role' => ['admin', 'staff'], // ✅ Manager hidden
             'submenu' => [
                 [
                     'text' => 'Orders',
                     'url' => 'orders',
                     'active' => ['orders*'],
+                    'icon' => 'far fa-circle',
                 ],
             ],
         ],
