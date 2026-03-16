@@ -110,11 +110,76 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
     });
 
     // --- WAREHOUSE & SCANNING ---
-    Route::get('/warehouse', [WarehouseController::class, 'index'])->name('warehouse.index');
-    Route::post('/warehouse/store', [WarehouseController::class, 'store'])->name('warehouse.store');
-    Route::post('/warehouse/update', [WarehouseController::class, 'update'])->name('warehouse.update');
-    Route::delete('/warehouse/delete', [WarehouseController::class, 'destroy'])->name('warehouse.delete');
+    // ✅ Admin at Manager lang
+    Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager')->group(function () {
+        Route::get('/warehouse', [WarehouseController::class, 'index'])->name('warehouse.index');
+        Route::post('/warehouse/store', [WarehouseController::class, 'store'])->name('warehouse.store');
+        Route::post('/warehouse/update', [WarehouseController::class, 'update'])->name('warehouse.update');
+        Route::delete('/warehouse/delete', [WarehouseController::class, 'destroy'])->name('warehouse.delete');
+    });
+
+    // ✅ Staff pwede mag-scan
     Route::get('/scan', [ScanController::class, 'index'])->name('scan.index');
+
+
+    // ✅ SUPPLIER MANAGEMENT — Admin at Manager lang
+    Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager')->group(function () {
+        Route::controller(SuppliersController::class)->group(function () {
+            Route::get('/suppliers', 'index')->name('suppliers.index');
+            Route::get('/suppliers/create', 'create')->name('suppliers.create');
+            Route::post('/suppliers/store', 'store')->name('suppliers.store');
+            Route::get('/suppliers/{id}/products-table', 'showTable')->name('suppliers_products.show_table');
+            Route::get('/suppliers/{id}/edit', 'edit')->name('suppliers.edit');
+            Route::put('/suppliers/{id}', 'update')->name('suppliers.update');
+            Route::delete('/suppliers/{id}', 'destroy')->name('suppliers.destroy');
+            Route::get('/suppliers/{id}', 'show')->name('suppliers.show');
+        });
+
+        // SUPPLIER PRODUCTS — Admin at Manager lang
+        Route::controller(SupplierProductsController::class)->group(function () {
+            Route::get('/supplier_products', 'index')->name('supplier_products.index');
+            Route::post('/supplier_products/store', 'store')->name('supplier_products.store');
+            Route::get('/supplier_products/scan/{barcode}', 'scan')->name('supplier_products.scan');
+            Route::get('/supplier_products/data', 'datatable')->name('supplier_products.data');
+            Route::get('/supplier_products/initial_table', 'initial_table')->name('supplier_products.api_initial_table');
+            Route::get('/supplier_products/list/{supplier_id}', 'getProductsBySupplier');
+            Route::get('/supplier_products/show_table/{id}', 'showTable')->name('supplier_products.show_table');
+        });
+    });
+
+    // ✅ DAILY REPORTS — Admin at Manager lang
+    Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager')->group(function () {
+        Route::controller(ReportsController::class)->group(function () {
+            Route::post('/reports/damage', 'reportDamage')->name('reports.report.damage');
+            Route::post('/reports/update-stock', 'updateStock')->name('reports.update.stock');
+            Route::get('/daily-reports', 'dailyIndex')->name('reports.daily');
+            Route::get('/reports/daily/data', 'getDailyData')->name('reports.daily.data');
+            Route::get('/reports/daily/export', 'exportDaily')->name('reports.daily.export');
+            Route::post('/reports/approve/{id}/{type}', 'approve')->name('reports.approve');
+            Route::post('/reports/reject/{id}/{type}', 'reject')->name('reports.reject');
+            Route::post('/weekly-reports/save-audit', 'saveAudit')->name('reports.audit.save');
+            Route::get('/weekly-reports/audit-history', 'auditHistory')->name('reports.audit.history');
+            Route::get('/weekly-reports', 'weeklyIndex')->name('reports.weekly');
+            Route::get('/weekly-reports/get-data', 'getWeeklyData')->name('reports.weekly.data');
+            Route::get('/weekly-reports/export', 'exportWeekly')->name('reports.weekly.export');
+            Route::get('/monthly-reports', 'monthlyIndex')->name('reports.monthly');
+            Route::get('/quarterly-reports', 'strategicIndex')->name('reports.quarterly');
+            Route::get('/yearly-reports', 'strategicIndex')->name('reports.yearly');
+            Route::get('/strategic-reports', 'strategicIndex')->name('reports.strategic');
+        });
+    });
+
+    // ✅ MANPOWER — Admin at Manager lang
+    Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager')->group(function () {
+        Route::controller(ManpowerController::class)->group(function () {
+            Route::get('/manpower', 'index')->name('manpower.index');
+            Route::get('/manpower/data', 'get_coaches_data')->name('manpower.data');
+            Route::post('/manpower/store', 'store')->name('manpower.store');
+            Route::get('/manpower/{id}/edit', 'edit')->name('manpower.edit');
+            Route::put('/manpower/{id}', 'update')->name('manpower.update');
+            Route::delete('/manpower/{id}', 'destroy')->name('manpower.delete');
+        });
+    });
 
     // ✅ Purchase Request Routes
     Route::prefix('purchase-request')->group(function () {
