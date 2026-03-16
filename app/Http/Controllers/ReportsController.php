@@ -19,6 +19,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\DailyInventoryExport;
 use Illuminate\Support\Facades\DB;
 
+
 class ReportsController extends Controller
 {
 
