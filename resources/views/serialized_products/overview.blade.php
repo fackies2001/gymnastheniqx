@@ -6,7 +6,6 @@
 
 @section('content_body')
     <div class="container-fluid">
-        <!-- Back Button -->
         <div class="mb-3">
             <a href="{{ route('serialized_products._index') }}" class="btn btn-default shadow-sm">
                 <i class="fas fa-arrow-left"></i> Back to Products
@@ -23,39 +22,27 @@
                         </h5>
                     </div>
                     <div class="card-body text-center p-4">
-                        <!-- Product Image -->
                         <div class="mb-4">
                             <img src="{{ $productImage }}" alt="{{ $serialized_product_details->supplierProducts->name }}"
                                 class="img-fluid rounded shadow"
                                 style="max-width: 100%; height: auto; max-height: 400px; object-fit: contain;">
                         </div>
 
-                        <!-- Product Name -->
                         <h2 class="text-uppercase font-weight-bold mb-4">
                             {{ $serialized_product_details->supplierProducts->name }}
                         </h2>
 
-                        <!-- SKU Info -->
                         <div class="alert alert-info">
                             <strong>SKU:</strong> {{ $serialized_product_details->supplierProducts->system_sku ?? 'N/A' }}
                         </div>
 
-                        <!-- Barcode Display -->
                         <div class="card bg-white border-0 shadow-sm mt-4 p-3">
-                            <h5 class="text-muted mb-3"> SERIAL NUMBER </h5>
-
-                            <!-- Barcode Image -->
+                            <h5 class="text-muted mb-3">SERIAL NUMBER</h5>
                             <div class="mb-3">
                                 <img src="data:image/png;base64,{{ $barcodeImage }}" alt="Barcode" class="img-fluid"
                                     style="max-width: 100%; height: auto;">
                             </div>
-
-                            <!-- Serial Number Text -->
-                            <h4 class="font-weight-bold text-primary">
-                                {{ $serial_number }}
-                            </h4>
-
-                            <!-- Traceability ID -->
+                            <h4 class="font-weight-bold text-primary">{{ $serial_number }}</h4>
                             <p class="text-muted small mt-2 mb-0">
                                 Traceability ID: <strong>#TRK-{{ $serialized_product_details->id }}</strong>
                             </p>
@@ -104,7 +91,6 @@
                             </tr>
                         </table>
 
-                        <!-- PURCHASE DETAILS -->
                         <hr>
                         <h6 class="text-uppercase text-muted mb-3">Purchase Details</h6>
                         <table class="table table-borderless mb-0">
@@ -120,7 +106,6 @@
                             <tr>
                                 <th>Order Date:</th>
                                 <td>
-                                    {{-- ✅ FIXED: Remove time, show date only --}}
                                     @if ($serialized_product_details->purchaseOrder && $serialized_product_details->purchaseOrder->order_date)
                                         {{ \Carbon\Carbon::parse($serialized_product_details->purchaseOrder->order_date)->format('M d, Y') }}
                                     @else
@@ -131,7 +116,6 @@
                             <tr>
                                 <th>Delivery:</th>
                                 <td>
-                                    {{-- ✅ FIXED: Remove time, show date only --}}
                                     @if ($serialized_product_details->purchaseOrder && $serialized_product_details->purchaseOrder->delivery_date)
                                         {{ \Carbon\Carbon::parse($serialized_product_details->purchaseOrder->delivery_date)->format('M d, Y') }}
                                     @else
@@ -156,7 +140,6 @@
                                 <th width="40%">Scanned By</th>
                                 <td>
                                     <i class="fas fa-user-circle text-primary mr-2"></i>
-                                    {{-- ✅ FIXED: Show actual employee name instead of N/A --}}
                                     <strong>{{ $serialized_product_details->scannedBy->full_name ?? 'N/A' }}</strong>
                                 </td>
                             </tr>
@@ -173,11 +156,11 @@
                                     @php
                                         $status = $serialized_product_details->productStatus;
                                         $statusColors = [
-                                            1 => 'success', // Available
-                                            2 => 'warning', // Reserved
-                                            3 => 'danger', // Sold
-                                            4 => 'dark', // Damaged
-                                            5 => 'secondary', // Lost
+                                            1 => 'success',
+                                            2 => 'warning',
+                                            3 => 'danger',
+                                            4 => 'dark',
+                                            5 => 'secondary',
                                         ];
                                         $color = $statusColors[$status->id ?? 1] ?? 'secondary';
                                     @endphp
@@ -188,22 +171,53 @@
                                     </span>
                                 </td>
                             </tr>
+
+                            {{-- Serial Number Barcode --}}
                             <tr>
                                 <th>Serial Number</th>
                                 <td>
                                     <i class="fas fa-barcode text-secondary mr-2"></i>
                                     <strong class="font-monospace d-block mb-2">{{ $serial_number }}</strong>
                                     <div class="mt-2">
-                                        <img src="data:image/png;base64,{{ $barcodeImage }}" alt="Barcode"
+                                        <img src="data:image/png;base64,{{ $barcodeImage }}" alt="Serial Barcode"
                                             class="img-fluid" style="max-width: 250px; height: auto;">
                                     </div>
                                 </td>
                             </tr>
+
+                            {{-- ✅ DAGDAG: Product Barcode mula sa supplier_product table --}}
+                            @if ($productBarcodeImage && $productBarcode)
+                                <tr>
+                                    <th>Product Barcode</th>
+                                    <td>
+                                        <i class="fas fa-barcode text-primary mr-2"></i>
+                                        <strong class="font-monospace d-block mb-2">{{ $productBarcode }}</strong>
+                                        <div class="mt-2">
+                                            <img src="data:image/png;base64,{{ $productBarcodeImage }}"
+                                                alt="Product Barcode" class="img-fluid"
+                                                style="max-width: 250px; height: auto;">
+                                        </div>
+                                        <small class="text-muted mt-1 d-block">
+                                            <i class="fas fa-info-circle"></i> Original product barcode from supplier
+                                        </small>
+                                    </td>
+                                </tr>
+                            @else
+                                <tr>
+                                    <th>Product Barcode</th>
+                                    <td>
+                                        <span class="text-muted">
+                                            <i class="fas fa-exclamation-circle mr-1"></i>
+                                            No barcode registered for this product
+                                        </span>
+                                    </td>
+                                </tr>
+                            @endif
+
                         </table>
                     </div>
                 </div>
 
-                <!-- Update Status Button -->
                 <div class="mt-3">
                     <button class="btn btn-primary btn-lg btn-block" data-toggle="modal" data-target="#updateStatusModal">
                         <i class="fas fa-edit mr-2"></i> Update Status
@@ -228,37 +242,28 @@
                 <form id="updateStatusForm">
                     @csrf
                     @method('PUT')
-
                     <div class="modal-body">
                         <div class="form-group">
                             <label for="status_id">New Status</label>
                             <select name="status_id" id="status_id" class="form-control" required>
                                 <option value="">-- Select Status --</option>
-                                {{-- ✅ FIXED: Removed Released & Under Repair options --}}
                                 <option value="1" {{ $serialized_product_details->status == 1 ? 'selected' : '' }}>
-                                    Available
-                                </option>
+                                    Available</option>
                                 <option value="2" {{ $serialized_product_details->status == 2 ? 'selected' : '' }}>
-                                    Reserved
-                                </option>
+                                    Reserved</option>
                                 <option value="3" {{ $serialized_product_details->status == 3 ? 'selected' : '' }}>
-                                    Sold
-                                </option>
+                                    Sold</option>
                                 <option value="4" {{ $serialized_product_details->status == 4 ? 'selected' : '' }}>
-                                    Damaged
-                                </option>
+                                    Damaged</option>
                                 <option value="5" {{ $serialized_product_details->status == 5 ? 'selected' : '' }}>
-                                    Lost
-                                </option>
+                                    Lost</option>
                             </select>
                         </div>
-
                         <div class="form-group">
                             <label for="remarks">Remarks (Optional)</label>
                             <textarea name="remarks" id="remarks" class="form-control" rows="3" placeholder="Enter any notes...">{{ $serialized_product_details->remarks ?? '' }}</textarea>
                         </div>
                     </div>
-
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
                         <button type="button" id="saveStatusBtn" class="btn btn-primary">
@@ -296,7 +301,6 @@
 @push('js')
     <script>
         $(document).ready(function() {
-            // ✅ Status color mapping (removed Released and Under Repair)
             const statusColors = {
                 1: {
                     badge: 'success',
@@ -320,16 +324,12 @@
                 }
             };
 
-            // ✅ AJAX Update Status Handler
             $('#saveStatusBtn').off('click').on('click', function(e) {
                 e.preventDefault();
-
                 const $btn = $(this);
-                const $form = $('#updateStatusForm');
                 const statusId = $('#status_id').val();
                 const remarks = $('#remarks').val();
 
-                // Validation
                 if (!statusId) {
                     Swal.fire({
                         icon: 'warning',
@@ -340,10 +340,8 @@
                     return;
                 }
 
-                // Show loading state
                 $btn.addClass('btn-loading').html('<i class="fas fa-spinner fa-spin mr-2"></i> Saving...');
 
-                // ✅ AJAX Request
                 $.ajax({
                     url: "{{ route('serialized_products.update_status', $serialized_product_details->id) }}",
                     type: 'PUT',
@@ -354,35 +352,21 @@
                     },
                     success: function(response) {
                         if (response.success) {
-                            // ✅ Update UI without reload
                             const newStatus = statusColors[statusId];
                             const $badge = $('#current-status-badge');
-
-                            // Remove all badge color classes
                             $badge.removeClass(
                                 'badge-success badge-warning badge-danger badge-dark badge-secondary'
-                            );
-
-                            // Add new color class
+                                );
                             $badge.addClass('badge-' + newStatus.badge);
-
-                            // Update status text
                             $('#status-text').text(newStatus.name);
-
-                            // Close modal
                             $('#updateStatusModal').modal('hide');
-
-                            // Show success message
                             Swal.fire({
                                 icon: 'success',
                                 title: 'Success!',
-                                text: response.message ||
-                                    'Status updated successfully!',
+                                text: response.message || 'Status updated!',
                                 timer: 2000,
                                 showConfirmButton: false
                             });
-
-                            // Reset button
                             $btn.removeClass('btn-loading').html(
                                 '<i class="fas fa-save mr-2"></i> Save Changes');
                         } else {
@@ -390,29 +374,19 @@
                         }
                     },
                     error: function(xhr) {
-                        console.error('Update error:', xhr);
-
-                        let errorMessage = 'Failed to update status. Please try again.';
-
-                        if (xhr.responseJSON && xhr.responseJSON.message) {
-                            errorMessage = xhr.responseJSON.message;
-                        }
-
                         Swal.fire({
                             icon: 'error',
                             title: 'Error!',
-                            text: errorMessage,
+                            text: xhr.responseJSON?.message ||
+                                'Failed to update status.',
                             confirmButtonColor: '#dc3545'
                         });
-
-                        // Reset button
                         $btn.removeClass('btn-loading').html(
                             '<i class="fas fa-save mr-2"></i> Save Changes');
                     }
                 });
             });
 
-            // ✅ Reset form when modal closes
             $('#updateStatusModal').on('hidden.bs.modal', function() {
                 $('#updateStatusForm')[0].reset();
                 $('#saveStatusBtn').removeClass('btn-loading').html(
