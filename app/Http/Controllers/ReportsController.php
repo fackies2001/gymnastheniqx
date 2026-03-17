@@ -120,10 +120,15 @@ class ReportsController extends Controller
             \Log::info("=== DAILY REPORT START ===");
             \Log::info("Filter Type: " . ($filterType ?? 'none') . " | Date: " . ($date ?? 'all') . " | Type: " . ($type ?? 'all'));
 
-            // ===== DAILY RECEIVED =====
+            // ===== DAILY RECEIVED — GROUPED by product + PO =====
             if (!$type || $type === 'received') {
                 try {
-                    $query = SerializedProduct::with(['supplierProducts.supplier', 'supplierProducts.category', 'productStatus'])
+                    $query = SerializedProduct::select(
+                        'product_id',
+                        'purchase_order_id',
+                        DB::raw('MIN(created_at) as received_date'),
+                        DB::raw('COUNT(*) as total_qty')
+                    )
                         ->whereNotNull('purchase_order_id');
 
                     if ($date) {
@@ -132,27 +137,35 @@ class ReportsController extends Controller
                         $query->whereBetween('created_at', [$dateQuery['start'], $dateQuery['end']]);
                     }
 
-                    $serializedProducts = $query->get();
+                    $groupedProducts = $query
+                        ->groupBy('product_id', 'purchase_order_id')
+                        ->get();
 
-                    foreach ($serializedProducts as $item) {
-                        $productName  = $item->supplierProducts->name ?? 'Unnamed Product';
-                        $supplierName = $item->supplierProducts->supplier->name ?? 'N/A';
-                        $categoryName = $item->productStatus->name ?? 'General';
-                        $receivedDate = Carbon::parse($item->created_at)->format('M d, Y h:i A');
+                    foreach ($groupedProducts as $item) {
+                        // ✅ Load relationships manually
+                        $supplierProduct = \App\Models\SupplierProduct::with(['supplier', 'category'])
+                            ->find($item->product_id);
+                        $purchaseOrder = \App\Models\PurchaseOrder::find($item->purchase_order_id);
+
+                        $productName  = $supplierProduct->name ?? 'Unnamed Product';
+                        $supplierName = $supplierProduct->supplier->name ?? 'N/A';
+                        $categoryName = $supplierProduct->category->name ?? 'General';
+                        $receivedDate = \Carbon\Carbon::parse($item->received_date)->format('M d, Y h:i A');
+                        $poNumber     = $purchaseOrder->po_number ?? 'N/A';
 
                         $data[] = [
                             'product_name'  => '<strong style="font-size: 16px; color: black;">' . e($productName) . '</strong><br>
-                    <span style="font-size: 13px; color: #666;">SN: ' . e($item->serial_number ?? 'N/A') . '</span><br>
+                    <span style="font-size: 13px; color: #666;">Supplier: ' . e($supplierName) . '</span><br>
                     <span style="font-size: 12px; color: #999;"><i class="far fa-clock"></i> ' . $receivedDate . '</span>',
                             'category_name' => '<span class="badge badge-info">' . e($categoryName) . '</span>',
                             'traceability'  => '<small>
                     <strong>Type:</strong> Scanned from PO<br>
-                    <strong>Serial No:</strong> ' . e($item->serial_number ?? 'N/A') . '<br>
+                    <strong>PO Number:</strong> ' . e($poNumber) . '<br>
                     <strong>Supplier:</strong> ' . e($supplierName) . '<br>
                     <strong>Date Received:</strong> ' . $receivedDate . '
                     </small>',
-                            'quantity' => 1,
-                            'image'    => $item->supplierProducts->thumbnail ?? null,
+                            'quantity' => $item->total_qty,
+                            'image'    => $supplierProduct->thumbnail ?? null,
                             'status'   => 'Received'
                         ];
                     }
