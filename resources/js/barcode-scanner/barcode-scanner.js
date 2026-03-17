@@ -66,24 +66,31 @@ if (barcodeInput) {
 
     // Scanner gun paste detection
     barcodeInput.addEventListener('input', (e) => {
-        if (!this.isScanning) return;
+    if (!this.isScanning) return;
 
-        clearTimeout(this.scanTimeout);
+    // ✅ FIX: Real-time clean — alisin agad ang leading semicolons
+    const currentVal = barcodeInput.value;
+    const cleanedVal = currentVal.replace(/^[^a-zA-Z0-9]+/, '');
+    if (currentVal !== cleanedVal) {
+        barcodeInput.value = cleanedVal;
+    }
 
-        const charsAdded = e.data ? e.data.length : 0;
+    clearTimeout(this.scanTimeout);
 
-        if (charsAdded > 1) {
-            // Scanner nagpaste ng maraming chars nang sabay
-            this.scanTimeout = setTimeout(() => {
-                const barcode = barcodeInput.value.trim();
-                if (barcode.length >= 3) {
-                    console.log('🔫 Scanner paste detected:', barcode);
-                    this.processBarcode(barcode, barcodeInput);
-                }
-            }, 50);
-        }
-        // Single char = manual typing, hintayin ang Enter
-    });
+    const charsAdded = e.data ? e.data.length : 0;
+
+    if (charsAdded > 1) {
+        // Scanner nagpaste ng maraming chars nang sabay
+        this.scanTimeout = setTimeout(() => {
+            const barcode = barcodeInput.value.trim();
+            if (barcode.length >= 3) {
+                console.log('🔫 Scanner paste detected:', barcode);
+                this.processBarcode(barcode, barcodeInput);
+            }
+        }, 50);
+    }
+    // Single char = manual typing, hintayin ang Enter
+});
 
             // ✅ Keep input focused while scanning
             barcodeInput.addEventListener('blur', () => {
@@ -127,32 +134,39 @@ if (barcodeInput) {
     /**
      * ✅ FIX: Central barcode processor - used by both manual & scanner gun paths
      */
-    async processBarcode(barcode, inputEl) {
-        // Prevent double-processing
-        if (this.isProcessing) {
-            console.warn('⏳ Already processing a scan, skipping:', barcode);
-            return;
-        }
+    
+        async processBarcode(barcode, inputEl) {
+    // Prevent double-processing
+    if (this.isProcessing) {
+        console.warn('⏳ Already processing a scan, skipping:', barcode);
+        return;
+    }
 
-        if (!barcode || barcode.length === 0) return;
+    if (!barcode || barcode.length === 0) return;
 
-        // ✅ FIX: Allow any length barcode (removed 8-char minimum that was blocking valid scans)
-        // The server validates the barcode anyway
-        if (barcode.length < 3) {
-            this.showToast('warning', 'Barcode too short. Please scan again.');
-            if (inputEl) inputEl.value = '';
-            return;
-        }
+    // ✅ FIX: Strip leading semicolons + any non-alphanumeric prefix
+    barcode = barcode.replace(/^[^a-zA-Z0-9]+/, '').trim();
+    console.log('🔧 Cleaned barcode:', barcode);
 
-        await this.scanBarcode(barcode);
+    if (!barcode || barcode.length === 0) return;
 
-        if (inputEl) {
-            inputEl.value = '';
-            if (this.isScanning) {
-                inputEl.focus();
-            }
+    // ✅ FIX: Allow any length barcode (removed 8-char minimum that was blocking valid scans)
+    // The server validates the barcode anyway
+    if (barcode.length < 3) {
+        this.showToast('warning', 'Barcode too short. Please scan again.');
+        if (inputEl) inputEl.value = '';
+        return;
+    }
+
+    await this.scanBarcode(barcode);
+
+    if (inputEl) {
+        inputEl.value = '';
+        if (this.isScanning) {
+            inputEl.focus();
         }
     }
+}
 
     calculateTotals() {
         const rows = document.querySelectorAll('#poItemsBody tr[data-quantity-ordered]');
