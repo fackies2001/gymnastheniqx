@@ -176,6 +176,10 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session'])->group(funct
 
         // WAREHOUSE
         Route::get('/warehouse', [WarehouseController::class, 'index'])->name('warehouse.index');
+
+        // ✅ DAGDAG ITO — BAGO ang store/update/delete
+        Route::get('/warehouse/check-duplicate', [WarehouseController::class, 'checkDuplicate'])->name('warehouse.check_duplicate');
+
         Route::post('/warehouse/store', [WarehouseController::class, 'store'])->name('warehouse.store');
         Route::post('/warehouse/update', [WarehouseController::class, 'update'])->name('warehouse.update');
         Route::delete('/warehouse/delete', [WarehouseController::class, 'destroy'])->name('warehouse.delete');

@@ -168,4 +168,13 @@ class WarehouseController extends Controller
             ], 500);
         }
     }
+    // Dagdag na method
+    public function checkDuplicate(Request $request)
+    {
+        $exists = Warehouse::whereRaw('LOWER(name) = ?', [strtolower($request->name)])
+            ->whereRaw('LOWER(address) = ?', [strtolower($request->address)])
+            ->exists();
+
+        return response()->json(['exists' => $exists]);
+    }
 }
