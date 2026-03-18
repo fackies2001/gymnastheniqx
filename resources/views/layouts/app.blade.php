@@ -70,7 +70,7 @@
     @auth
         <div id="sessionWarningModal"
             style="
-        display: none; position: fixed; inset: 0; z-index: 9999;
+    display: none !important; position: fixed; inset: 0; z-index: 99999;
         background: rgba(0,0,0,0.65);
         align-items: center; justify-content: center;">
             <div
@@ -237,7 +237,9 @@
 
             function showSessionWarning() {
                 const modal = document.getElementById('sessionWarningModal');
-                modal.style.display = 'flex';
+                modal.classList.remove('fade');
+                modal.style.cssText =
+                    'display: flex !important; position: fixed; inset: 0; z-index: 99999; background: rgba(0,0,0,0.65); align-items: center; justify-content: center;';
                 startSessionCountdown();
             }
 
