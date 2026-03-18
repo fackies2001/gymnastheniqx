@@ -588,11 +588,13 @@
                 }
 
                 function autoLogout() {
+                    // ✅ Gamitin ang form submit para POST ang logout
                     var form = document.querySelector('#sessionWarningModal form[action*="logout"]');
                     if (form) {
                         form.submit();
                     } else {
-                        window.location.href = '{{ route('logout') }}';
+                        // ✅ Fallback — redirect sa logout-forced na GET route mo
+                        window.location.href = '/logout-forced';
                     }
                 }
 
