@@ -98,7 +98,7 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session'])->group(funct
 
     Route::get('/test-user-methods', function () {
         $user = Auth::user();
-        return response()->json([
+        return response()->json([   
             'full_name'          => $user->full_name,
             'adminlte_image'     => $user->adminlte_image(),
             'adminlte_desc'      => $user->adminlte_desc(),
