@@ -108,37 +108,25 @@
                                     <small class="text-xs text-muted ml-1">Linked to Google Account</small>
                                 </div>
 
-                                <div class="col-md-6 mb-4">
-                                    <label class="small font-weight-bold text-muted text-uppercase">Username</label>
-                                    <div class="input-group">
-                                        <div class="input-group-prepend">
-                                            <span class="input-group-text bg-light border-right-0"><i
-                                                    class="fas fa-at text-muted"></i></span>
-                                        </div>
-                                        <input type="text" class="form-control border-left-0 bg-light"
-                                            value="{{ $user->username ?? 'admin' }}" readonly>
-                                    </div>
+                                <hr class="my-4">
+
+                                <div class="d-flex align-items-center">
+                                    <button type="submit"
+                                        class="btn btn-primary px-5 shadow-sm font-weight-bold rounded-pill">
+                                        <i class="fas fa-save mr-2"></i> Save Profile Details
+                                    </button>
+
+                                    @if (session('status') === 'profile-updated')
+                                        <span class="ml-3 text-success font-weight-bold animated fadeIn" id="statusMessage">
+                                            <i class="fas fa-check-circle mr-1"></i> Changes Saved!
+                                        </span>
+                                        <script>
+                                            setTimeout(() => {
+                                                document.getElementById('statusMessage').style.display = 'none';
+                                            }, 3000);
+                                        </script>
+                                    @endif
                                 </div>
-                            </div>
-
-                            <hr class="my-4">
-
-                            <div class="d-flex align-items-center">
-                                <button type="submit" class="btn btn-primary px-5 shadow-sm font-weight-bold rounded-pill">
-                                    <i class="fas fa-save mr-2"></i> Save Profile Details
-                                </button>
-
-                                @if (session('status') === 'profile-updated')
-                                    <span class="ml-3 text-success font-weight-bold animated fadeIn" id="statusMessage">
-                                        <i class="fas fa-check-circle mr-1"></i> Changes Saved!
-                                    </span>
-                                    <script>
-                                        setTimeout(() => {
-                                            document.getElementById('statusMessage').style.display = 'none';
-                                        }, 3000);
-                                    </script>
-                                @endif
-                            </div>
                         </form>
                     </div>
                 </div>

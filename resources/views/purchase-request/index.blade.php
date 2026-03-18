@@ -1060,6 +1060,7 @@
                             <td>
                                 <input type="number" name="products[${item.id}][unit_cost]"
                                     class="form-control form-control-sm text-center unit-cost-input"
+                                    style="min-width: 90px;"
                                     data-index="${index}" value="${item.price.toFixed(2)}"
                                     step="0.01" min="0">
                             </td>
@@ -1230,6 +1231,12 @@
             }
 
             #selectedItemsTable .qty-input {
+                min-width: 90px;
+                width: 100%;
+            }
+
+            #selectedItemsTable .qty-input,
+            #selectedItemsTable .unit-cost-input {
                 min-width: 90px;
                 width: 100%;
             }

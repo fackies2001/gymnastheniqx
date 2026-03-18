@@ -18,7 +18,6 @@
                                 <th>Photo</th>
                                 <th>Full Name</th>
                                 <th>Email</th>
-                                <th>Username</th>
                                 <th>Contact Number</th>
                                 <th>Address</th>
                                 <th>Date Hired</th>
@@ -46,7 +45,6 @@
 
                                     <td>{{ $employee->full_name }}</td>
                                     <td>{{ $employee->email ?? 'No Email' }}</td>
-                                    <td>{{ $employee->username }}</td>
                                     <td>{{ $employee->contact_number ?? 'N/A' }}</td>
                                     <td>{{ Str::limit($employee->address ?? 'N/A', 20) }}</td>
                                     <td>{{ $employee->date_hired ? \Carbon\Carbon::parse($employee->date_hired)->format('Y-m-d') : 'N/A' }}
@@ -63,7 +61,6 @@
                                     <td>
                                         <button class="btn btn-xs btn-success edit-employee-btn"
                                             data-id="{{ $employee->id }}" data-full_name="{{ $employee->full_name }}"
-                                            data-email="{{ $employee->email }}" data-username="{{ $employee->username }}"
                                             data-role="{{ $employee->role_id }}"
                                             data-department="{{ $employee->department_id }}"
                                             data-warehouse="{{ $employee->assigned_at }}"
@@ -122,12 +119,6 @@
                             <div class="col-md-6 form-group">
                                 <label>Email <span class="text-danger">*</span></label>
                                 <input type="email" name="email" id="email" class="form-control" required>
-                            </div>
-
-                            {{-- Username --}}
-                            <div class="col-md-6 form-group">
-                                <label>Username <span class="text-danger">*</span></label>
-                                <input type="text" name="username" id="username" class="form-control" required>
                             </div>
 
                             {{-- Contact Number --}}
@@ -241,7 +232,6 @@
                     $('#emp_id').val(btn.data('id'));
                     $('#full_name').val(btn.data('full_name') || '');
                     $('#email').val(btn.data('email') || '');
-                    $('#username').val(btn.data('username') || '');
                     $('#contact_number').val(btn.data('contact_number') || '');
                     $('#address').val(btn.data('address') || '');
                     $('#date_hired').val(btn.data('hired') || '');
