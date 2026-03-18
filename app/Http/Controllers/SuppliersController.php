@@ -127,13 +127,35 @@ class SuppliersController extends Controller
 
     public function destroy($id)
     {
-        $supplier = Supplier::findOrFail($id);
-        // Manual delete ng products bago i-delete ang supplier
-        $supplier->supplierProducts()->delete();
-        $supplier->delete();
+        try {
+            $supplier = Supplier::findOrFail($id);
 
-        return redirect()->route('suppliers.index')
-            ->with('success', 'Supplier deleted successfully!');
+            // 1. Kunin lahat ng product IDs ng supplier
+            $productIds = $supplier->supplierProducts()->pluck('id');
+
+            if ($productIds->isNotEmpty()) {
+                // 2. I-delete muna ang purchase_request_items (walang cascade sa migration)
+                \App\Models\PurchaseRequestItem::whereIn('product_id', $productIds)->delete();
+
+                // NOTE: serialized_product at purchase_order_items
+                // ay may onDelete('cascade') na sa migration — auto-delete na sila
+            }
+
+            // 3. I-delete ang supplier products
+            $supplier->supplierProducts()->delete();
+
+            // 4. I-delete na ang supplier
+            // (purchase_order ay may cascade sa supplier_id — auto-delete na rin)
+            $supplier->delete();
+
+            return redirect()->route('suppliers.index')
+                ->with('success', 'Supplier deleted successfully!');
+        } catch (\Exception $e) {
+            \Log::error('Delete Supplier Error: ' . $e->getMessage());
+
+            return redirect()->route('suppliers.index')
+                ->with('error', 'Cannot delete supplier: ' . $e->getMessage());
+        }
     }
 
     public function checkduplicate()
