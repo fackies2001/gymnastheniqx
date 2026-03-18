@@ -18,6 +18,7 @@
                                 <th>Photo</th>
                                 <th>Full Name</th>
                                 <th>Email</th>
+                                {{-- ✅ FIX: Removed Username column --}}
                                 <th>Contact Number</th>
                                 <th>Address</th>
                                 <th>Date Hired</th>
@@ -45,6 +46,7 @@
 
                                     <td>{{ $employee->full_name }}</td>
                                     <td>{{ $employee->email ?? 'No Email' }}</td>
+                                    {{-- ✅ FIX: Removed Username column data --}}
                                     <td>{{ $employee->contact_number ?? 'N/A' }}</td>
                                     <td>{{ Str::limit($employee->address ?? 'N/A', 20) }}</td>
                                     <td>{{ $employee->date_hired ? \Carbon\Carbon::parse($employee->date_hired)->format('Y-m-d') : 'N/A' }}
@@ -57,11 +59,11 @@
                                     </td>
                                     <td>{{ $employee->role->role_name ?? 'N/A' }}</td>
 
-                                    {{-- ✅ FIXED: Buttons are now properly separated --}}
                                     <td>
+                                        {{-- ✅ FIX: Added data-email attribute --}}
                                         <button class="btn btn-xs btn-success edit-employee-btn"
                                             data-id="{{ $employee->id }}" data-full_name="{{ $employee->full_name }}"
-                                            data-role="{{ $employee->role_id }}"
+                                            data-email="{{ $employee->email }}" data-role="{{ $employee->role_id }}"
                                             data-department="{{ $employee->department_id }}"
                                             data-warehouse="{{ $employee->assigned_at }}"
                                             data-status="{{ $employee->status }}"
@@ -138,7 +140,7 @@
                                 </select>
                             </div>
 
-                            {{-- ✅ Department --}}
+                            {{-- Department --}}
                             <div class="col-md-6 form-group">
                                 <label>Department</label>
                                 <select name="department_id" id="department_id" class="form-control">
@@ -201,10 +203,16 @@
         </div>
     </div>
 
-
     @push('js')
         <script>
             $(document).ready(function() {
+
+                // ✅ FIX: Global AJAX CSRF header — fixes CSRF token mismatch
+                $.ajaxSetup({
+                    headers: {
+                        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+                    }
+                });
 
                 // DATATABLE
                 if ($.fn.DataTable.isDataTable('#sampleId')) {
@@ -231,6 +239,7 @@
                     $('#employeeForm')[0].reset();
                     $('#emp_id').val(btn.data('id'));
                     $('#full_name').val(btn.data('full_name') || '');
+                    // ✅ FIX: Populate email field from data-email attribute
                     $('#email').val(btn.data('email') || '');
                     $('#contact_number').val(btn.data('contact_number') || '');
                     $('#address').val(btn.data('address') || '');
@@ -244,9 +253,7 @@
                     $('#createUserModal').modal('show');
                 });
 
-
-                // SAVE / UPDATE BUTTON
-                // ✅ FIX: Gamitin form submit instead ng button click para maiwasan ang hanging
+                // SAVE / UPDATE
                 $('#employeeForm').off('submit').on('submit', function(e) {
                     e.preventDefault();
                     let id = $('#emp_id').val();
@@ -255,7 +262,6 @@
                         "{{ route('user.management.update') }}" :
                         "{{ route('user.management.store') }}";
 
-                    // ✅ Disable button para hindi double submit
                     $('#save_btn').prop('disabled', true).text('Saving...');
 
                     $.ajax({
@@ -289,7 +295,6 @@
                             });
                         },
                         complete: function() {
-                            // ✅ Re-enable button after request
                             $('#save_btn').prop('disabled', false).text(
                                 id ? 'Update Employee' : 'Save Employee'
                             );
@@ -313,8 +318,7 @@
                                 url: "{{ route('admin.reset.pin') }}",
                                 type: 'POST',
                                 data: {
-                                    id: id,
-                                    _token: "{{ csrf_token() }}"
+                                    id: id
                                 },
                                 success: function(res) {
                                     Swal.fire('Reset!', res.message, 'success');
@@ -346,14 +350,11 @@
                             $.ajax({
                                 url: '/user-management/delete/' + id,
                                 type: 'DELETE',
-                                data: {
-                                    _token: "{{ csrf_token() }}"
-                                },
                                 success: function(res) {
                                     Swal.fire('Deleted!', res.message, 'success').then(
-                                        () => {
-                                            location.reload();
-                                        });
+                                () => {
+                                        location.reload();
+                                    });
                                 },
                                 error: function(xhr) {
                                     Swal.fire('Error!', xhr.responseJSON?.message ||
