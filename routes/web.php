@@ -184,14 +184,16 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session'])->group(funct
         Route::controller(SuppliersController::class)->group(function () {
             Route::get('/suppliers', 'index')->name('suppliers.index');
             Route::get('/suppliers/create', 'create')->name('suppliers.create');
+
+            // ✅ DAPAT NANDITO — BAGO ang {id} routes
+            Route::get('/suppliers/check-duplicate', 'checkDuplicate')->name('suppliers.check_duplicate');
+
             Route::post('/suppliers/store', 'store')->name('suppliers.store');
             Route::get('/suppliers/{id}/products-table', 'showTable')->name('suppliers_products.show_table');
             Route::get('/suppliers/{id}/edit', 'edit')->name('suppliers.edit');
             Route::put('/suppliers/{id}', 'update')->name('suppliers.update');
             Route::delete('/suppliers/{id}', 'destroy')->name('suppliers.destroy');
-            Route::get('/suppliers/{id}', 'show')->name('suppliers.show');
-            Route::get('suppliers/check-duplicate', [SuppliersController::class, 'checkDuplicate'])
-                ->name('suppliers.check_duplicate');
+            Route::get('/suppliers/{id}', 'show')->name('suppliers.show'); // ← LAGING HULI
         });
 
         // SUPPLIER PRODUCTS
