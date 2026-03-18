@@ -120,7 +120,7 @@
                                                 <tr>
                                                     <th>Product</th>
                                                     <th class="text-center" width="90">Unit Cost</th>
-                                                    <th class="text-center" width="70">Qty</th>
+                                                    <th class="text-center" width="110">Qty</th>
                                                     <th class="text-center" width="100">Subtotal</th>
                                                     <th class="text-center" width="50"></th>
                                                 </tr>
@@ -1066,6 +1066,7 @@
                             <td>
                                 <input type="number" name="products[${item.id}][quantity]"
                                     class="form-control form-control-sm text-center qty-input"
+                                    style="min-width: 90px;"
                                     data-index="${index}" value="${item.quantity}" min="1">
                             </td>
                             <td class="text-center font-weight-bold">₱${item.subtotal.toFixed(2)}</td>
@@ -1226,6 +1227,11 @@
 
             #viewPRModal .table-responsive {
                 font-size: 0.8rem;
+            }
+
+            #selectedItemsTable .qty-input {
+                min-width: 90px;
+                width: 100%;
             }
         }
     </style>
