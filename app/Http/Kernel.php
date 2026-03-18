@@ -66,5 +66,6 @@ class Kernel extends HttpKernel
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'check.pin.status' => \App\Http\Middleware\CheckPinStatus::class,
         'role' => \App\Http\Middleware\CheckRole::class, // ✅ ADD THIS LINE
+        'check.session'    => \App\Http\Middleware\CheckSessionToken::class, // ✅ IDAGDAG
     ];
 }

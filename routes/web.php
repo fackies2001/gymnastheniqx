@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
 use App\Http\Controllers\{
     ProfileController,
     PurchaseOrderController,
@@ -28,19 +29,47 @@ use App\Http\Controllers\{
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Middleware\CheckPinStatus;
 
+// ─────────────────────────────────────────────
 // Public Landing Page
+// ─────────────────────────────────────────────
 Route::get('/', function () {
     return view('welcome');
 });
 
+// ─────────────────────────────────────────────
+// ✅ LOGOUT FORCED — OUTSIDE auth middleware
+// (kailangan accessible kahit expired na session)
+// ─────────────────────────────────────────────
+Route::get('/logout-forced', function () {
+    $user = auth()->user();
+    if ($user) $user->update(['session_token' => null]);
+    Auth::guard('web')->logout();
+    request()->session()->invalidate();
+    request()->session()->regenerateToken();
+    return redirect('/login')->with('session_hijacked', true);
+});
+
+// ─────────────────────────────────────────────
 // ✅ PIN VERIFICATION ROUTES
+// ─────────────────────────────────────────────
 Route::middleware(['auth'])->group(function () {
     Route::post('/verify_pin', [UserManagementController::class, 'verifyPin'])->name('user.verify.pin');
     Route::put('/update_pin', [UserManagementController::class, 'updatePin'])->name('user.update.pin');
+
+    // ✅ Check session status — polling route
+    Route::get('/check-session-status', function () {
+        if (!Auth::check()) {
+            return response()->json(['valid' => false]);
+        }
+        $valid = Auth::user()->session_token === session('session_token');
+        return response()->json(['valid' => $valid]);
+    });
 });
 
-// ✅ AUTHENTICATED ROUTES WITH PIN CHECK
-Route::middleware(['auth', CheckPinStatus::class])->group(function () {
+// ─────────────────────────────────────────────
+// ✅ AUTHENTICATED ROUTES WITH PIN + SESSION CHECK
+// ─────────────────────────────────────────────
+Route::middleware(['auth', CheckPinStatus::class, 'check.session'])->group(function () {
 
     Route::get('/keep-alive', function () {
         return response()->json(['status' => 'ok']);
@@ -106,7 +135,7 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
             Route::get('/{id}', [PurchaseOrderController::class, 'show'])->name('purchase-order.show');
         });
 
-        // ✅ Retailer Orders — Admin only: approve, reject, complete
+        // ✅ Retailer Orders — Admin only
         Route::controller(RetailerOrderController::class)->group(function () {
             Route::post('/retailer-orders/{id}/approve', 'approve')->name('retailer.orders.approve');
             Route::post('/retailer-orders/{id}/reject', 'reject')->name('retailer.orders.reject');
@@ -114,7 +143,7 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
         });
     }); // END ADMIN ONLY
 
-    // ✅ Retailer Orders — Admin & Manager: view all
+    // ✅ Retailer Orders — Admin & Manager
     Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager')->group(function () {
         Route::get('/retailer-orders/all', [RetailerOrderController::class, 'indexAll'])->name('retailer.orders.all');
     });
@@ -205,14 +234,13 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
     }); // END ADMIN & MANAGER
 
     // =========================================================
-    // ✅ ALL AUTHENTICATED USERS (Admin, Manager, Staff)
+    // ✅ ALL AUTHENTICATED USERS
     // =========================================================
 
     Route::get('/suppliers/{id}/products', [PurchaseRequestController::class, 'getSupplierProducts'])->name('suppliers.products');
 
-    // ✅ PURCHASE REQUEST ROUTES
+    // PURCHASE REQUEST
     Route::prefix('purchase-request')->group(function () {
-
         Route::get('/', [PurchaseRequestController::class, 'index'])->name('pr.index');
         Route::get('/datatable', [PurchaseRequestController::class, 'getPurchaseRequestTable'])->name('pr.datatable');
         Route::get('/generate-number', [PurchaseRequestController::class, 'generatePRNumber'])->name('pr.generate-number');
@@ -220,14 +248,13 @@ Route::middleware(['auth', CheckPinStatus::class])->group(function () {
         Route::post('/store', [PurchaseRequestController::class, 'store'])->name('pr.store');
         Route::get('/{id}', [PurchaseRequestController::class, 'show'])->name('pr.show');
 
-        // ✅ Admin only: approve and reject
         Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin')->group(function () {
             Route::post('/approve/{id}', [PurchaseRequestController::class, 'approve'])->name('pr.approve');
             Route::post('/reject/{id}', [PurchaseRequestController::class, 'reject'])->name('pr.reject');
         });
     });
 
-    // ✅ Retailer Orders — All roles: view + create
+    // RETAILER ORDERS
     Route::controller(RetailerOrderController::class)->group(function () {
         Route::get('/orders', 'index')->name('retailer.orders.index');
         Route::post('/retailer-orders/store', 'store')->name('retailer.orders.store');

@@ -32,6 +32,7 @@ class User extends Authenticatable
         'status',
         'assigned_at',
         'pin',
+        'session_token',
     ];
 
     protected $hidden = [

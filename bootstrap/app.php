@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
+            'check.session' => \App\Http\Middleware\CheckSessionToken::class, // ✅ IDAGDAG
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

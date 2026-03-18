@@ -45,6 +45,65 @@
 
     {{-- Shared Modals --}}
     <x-bootstrap.pincode />
+
+    {{-- ✅ SESSION HIJACKED MODAL --}}
+    @if (session('session_hijacked'))
+        <div id="hijackModal"
+            style="
+        position: fixed; inset: 0; z-index: 9999;
+        background: rgba(0,0,0,0.65);
+        display: flex; align-items: center; justify-content: center;">
+            <div
+                style="
+            background: #fff; border-radius: 12px;
+            padding: 2.5rem; max-width: 420px; width: 100%;
+            text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
+                <div style="font-size: 3rem;">⚠️</div>
+                <h5 style="margin-top: 1rem; font-weight: 700;">Session Terminated</h5>
+                <p style="color: #6c757d;">
+                    Your account was logged in on another device.
+                    You have been logged out for security.
+                </p>
+                <button onclick="document.getElementById('hijackModal').remove()"
+                    style="background:#dc3545; color:#fff; border:none;
+                padding: 0.5rem 1.5rem; border-radius: 8px;
+                font-weight: 600; cursor: pointer;">
+                    OK, Got it
+                </button>
+            </div>
+        </div>
+    @endif
+
+    {{-- ✅ REAL-TIME SESSION WARNING MODAL --}}
+    @auth
+        <div id="sessionWarningModal"
+            style="
+        display: none; position: fixed; inset: 0; z-index: 9999;
+        background: rgba(0,0,0,0.65);
+        align-items: center; justify-content: center;">
+            <div
+                style="
+            background: #fff; border-radius: 12px;
+            padding: 2.5rem; max-width: 420px; width: 100%;
+            text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.2);">
+                <div style="font-size: 3rem;">🔐</div>
+                <h5 style="margin-top: 1rem; font-weight: 700;">Account Logged In Elsewhere</h5>
+                <p style="color: #6c757d;">Your account has been accessed on another device.</p>
+                <p style="color: #6c757d;">
+                    Auto-logout in
+                    <span id="sessionCountdown" style="font-weight:700; color:#dc3545;">10</span>
+                    seconds.
+                </p>
+                <button onclick="forceLogout()"
+                    style="
+                background:#dc3545; color:#fff; border:none;
+                padding: 0.5rem 1.5rem; border-radius: 8px;
+                font-weight: 600; cursor: pointer; margin-top: 0.5rem;">
+                    Logout Now
+                </button>
+            </div>
+        </div>
+    @endauth
 @stop
 
 {{-- =========================
@@ -53,19 +112,15 @@
 @section('css')
     <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
 
-    {{-- ✅ Custom CSS for User Panel & Navbar --}}
     <style>
-        /* Fix double name in navbar dropdown */
         .navbar-nav .nav-item.dropdown.user-menu .dropdown-toggle {
             padding: 0.5rem 1rem;
         }
 
-        /* ✅ HIDE DUPLICATE NAME IN DROPDOWN */
         .navbar-nav .dropdown-menu .dropdown-header {
             display: none !important;
         }
 
-        /* Sidebar user panel improvements */
         .user-panel .info {
             padding-left: 10px;
             white-space: normal;
@@ -89,7 +144,6 @@
             object-fit: cover;
         }
 
-        /* Fix navbar user image */
         .navbar-nav .user-menu .user-image {
             width: 30px;
             height: 30px;
@@ -101,35 +155,21 @@
 @stop
 
 {{-- =========================
-|   JAVASCRIPT (FIXED ORDER)
+|   JAVASCRIPT
 |========================= --}}
 @section('js')
-    {{-- 
-        ✅ 1. VITE APP.JS FIRST (jQuery global setup)
-        This makes jQuery available globally for all other scripts
-    --}}
     @vite('resources/js/app.js')
 
-    {{-- 
-        ✅ 2. STACK JS (DataTables, SweetAlert, etc.)
-        Now these can safely use the jQuery from Vite
-    --}}
     @stack('js')
 
-    {{-- 
-        ✅ 3. PINCODE JS (needs jQuery from Vite)
-    --}}
     @vite('resources/js/pincode_LOCKED.js')
 
-    {{-- =========================
-    |   PIN MODAL LOGIC (Simplified)
-    |========================= --}}
+    {{-- PIN MODAL LOGIC --}}
     <script>
         (function() {
             'use strict';
 
             function initPinModal() {
-                // Check if we should show the modal
                 const shouldShowPinModal = {{ session('show_pin_modal') ? 'true' : 'false' }};
                 if (!shouldShowPinModal) return;
 
@@ -143,7 +183,6 @@
                     return;
                 }
 
-                // Update modal based on PIN existence
                 const modalTitle = modalElement.querySelector('.modal-title');
                 const methodInput = form.querySelector('input[name="_method"]');
 
@@ -157,7 +196,6 @@
                     if (methodInput) methodInput.value = "PUT";
                 }
 
-                // Show modal using jQuery (AdminLTE uses Bootstrap 4)
                 if (typeof $ !== 'undefined' && $.fn.modal) {
                     $('#pincodeModal').modal({
                         backdrop: 'static',
@@ -169,11 +207,9 @@
                 }
             }
 
-            // Wait for DOM and jQuery to be ready
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', initPinModal);
             } else {
-                // DOM already loaded
                 if (typeof $ !== 'undefined') {
                     $(document).ready(initPinModal);
                 } else {
@@ -181,11 +217,53 @@
                 }
             }
 
-            // Livewire Support
             if (typeof Livewire !== 'undefined') {
                 document.addEventListener('livewire:load', initPinModal);
                 document.addEventListener('livewire:navigated', initPinModal);
             }
         })();
     </script>
+
+    {{-- ✅ SINGLE DEVICE LOGIN — Polling Script --}}
+    @auth
+        <script>
+            let sessionWarningShown = false;
+
+            function forceLogout() {
+                window.location.href = '/logout-forced';
+            }
+
+            function startSessionCountdown() {
+                let s = 10;
+                document.getElementById('sessionCountdown').textContent = s;
+                const interval = setInterval(() => {
+                    s--;
+                    document.getElementById('sessionCountdown').textContent = s;
+                    if (s <= 0) {
+                        clearInterval(interval);
+                        forceLogout();
+                    }
+                }, 1000);
+            }
+
+            function showSessionWarning() {
+                const modal = document.getElementById('sessionWarningModal');
+                modal.style.display = 'flex';
+                startSessionCountdown();
+            }
+
+            // Poll every 5 seconds
+            setInterval(async () => {
+                if (sessionWarningShown) return;
+                try {
+                    const res = await fetch('/check-session-status');
+                    const data = await res.json();
+                    if (!data.valid) {
+                        sessionWarningShown = true;
+                        showSessionWarning();
+                    }
+                } catch (e) {}
+            }, 5000);
+        </script>
+    @endauth
 @stop
