@@ -66,19 +66,34 @@
                 <div class="modal-body">
                     <form id="createwarehouseForm">
                         @csrf
-                        <div class="form-group"><label>Warehouse Name</label><input type="text" id="createName"
-                                class="form-control" required></div>
-                        <div class="form-group"><label>Email</label><input type="email" id="createEmail"
-                                class="form-control"></div>
-                        <div class="form-group"><label>Contact</label><input type="text" id="createPhone"
-                                class="form-control"></div>
-                        <div class="form-group"><label>Address</label><input type="text" id="createAddress"
-                                class="form-control"></div>
-                        <div class="form-group"><label>Assignee</label><input type="text" id="createAssignee"
-                                class="form-control"></div>
+                        <div class="form-group">
+                            <label>Warehouse Name <span class="text-danger">*</span></label>
+                            <input type="text" id="createName" class="form-control" required
+                                placeholder="Enter warehouse name">
+                        </div>
+                        <div class="form-group">
+                            <label>Email <span class="text-danger">*</span></label>
+                            <input type="email" id="createEmail" class="form-control" required placeholder="Enter email">
+                        </div>
+                        <div class="form-group">
+                            <label>Contact <span class="text-danger">*</span></label>
+                            <input type="text" id="createPhone" class="form-control" required
+                                placeholder="Enter contact number">
+                        </div>
+                        <div class="form-group">
+                            <label>Address <span class="text-danger">*</span></label>
+                            <input type="text" id="createAddress" class="form-control" required
+                                placeholder="Enter address">
+                        </div>
+                        <div class="form-group">
+                            <label>Assignee <span class="text-danger">*</span></label>
+                            <input type="text" id="createAssignee" class="form-control" required
+                                placeholder="Enter assignee name">
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                     <button class="btn btn-primary" id="createwarehouseSubmit">Submit</button>
                 </div>
             </div>
@@ -96,16 +111,26 @@
                     <form id="editWarehouseForm">
                         @csrf
                         <input type="hidden" id="editId">
-                        <div class="form-group"><label>Warehouse Name</label><input type="text" class="form-control"
-                                id="editName"></div>
-                        <div class="form-group"><label>Email</label><input type="email" class="form-control"
-                                id="editEmail"></div>
-                        <div class="form-group"><label>Contact</label><input type="text" class="form-control"
-                                id="editPhone"></div>
-                        <div class="form-group"><label>Address</label><input type="text" class="form-control"
-                                id="editAddress"></div>
-                        <div class="form-group"><label>Assignee</label><input type="text" class="form-control"
-                                id="editAssignee"></div>
+                        <div class="form-group">
+                            <label>Warehouse Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editName" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="editEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Contact <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editPhone" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Address <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editAddress" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Assignee <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="editAssignee" required>
+                        </div>
                     </form>
                 </div>
                 <div class="modal-footer">
@@ -118,10 +143,26 @@
 @stop
 
 @push('js')
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
     <script>
         $(document).ready(function() {
+
+            // ✅ Helper — i-check lahat ng required fields
+            function validateFields(fields) {
+                for (var i = 0; i < fields.length; i++) {
+                    if (!$(fields[i].id).val().trim()) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Incomplete Form',
+                            text: fields[i].label + ' is required.',
+                            confirmButtonColor: '#3085d6'
+                        });
+                        $(fields[i].id).focus();
+                        return false;
+                    }
+                }
+                return true;
+            }
+
             // --- 1. DATATABLES INITIALIZATION ---
             if ($.fn.DataTable.isDataTable('#sampleId')) {
                 $('#sampleId').DataTable().destroy();
@@ -145,34 +186,52 @@
                 e.preventDefault();
                 e.stopPropagation();
 
-                let btn = $(this);
+                var btn = $(this);
 
-                if (!$('#createName').val().trim()) {
-                    Swal.fire('Error', 'Warehouse name is required', 'error');
-                    return;
-                }
+                // ✅ Validate all required fields
+                var createFields = [{
+                        id: '#createName',
+                        label: 'Warehouse Name'
+                    },
+                    {
+                        id: '#createEmail',
+                        label: 'Email'
+                    },
+                    {
+                        id: '#createPhone',
+                        label: 'Contact'
+                    },
+                    {
+                        id: '#createAddress',
+                        label: 'Address'
+                    },
+                    {
+                        id: '#createAssignee',
+                        label: 'Assignee'
+                    },
+                ];
+
+                if (!validateFields(createFields)) return;
 
                 btn.prop('disabled', true).text('Saving...');
-
-                let data = {
-                    _token: $('meta[name="csrf-token"]').attr('content'),
-                    name: $('#createName').val().trim(),
-                    email: $('#createEmail').val().trim(),
-                    phone: $('#createPhone').val().trim(),
-                    address: $('#createAddress').val().trim(),
-                    assignee: $('#createAssignee').val().trim(),
-                };
 
                 $.ajax({
                     url: "{{ route('warehouse.store') }}",
                     type: 'POST',
-                    data: data,
+                    data: {
+                        _token: $('meta[name="csrf-token"]').attr('content'),
+                        name: $('#createName').val().trim(),
+                        email: $('#createEmail').val().trim(),
+                        phone: $('#createPhone').val().trim(),
+                        address: $('#createAddress').val().trim(),
+                        assignee: $('#createAssignee').val().trim(),
+                    },
                     dataType: 'json',
                     success: function(res) {
                         Swal.fire({
                             icon: 'success',
                             title: 'Success!',
-                            text: 'Warehouse created successfully',
+                            text: 'Warehouse created successfully!',
                             timer: 2000,
                             showConfirmButton: false
                         }).then(() => {
@@ -180,15 +239,12 @@
                         });
                     },
                     error: function(xhr) {
-                        console.error('Create Error:', xhr.responseJSON);
-
-                        let errorMsg = 'Failed to save warehouse';
+                        var errorMsg = 'Failed to save warehouse';
                         if (xhr.responseJSON && xhr.responseJSON.message) {
                             errorMsg = xhr.responseJSON.message;
                         } else if (xhr.responseJSON && xhr.responseJSON.error) {
                             errorMsg = xhr.responseJSON.error;
                         }
-
                         Swal.fire('Error', errorMsg, 'error');
                         btn.prop('disabled', false).text('Submit');
                     }
@@ -210,35 +266,53 @@
                 e.preventDefault();
                 e.stopPropagation();
 
-                let btn = $(this);
+                var btn = $(this);
 
-                if (!$('#editName').val().trim()) {
-                    Swal.fire('Error', 'Warehouse name is required', 'error');
-                    return;
-                }
+                // ✅ Validate all required fields
+                var editFields = [{
+                        id: '#editName',
+                        label: 'Warehouse Name'
+                    },
+                    {
+                        id: '#editEmail',
+                        label: 'Email'
+                    },
+                    {
+                        id: '#editPhone',
+                        label: 'Contact'
+                    },
+                    {
+                        id: '#editAddress',
+                        label: 'Address'
+                    },
+                    {
+                        id: '#editAssignee',
+                        label: 'Assignee'
+                    },
+                ];
+
+                if (!validateFields(editFields)) return;
 
                 btn.prop('disabled', true).text('Updating...');
-
-                let data = {
-                    _token: $('meta[name="csrf-token"]').attr('content'),
-                    id: $('#editId').val(),
-                    name: $('#editName').val().trim(),
-                    email: $('#editEmail').val().trim(),
-                    phone: $('#editPhone').val().trim(),
-                    address: $('#editAddress').val().trim(),
-                    assignee: $('#editAssignee').val().trim(),
-                };
 
                 $.ajax({
                     url: "{{ route('warehouse.update') }}",
                     type: 'POST',
-                    data: data,
+                    data: {
+                        _token: $('meta[name="csrf-token"]').attr('content'),
+                        id: $('#editId').val(),
+                        name: $('#editName').val().trim(),
+                        email: $('#editEmail').val().trim(),
+                        phone: $('#editPhone').val().trim(),
+                        address: $('#editAddress').val().trim(),
+                        assignee: $('#editAssignee').val().trim(),
+                    },
                     dataType: 'json',
                     success: function(res) {
                         Swal.fire({
                             icon: 'success',
                             title: 'Updated!',
-                            text: 'Warehouse updated successfully',
+                            text: 'Warehouse updated successfully!',
                             timer: 2000,
                             showConfirmButton: false
                         }).then(() => {
@@ -247,15 +321,12 @@
                         });
                     },
                     error: function(xhr) {
-                        console.error('Update Error:', xhr.responseJSON);
-
-                        let errorMsg = 'Update failed';
+                        var errorMsg = 'Update failed';
                         if (xhr.responseJSON && xhr.responseJSON.message) {
                             errorMsg = xhr.responseJSON.message;
                         } else if (xhr.responseJSON && xhr.responseJSON.error) {
                             errorMsg = xhr.responseJSON.error;
                         }
-
                         Swal.fire('Error', errorMsg, 'error');
                         btn.prop('disabled', false).text('Save Changes');
                     }
@@ -266,8 +337,8 @@
             $(document).on('click', '.delete-warehouse', function(e) {
                 e.preventDefault();
 
-                let warehouseId = $(this).data('id');
-                let warehouseName = $(this).data('name');
+                var warehouseId = $(this).data('id');
+                var warehouseName = $(this).data('name');
 
                 Swal.fire({
                     title: 'Are you sure?',
@@ -301,7 +372,7 @@
                                 Swal.fire({
                                     icon: 'success',
                                     title: 'Deleted!',
-                                    text: 'Warehouse has been deleted successfully',
+                                    text: 'Warehouse deleted successfully!',
                                     timer: 2000,
                                     showConfirmButton: false
                                 }).then(() => {
@@ -309,15 +380,12 @@
                                 });
                             },
                             error: function(xhr) {
-                                console.error('Delete Error:', xhr.responseJSON);
-
-                                let errorMsg = 'Failed to delete warehouse';
+                                var errorMsg = 'Failed to delete warehouse';
                                 if (xhr.responseJSON && xhr.responseJSON.message) {
                                     errorMsg = xhr.responseJSON.message;
                                 } else if (xhr.responseJSON && xhr.responseJSON.error) {
                                     errorMsg = xhr.responseJSON.error;
                                 }
-
                                 Swal.fire('Error', errorMsg, 'error');
                             }
                         });
