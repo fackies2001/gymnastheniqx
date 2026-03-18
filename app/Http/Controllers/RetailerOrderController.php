@@ -34,10 +34,13 @@ class RetailerOrderController extends Controller
     }
 
     // ============================================================
-    // ✅ INDEX METHOD — Role-based filtering
-    //    Admin       → nakikita LAHAT ng orders
-    //    Manager     → nakikita LAHAT ng orders ✅ UPDATED
-    //    Staff       → sarili lang niyang orders
+    // ✅ INDEX — Role-based filtering
+    //    Admin / Manager → sees ALL orders
+    //    Staff           → sees only their own orders
+    //
+    // ✅ FIX: Staff filter now uses BOTH created_by_user_id AND
+    //    created_by name as fallback — fixes cases where older
+    //    orders had null created_by_user_id
     // ============================================================
     public function index(Request $request)
     {
@@ -85,7 +88,7 @@ class RetailerOrderController extends Controller
                         if ($request->filled('start_date') && $request->filled('end_date')) {
                             $query->whereBetween('created_at', [
                                 $request->start_date . ' 00:00:00',
-                                $request->end_date . ' 23:59:59',
+                                $request->end_date   . ' 23:59:59',
                             ]);
                         }
                         break;
@@ -93,10 +96,15 @@ class RetailerOrderController extends Controller
             }
         };
 
-        // ✅ Admin & Manager: lahat ng orders | Staff: sarili lang
+        // ✅ FIX: Staff filter — check BOTH user_id AND name as fallback
+        // This fixes orders created before created_by_user_id was added
         $baseQuery = RetailerOrder::query()
             ->when(!$isAdmin && !$isManager, function ($query) use ($user) {
-                $query->where('created_by_user_id', $user->id);
+                $userName = $user->full_name ?? ($user->first_name . ' ' . $user->last_name);
+                $query->where(function ($q) use ($user, $userName) {
+                    $q->where('created_by_user_id', $user->id)
+                        ->orWhere('created_by', $userName);
+                });
             });
 
         $retailer_orders = (clone $baseQuery)
@@ -135,12 +143,16 @@ class RetailerOrderController extends Controller
             ->groupBy('supplier_product.id')
             ->get();
 
+        // ✅ Pass $isAdmin to blade
+        $isAdmin = $this->isAdmin();
+
         return view('orders.index', compact(
             'retailer_orders',
             'warehouse_products',
             'totalSales',
             'pendingOrders',
-            'completedOrders'
+            'completedOrders',
+            'isAdmin'
         ));
     }
 
@@ -150,7 +162,7 @@ class RetailerOrderController extends Controller
             'retailer_name' => 'required',
             'product_id'    => 'required|exists:supplier_product,id',
             'quantity'      => 'required|integer|min:1',
-            'unit_price'    => 'required|numeric',
+            'unit_price'    => 'required|numeric|min:0',
         ]);
 
         $product        = SupplierProduct::findOrFail($request->product_id);
@@ -167,17 +179,17 @@ class RetailerOrderController extends Controller
         }
 
         $order = RetailerOrder::create([
-            'product_id'          => $product->id,
-            'retailer_name'       => $request->retailer_name,
-            'product_name'        => $product->name,
-            'quantity'            => $request->quantity,
-            'unit_price'          => $request->unit_price,
-            'total_amount'        => $request->quantity * $request->unit_price,
-            'status'              => 'Pending',
-            'sku'                 => $product->supplier_sku ?? $product->system_sku ?? 'N/A',
-            'created_by'          => Auth::user()->full_name ?? 'Unknown User',
-            'created_by_user_id'  => Auth::id(),
-            'user_role'           => Auth::user()->role?->role_name ?? 'No Role',
+            'product_id'         => $product->id,
+            'retailer_name'      => $request->retailer_name,
+            'product_name'       => $product->name,
+            'quantity'           => $request->quantity,
+            'unit_price'         => $request->unit_price,
+            'total_amount'       => $request->quantity * $request->unit_price,
+            'status'             => 'Pending',
+            'sku'                => $product->supplier_sku ?? $product->system_sku ?? 'N/A',
+            'created_by'         => Auth::user()->full_name ?? 'Unknown User',
+            'created_by_user_id' => Auth::id(),   // ✅ Always saved
+            'user_role'          => Auth::user()->role?->role_name ?? 'No Role',
         ]);
 
         try {
@@ -226,18 +238,16 @@ class RetailerOrderController extends Controller
 
         DB::beginTransaction();
         try {
-            // ✅ FIX: Alisin yung mali na remarks filter
-            // Kumuha lang ng AVAILABLE (status=1) products — FIFO (oldest first)
             $serializedProducts = SerializedProduct::where('product_id', $product->id)
-                ->where('status', 1) // ✅ Available lang
-                ->orderBy('created_at', 'asc') // ✅ FIFO
+                ->where('status', 1)
+                ->orderBy('created_at', 'asc')
                 ->limit($order->quantity)
                 ->get();
 
             $serialNumbers = [];
             foreach ($serializedProducts as $sp) {
                 $sp->update([
-                    'status'  => 2, // Reserved
+                    'status'  => 2,
                     'remarks' => "Reserved for Retailer: {$order->retailer_name} (Order ID: {$order->id})",
                 ]);
                 $serialNumbers[] = $sp->serial_number;
@@ -328,13 +338,10 @@ class RetailerOrderController extends Controller
 
             if (!$serialNumbers || count($serialNumbers) === 0) {
                 $product = null;
-                if ($order->product_id) {
-                    $product = SupplierProduct::find($order->product_id);
-                }
+                if ($order->product_id)  $product = SupplierProduct::find($order->product_id);
                 if (!$product && $order->sku) {
                     $product = SupplierProduct::where('supplier_sku', $order->sku)
-                        ->orWhere('system_sku', $order->sku)
-                        ->first();
+                        ->orWhere('system_sku', $order->sku)->first();
                 }
                 if (!$product && $order->product_name) {
                     $product = SupplierProduct::where('name', $order->product_name)->first();
@@ -343,13 +350,12 @@ class RetailerOrderController extends Controller
                     throw new \Exception("Product '{$order->product_name}' not found in inventory");
                 }
 
-                $serializedProducts = SerializedProduct::where('product_id', $product->id)
+                $serialNumbers = SerializedProduct::where('product_id', $product->id)
                     ->where('status', 1)
                     ->orderBy('created_at', 'asc')
                     ->limit($order->quantity)
-                    ->get();
-
-                $serialNumbers = $serializedProducts->pluck('serial_number')->toArray();
+                    ->pluck('serial_number')
+                    ->toArray();
             }
 
             if (!empty($serialNumbers)) {

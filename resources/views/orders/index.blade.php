@@ -187,6 +187,7 @@
                             <td class="no-print">
                                 @if ($order->status == 'Pending')
                                     @if (Auth::user()->role && strtolower(Auth::user()->role->role_name) === 'admin')
+                                        {{-- Admin: clickable to review --}}
                                         <span class="badge badge-warning view-pending-order"
                                             style="cursor: pointer; font-size: 0.9rem;" data-id="{{ $order->id }}"
                                             data-retailer="{{ $order->retailer_name }}"
@@ -197,9 +198,12 @@
                                             <i class="fas fa-hourglass-half"></i> PENDING (Click to Review)
                                         </span>
                                     @else
+                                        {{-- ✅ FIX: Staff sees "Awaiting Admin" with who submitted it --}}
                                         <span class="badge badge-warning">
-                                            <i class="fas fa-hourglass-half"></i> Awaiting Admin
+                                            <i class="fas fa-hourglass-half"></i> Awaiting Admin Approval
                                         </span>
+                                        <br><small class="text-muted">Submitted by:
+                                            {{ $order->created_by ?? 'You' }}</small>
                                     @endif
                                 @elseif ($order->status == 'Approved')
                                     <span class="badge badge-success">
@@ -225,6 +229,7 @@
                                     </span>
                                     <br><small class="text-muted">Shipped & Sold</small>
                                 @else
+                                    {{-- Rejected --}}
                                     <span class="badge badge-danger">
                                         <i class="fas fa-times-circle"></i> Rejected
                                     </span>
@@ -239,6 +244,7 @@
                     @endforeach
                 </tbody>
             </table>
+
             <div class="d-none d-print-block mt-5">
                 <div class="row">
                     <div class="col-6">
@@ -257,7 +263,7 @@
         </div>
     </div>
 
-    {{-- 4. MODAL: PENDING ORDER REVIEW --}}
+    {{-- 4. MODAL: PENDING ORDER REVIEW (Admin only) --}}
     <div class="modal fade" id="pendingOrderModal" tabindex="-1" role="dialog">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content shadow-lg border-warning">
@@ -306,12 +312,15 @@
                     <input type="hidden" id="modal-order-id">
                 </div>
                 <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times"></i>
-                        Close</button>
-                    <button type="button" class="btn btn-danger" id="btn-reject-order"><i class="fas fa-ban"></i>
-                        REJECT ORDER</button>
-                    <button type="button" class="btn btn-success" id="btn-approve-order"><i
-                            class="fas fa-check-circle"></i> APPROVE ORDER</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                    <button type="button" class="btn btn-danger" id="btn-reject-order">
+                        <i class="fas fa-ban"></i> REJECT ORDER
+                    </button>
+                    <button type="button" class="btn btn-success" id="btn-approve-order">
+                        <i class="fas fa-check-circle"></i> APPROVE ORDER
+                    </button>
                 </div>
             </div>
         </div>
@@ -344,12 +353,12 @@
                                         <option value="{{ $p->id }}"
                                             data-price="{{ $p->selling_price ?? $p->cost_price }}"
                                             data-cost="{{ $p->cost_price }}"
-                                            data-has-markup="{{ $p->selling_price && $p->selling_price > $p->cost_price ? '1' : '0' }}"
+                                            data-has-selling="{{ $p->selling_price ? '1' : '0' }}"
                                             data-sku="{{ $displaySku }}">
                                             {{ $p->name }} (SKU: {{ $displaySku }})
-                                            @if ($p->selling_price && $p->selling_price > $p->cost_price)
+                                            @if ($p->selling_price)
                                                 — ₱{{ number_format($p->selling_price, 2) }}
-                                            @elseif (!$p->selling_price)
+                                            @else
                                                 — ⚠️ No selling price set
                                             @endif
                                         </option>
@@ -357,53 +366,43 @@
                                 </select>
                             </div>
 
-                            {{-- ✅ UNIT PRICE — Admin: editable | Staff: readonly --}}
+                            {{-- ✅ FIX: Selling Price — EDITABLE for BOTH admin and staff --}}
                             <div class="col-md-6 mb-3">
                                 @php $isAdmin = Auth::user()->role && strtolower(Auth::user()->role->role_name) === 'admin'; @endphp
 
                                 <label class="font-weight-bold text-success">
-                                    @if ($isAdmin)
-                                        <i class="fas fa-edit"></i> Selling Price
-                                        <small class="text-muted font-weight-normal">(editable)</small>
-                                    @else
-                                        <i class="fas fa-tag"></i> Selling Price
-                                        <small class="text-muted font-weight-normal">(suggested)</small>
-                                    @endif
+                                    <i class="fas fa-edit"></i> Selling Price
+                                    <small class="text-muted font-weight-normal">(editable)</small>
                                 </label>
 
+                                {{-- ✅ FIX: Removed readonly for staff — both can now set price --}}
                                 <input type="number" step="0.01" name="unit_price" id="inp_price"
-                                    class="form-control shadow-sm {{ $isAdmin ? 'border-success' : '' }}" required
-                                    {{ $isAdmin ? '' : 'readonly' }}>
+                                    class="form-control shadow-sm border-success" required>
 
-                                {{-- Admin note --}}
-                                @if ($isAdmin)
-                                    <div id="admin_price_note" class="mt-1" style="display:none;">
-                                        <small class="text-info">
-                                            <i class="fas fa-info-circle"></i>
-                                            Suggested: ₱<span id="suggested_price">0</span>
-                                            &nbsp;|&nbsp; Cost: ₱<span id="cost_price_display">0</span>
-                                            &nbsp;|&nbsp; Markup: ₱<span id="markup_display">0</span>
-                                            (<span id="markup_pct_display">0</span>%)
-                                        </small>
-                                    </div>
-                                @else
-                                    {{-- Staff: markup info lang, hindi editable --}}
-                                    <div id="markup_info" class="mt-1" style="display:none;">
-                                        <small class="text-success">
-                                            <i class="fas fa-tag"></i>
-                                            Cost: ₱<span id="cost_price_display">0</span>
-                                            &nbsp;|&nbsp;
-                                            Markup: ₱<span id="markup_display">0</span>
-                                            (<span id="markup_pct_display">0</span>%)
-                                        </small>
-                                    </div>
-                                @endif
+                                {{-- Price info note (shown for both roles) --}}
+                                <div id="price_note" class="mt-1" style="display:none;">
+                                    <small class="text-info">
+                                        <i class="fas fa-info-circle"></i>
+                                        Suggested: ₱<span id="suggested_price">0</span>
+                                        &nbsp;|&nbsp; Cost: ₱<span id="cost_price_display">0</span>
+                                        &nbsp;|&nbsp; Markup: ₱<span id="markup_display">0</span>
+                                        (<span id="markup_pct_display">0</span>%)
+                                    </small>
+                                </div>
 
                                 {{-- Warning kapag walang selling_price --}}
                                 <div id="no_selling_price_warn" class="mt-1" style="display:none;">
+                                    <small class="text-warning">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                        No existing selling price. Please enter the price manually.
+                                    </small>
+                                </div>
+
+                                {{-- Warning kapag below cost --}}
+                                <div id="below_cost_warn" class="mt-1" style="display:none;">
                                     <small class="text-danger">
                                         <i class="fas fa-exclamation-triangle"></i>
-                                        Walang selling price. I-set muna sa Supplier Products.
+                                        Price is below cost! You may be selling at a loss.
                                     </small>
                                 </div>
                             </div>
@@ -555,33 +554,31 @@
                     year: 'numeric',
                     month: 'long',
                     day: 'numeric'
-                }) + ' | ' +
-                now.toLocaleTimeString('en-US', {
+                }) +
+                ' | ' + now.toLocaleTimeString('en-US', {
                     hour: '2-digit',
                     minute: '2-digit',
                     hour12: true
                 });
-            if ($.fn.DataTable.isDataTable('#retailerTable')) {
-                $('#retailerTable').DataTable().destroy();
-            }
+            if ($.fn.DataTable.isDataTable('#retailerTable')) $('#retailerTable').DataTable().destroy();
             $('#retailerTable thead tr').html(`<th>Retailer Name</th><th>Product</th><th>Qty</th><th>Total Amount</th>`);
             window.print();
             window.onafterprint = function() {
                 $('#retailerTable thead tr').html(
                     `<th>Retailer Name</th><th>Product</th><th>Qty</th><th>Total Amount</th><th class="no-print">Action</th>`
-                    );
+                );
                 $('#retailerTable').DataTable({
-                    "responsive": true,
-                    "autoWidth": false,
-                    "destroy": true,
-                    "order": [
-                        [0, "asc"]
+                    responsive: true,
+                    autoWidth: false,
+                    destroy: true,
+                    order: [
+                        [0, 'asc']
                     ],
-                    "pageLength": 10,
-                    "columnDefs": [{
-                        "targets": -1,
-                        "orderable": false,
-                        "searchable": false
+                    pageLength: 10,
+                    columnDefs: [{
+                        targets: -1,
+                        orderable: false,
+                        searchable: false
                     }]
                 });
             };
@@ -615,24 +612,22 @@
                 });
             @endif
 
-            if ($.fn.DataTable.isDataTable('#retailerTable')) {
-                $('#retailerTable').DataTable().destroy();
-            }
+            if ($.fn.DataTable.isDataTable('#retailerTable')) $('#retailerTable').DataTable().destroy();
             $('#retailerTable').DataTable({
-                "responsive": true,
-                "autoWidth": false,
-                "destroy": true,
-                "order": [
-                    [0, "asc"]
+                responsive: true,
+                autoWidth: false,
+                destroy: true,
+                order: [
+                    [0, 'asc']
                 ],
-                "pageLength": 10,
-                "language": {
-                    "emptyTable": "No records found for the selected period"
+                pageLength: 10,
+                language: {
+                    emptyTable: 'No records found for the selected period'
                 },
-                "columnDefs": [{
-                    "targets": -1,
-                    "orderable": false,
-                    "searchable": false
+                columnDefs: [{
+                    targets: -1,
+                    orderable: false,
+                    searchable: false
                 }]
             });
 
@@ -645,71 +640,67 @@
                 }));
             }
 
-            // ✅ Product select — show suggested price + markup info
+            // ✅ Product select — populate price and show info
             $('#sel_prod').on('change', function() {
                 let selected = $(this).find(':selected');
-                let price = selected.data('price');
-                let cost = selected.data('cost');
-                let hasMarkup = selected.data('has-markup');
+                let price = parseFloat(selected.data('price')) || 0;
+                let cost = parseFloat(selected.data('cost')) || 0;
+                let hasSelling = selected.data('has-selling');
 
-                // ✅ Set suggested price
                 $('#inp_price').val(price || '');
 
                 if (!price || price == 0) {
                     $('#no_selling_price_warn').show();
-                    $('#admin_price_note, #markup_info').hide();
+                    $('#price_note').hide();
+                    $('#below_cost_warn').hide();
                 } else {
                     $('#no_selling_price_warn').hide();
-
-                    let markup = price && cost ? (price - cost).toFixed(2) : 0;
+                    let markup = (price - cost).toFixed(2);
                     let markupPct = cost > 0 ? (((price - cost) / cost) * 100).toFixed(1) : 0;
-
-                    // Update display spans (shared between admin/staff views)
-                    $('#suggested_price').text(parseFloat(price).toFixed(2));
-                    $('#cost_price_display').text(parseFloat(cost || 0).toFixed(2));
+                    $('#suggested_price').text(price.toFixed(2));
+                    $('#cost_price_display').text(cost.toFixed(2));
                     $('#markup_display').text(markup);
                     $('#markup_pct_display').text(markupPct);
-
-                    if (IS_ADMIN) {
-                        $('#admin_price_note').show();
-                        $('#markup_info').hide();
-                    } else if (hasMarkup == '1') {
-                        $('#markup_info').show();
-                        $('#admin_price_note').hide();
-                    }
+                    $('#price_note').show();
+                    $('#below_cost_warn').hide();
                 }
-
                 calculate();
             });
 
-            // ✅ Recalculate total kapag binago ng admin ang price
-            $('#inp_qty, #inp_price').on('input', calculate);
+            // ✅ Show below-cost warning in real time as user types price
+            $('#inp_price').on('input', function() {
+                let entered = parseFloat($(this).val()) || 0;
+                let cost = parseFloat($('#sel_prod').find(':selected').data('cost')) || 0;
+                if (cost > 0 && entered < cost && entered > 0) {
+                    $('#below_cost_warn').show();
+                } else {
+                    $('#below_cost_warn').hide();
+                }
+                calculate();
+            });
 
+            $('#inp_qty').on('input', calculate);
+
+            // ✅ Form submit — warn if below cost for both admin and staff
             $('#createOrderForm').on('submit', function(e) {
                 e.preventDefault();
+                let enteredPrice = parseFloat($('#inp_price').val()) || 0;
+                let costPrice = parseFloat($('#sel_prod').find(':selected').data('cost')) || 0;
 
-                // ✅ Validation — hindi pwedeng mas mababa sa cost price (admin only warning)
-                if (IS_ADMIN) {
-                    let enteredPrice = parseFloat($('#inp_price').val()) || 0;
-                    let costPrice = parseFloat($('#sel_prod').find(':selected').data('cost')) || 0;
-
-                    if (enteredPrice < costPrice) {
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'Price Below Cost!',
-                            html: `Ang entered price na <b>₱${enteredPrice.toFixed(2)}</b> ay mas mababa sa cost price na <b>₱${costPrice.toFixed(2)}</b>.<br><br>Malulugi kayo sa order na ito. Itutuloy pa rin?`,
-                            showCancelButton: true,
-                            confirmButtonColor: '#d33',
-                            cancelButtonColor: '#6c757d',
-                            confirmButtonText: 'Ituloy pa rin',
-                            cancelButtonText: 'Baguhin ang price'
-                        }).then((result) => {
-                            if (result.isConfirmed) {
-                                this.submit();
-                            }
-                        });
-                        return;
-                    }
+                if (costPrice > 0 && enteredPrice < costPrice) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Price Below Cost!',
+                        html: `Ang entered price na <b>₱${enteredPrice.toFixed(2)}</b> ay mas mababa sa cost price na <b>₱${costPrice.toFixed(2)}</b>.<br><br>Malulugi kayo sa order na ito. Itutuloy pa rin?`,
+                        showCancelButton: true,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Ituloy pa rin',
+                        cancelButtonText: 'Baguhin ang price'
+                    }).then((result) => {
+                        if (result.isConfirmed) this.submit();
+                    });
+                    return;
                 }
 
                 Swal.fire({
@@ -722,9 +713,7 @@
                     confirmButtonText: 'Yes, Submit!',
                     cancelButtonText: 'Cancel'
                 }).then((result) => {
-                    if (result.isConfirmed) {
-                        this.submit();
-                    }
+                    if (result.isConfirmed) this.submit();
                 });
             });
 
@@ -805,9 +794,7 @@
                                         timer: 2000,
                                         showConfirmButton: false
                                     })
-                                    .then(() => {
-                                        location.reload();
-                                    });
+                                    .then(() => location.reload());
                             },
                             error: function(xhr) {
                                 Swal.fire({
@@ -828,19 +815,15 @@
                     $('#customDateRange, #customDateRangeEnd').show();
                 } else {
                     $('#customDateRange, #customDateRangeEnd').hide();
-                    if ($(this).val() !== '') {
-                        $('#dateFilterForm').submit();
-                    }
+                    if ($(this).val() !== '') $('#dateFilterForm').submit();
                 }
             });
 
-            function checkMidnightReset() {
+            setInterval(function() {
                 const now = new Date();
-                if (now.getHours() === 0 && now.getMinutes() === 0 && $('#filterType').val() === 'today') {
+                if (now.getHours() === 0 && now.getMinutes() === 0 && $('#filterType').val() === 'today')
                     location.reload();
-                }
-            }
-            setInterval(checkMidnightReset, 60000);
+            }, 60000);
 
             $('#startDate, #endDate').on('change', function() {
                 const s = new Date($('#startDate').val());
