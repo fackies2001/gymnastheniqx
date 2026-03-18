@@ -158,10 +158,9 @@ class SuppliersController extends Controller
         }
     }
 
-    public function checkduplicate()
+    public function checkDuplicate(Request $request)
     {
         $exists = Supplier::whereRaw('LOWER(name) = ?', [strtolower($request->name)])->exists();
-
         return response()->json(['exists' => $exists]);
     }
 }
