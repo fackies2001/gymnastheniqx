@@ -83,6 +83,12 @@ class ReportsController extends Controller
         ));
     }
 
+    // ============================================================
+    // ✅ REPLACE ONLY THIS METHOD inside ReportsController
+    //    getDailyData() — added original price + total amount
+    //    to Received traceability, and original price + selling
+    //    price to Outflow traceability
+    // ============================================================
     public function getDailyData(Request $request)
     {
         $filterType = $request->get('filter_type', null);
@@ -120,7 +126,7 @@ class ReportsController extends Controller
             \Log::info("=== DAILY REPORT START ===");
             \Log::info("Filter Type: " . ($filterType ?? 'none') . " | Date: " . ($date ?? 'all') . " | Type: " . ($type ?? 'all'));
 
-            // ===== DAILY RECEIVED — GROUPED by product + PO =====
+            // ===== DAILY RECEIVED =====
             if (!$type || $type === 'received') {
                 try {
                     $query = SerializedProduct::select(
@@ -142,31 +148,47 @@ class ReportsController extends Controller
                         ->get();
 
                     foreach ($groupedProducts as $item) {
-                        // ✅ Load relationships manually
                         $supplierProduct = \App\Models\SupplierProduct::with(['supplier', 'category'])
                             ->find($item->product_id);
-                        $purchaseOrder = \App\Models\PurchaseOrder::find($item->purchase_order_id);
+                        $purchaseOrder   = \App\Models\PurchaseOrder::find($item->purchase_order_id);
 
-                        $productName  = $supplierProduct->name ?? 'Unnamed Product';
-                        $supplierName = $supplierProduct->supplier->name ?? 'N/A';
-                        $categoryName = $supplierProduct->category->name ?? 'General';
+                        $productName  = $supplierProduct->name             ?? 'Unnamed Product';
+                        $supplierName = $supplierProduct->supplier->name   ?? 'N/A';
+                        $categoryName = $supplierProduct->category->name   ?? 'General';
                         $receivedDate = \Carbon\Carbon::parse($item->received_date)->format('M d, Y h:i A');
-                        $poNumber     = $purchaseOrder->po_number ?? 'N/A';
+                        $poNumber     = $purchaseOrder->po_number           ?? 'N/A';
+
+                        // ✅ FIX: Original price from supplier (cost_price)
+                        $originalPrice = $supplierProduct->cost_price ?? 0;
+
+                        // ✅ FIX: Get unit_cost from PO item if cost_price is 0
+                        if ($originalPrice == 0 && $purchaseOrder) {
+                            $poItem = \App\Models\PurchaseOrderItem::where('purchase_order_id', $purchaseOrder->id)
+                                ->where('product_id', $item->product_id)
+                                ->first();
+                            $originalPrice = $poItem->unit_cost ?? 0;
+                        }
+
+                        // ✅ FIX: Total amount = qty * original price
+                        $totalAmount = $item->total_qty * $originalPrice;
 
                         $data[] = [
                             'product_name'  => '<strong style="font-size: 16px; color: black;">' . e($productName) . '</strong><br>
-                    <span style="font-size: 13px; color: #666;">Supplier: ' . e($supplierName) . '</span><br>
-                    <span style="font-size: 12px; color: #999;"><i class="far fa-clock"></i> ' . $receivedDate . '</span>',
+                                <span style="font-size: 13px; color: #666;">Supplier: ' . e($supplierName) . '</span><br>
+                                <span style="font-size: 12px; color: #999;"><i class="far fa-clock"></i> ' . $receivedDate . '</span>',
                             'category_name' => '<span class="badge badge-info">' . e($categoryName) . '</span>',
+                            // ✅ FIX: Added Original Price + Total Amount to Received traceability
                             'traceability'  => '<small>
-                    <strong>Type:</strong> Scanned from PO<br>
-                    <strong>PO Number:</strong> ' . e($poNumber) . '<br>
-                    <strong>Supplier:</strong> ' . e($supplierName) . '<br>
-                    <strong>Date Received:</strong> ' . $receivedDate . '
-                    </small>',
+                                <strong>Type:</strong> Scanned from PO<br>
+                                <strong>PO Number:</strong> ' . e($poNumber) . '<br>
+                                <strong>Supplier:</strong> ' . e($supplierName) . '<br>
+                                <strong>Original Price (from Supplier):</strong> <span class="text-danger font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
+                                <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span><br>
+                                <strong>Date Received:</strong> ' . $receivedDate . '
+                                </small>',
                             'quantity' => $item->total_qty,
                             'image'    => $supplierProduct->thumbnail ?? null,
-                            'status'   => 'Received'
+                            'status'   => 'Received',
                         ];
                     }
                 } catch (\Exception $e) {
@@ -180,7 +202,6 @@ class ReportsController extends Controller
                     $query = RetailerOrder::with(['product'])
                         ->whereIn('status', ['Approved', 'Completed']);
 
-                    // ✅ BUG 3 FIX: Outflow — use created_at (consistent with monthly)
                     if ($date) {
                         $query->whereDate('created_at', $date);
                     } elseif ($dateQuery) {
@@ -191,25 +212,46 @@ class ReportsController extends Controller
 
                     foreach ($retailerOrders as $order) {
                         $updatedDate  = Carbon::parse($order->created_at)->format('M d, Y h:i A');
-                        $productName  = $order->product_name ?? 'Unknown Product';
+                        $productName  = $order->product_name  ?? 'Unknown Product';
                         $retailerName = $order->retailer_name ?? 'N/A';
+
+                        // ✅ FIX: Get original cost price from supplier product
+                        $originalPrice = 0;
+                        if ($order->product_id) {
+                            $supplierProd  = \App\Models\SupplierProduct::find($order->product_id);
+                            $originalPrice = $supplierProd->cost_price ?? 0;
+                        }
+
+                        // ✅ Selling price = unit_price used in the order
+                        $sellingPrice = $order->unit_price    ?? 0;
+                        $totalAmount  = $order->total_amount  ?? 0;
+
+                        // ✅ Compute markup
+                        $markup    = $sellingPrice - $originalPrice;
+                        $markupPct = $originalPrice > 0
+                            ? number_format((($markup / $originalPrice) * 100), 1)
+                            : 'N/A';
 
                         $data[] = [
                             'product_name'  => '<strong style="font-size: 16px; color: black;">' . e($productName) . '</strong><br>
-                    <span style="font-size: 13px; color: #666;">Retailer: ' . e($retailerName) . '</span><br>
-                    <span style="font-size: 12px; color: #999;"><i class="far fa-clock"></i> ' . $updatedDate . '</span>',
+                                <span style="font-size: 13px; color: #666;">Retailer: ' . e($retailerName) . '</span><br>
+                                <span style="font-size: 12px; color: #999;"><i class="far fa-clock"></i> ' . $updatedDate . '</span>',
                             'category_name' => '<span class="badge badge-success">Outflow</span>',
+                            // ✅ FIX: Added Original Price + Selling Price + Markup to Outflow traceability
                             'traceability'  => '<small>
-                    <strong>Type:</strong> Retailer Order<br>
-                    <strong>Order #:</strong> ' . e($order->id) . '<br>
-                    <strong>Retailer:</strong> ' . e($retailerName) . '<br>
-                    <strong>Qty Out:</strong> ' . $order->quantity . ' pcs<br>
-                    <strong>Total Amount:</strong> ₱' . number_format($order->total_amount, 2) . '<br>
-                    <strong>Date:</strong> ' . $updatedDate . '
-                    </small>',
+                                <strong>Type:</strong> Retailer Order<br>
+                                <strong>Order #:</strong> ' . e($order->id) . '<br>
+                                <strong>Retailer:</strong> ' . e($retailerName) . '<br>
+                                <strong>Qty Out:</strong> ' . $order->quantity . ' pcs<br>
+                                <strong>Original Price (from Supplier):</strong> <span class="text-secondary font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
+                                <strong>Selling Price:</strong> <span class="text-success font-weight-bold">₱' . number_format($sellingPrice, 2) . '</span><br>
+                                <strong>Markup:</strong> <span class="text-info font-weight-bold">₱' . number_format($markup, 2) . ' (' . $markupPct . '%)</span><br>
+                                <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span><br>
+                                <strong>Date:</strong> ' . $updatedDate . '
+                                </small>',
                             'quantity' => $order->quantity,
                             'image'    => $order->product->thumbnail ?? null,
-                            'status'   => 'Outflow'
+                            'status'   => 'Outflow',
                         ];
                     }
                 } catch (\Exception $e) {
@@ -217,7 +259,7 @@ class ReportsController extends Controller
                 }
             }
 
-            // ===== DAMAGED =====
+            // ===== DAMAGED ===== (unchanged)
             if (!$type || $type === 'damage') {
                 try {
                     $query = SerializedProduct::with(['supplierProducts.supplier'])
@@ -232,27 +274,27 @@ class ReportsController extends Controller
                     $damagedItems = $query->get();
 
                     foreach ($damagedItems as $item) {
-                        $productName  = $item->supplierProducts->name ?? 'Unnamed Product';
-                        $supplierName = $item->supplierProducts->supplier->name ?? 'N/A';
+                        $productName  = $item->supplierProducts->name              ?? 'Unnamed Product';
+                        $supplierName = $item->supplierProducts->supplier->name    ?? 'N/A';
                         $updatedDate  = Carbon::parse($item->updated_at)->format('M d, Y h:i A');
                         $statusName   = $item->status == 4 ? 'Damaged' : 'Lost';
                         $badgeColor   = $item->status == 4 ? 'badge-danger' : 'badge-dark';
 
                         $data[] = [
                             'product_name'  => '<strong style="font-size: 16px; color: black;">' . e($productName) . '</strong><br>
-                    <span style="font-size: 13px; color: #666;">SN: ' . e($item->serial_number ?? 'N/A') . '</span><br>
-                    <span style="font-size: 12px; color: #999;"><i class="far fa-clock"></i> ' . $updatedDate . '</span>',
+                                <span style="font-size: 13px; color: #666;">SN: ' . e($item->serial_number ?? 'N/A') . '</span><br>
+                                <span style="font-size: 12px; color: #999;"><i class="far fa-clock"></i> ' . $updatedDate . '</span>',
                             'category_name' => '<span class="badge ' . $badgeColor . '">' . $statusName . '</span>',
                             'traceability'  => '<small>
-                    <strong>Type:</strong> ' . $statusName . '<br>
-                    <strong>Serial No:</strong> ' . e($item->serial_number ?? 'N/A') . '<br>
-                    <strong>Supplier:</strong> ' . e($supplierName) . '<br>
-                    <strong>Remarks:</strong> ' . e($item->remarks ?? 'No remarks') . '<br>
-                    <strong>Date:</strong> ' . $updatedDate . '
-                    </small>',
+                                <strong>Type:</strong> ' . $statusName . '<br>
+                                <strong>Serial No:</strong> ' . e($item->serial_number ?? 'N/A') . '<br>
+                                <strong>Supplier:</strong> ' . e($supplierName) . '<br>
+                                <strong>Remarks:</strong> ' . e($item->remarks ?? 'No remarks') . '<br>
+                                <strong>Date:</strong> ' . $updatedDate . '
+                                </small>',
                             'quantity' => 1,
                             'image'    => $item->supplierProducts->thumbnail ?? null,
-                            'status'   => $statusName
+                            'status'   => $statusName,
                         ];
                     }
                 } catch (\Exception $e) {
@@ -260,7 +302,7 @@ class ReportsController extends Controller
                 }
             }
 
-            // ===== LOW STOCK =====
+            // ===== LOW STOCK ===== (unchanged)
             if (!$type || $type === 'low_stock') {
                 try {
                     $subquery = 'SELECT COUNT(*) FROM serialized_product WHERE serialized_product.product_id = supplier_product.id AND serialized_product.status = 1';
@@ -285,22 +327,28 @@ class ReportsController extends Controller
 
                         if ($qty <= 5) {
                             $urgency = 'CRITICAL';
-                            $badge   = 'badge-danger';
+                            $badge = 'badge-danger';
                         } elseif ($qty <= 10) {
                             $urgency = 'WARNING';
-                            $badge   = 'badge-warning';
+                            $badge = 'badge-warning';
                         } else {
                             $urgency = 'LOW';
-                            $badge   = 'badge-info';
+                            $badge = 'badge-info';
                         }
 
                         $data[] = [
-                            'product_name'  => '<strong style="font-size: 16px; color: black;">' . e($product->name) . '</strong><br><span style="font-size: 13px; color: #666;">SKU: ' . e($product->system_sku ?? 'N/A') . '</span><br><span class="badge ' . $badge . '">' . $urgency . ' - ' . $qty . ' units</span>',
+                            'product_name'  => '<strong style="font-size: 16px; color: black;">' . e($product->name) . '</strong><br>
+                                <span style="font-size: 13px; color: #666;">SKU: ' . e($product->system_sku ?? 'N/A') . '</span><br>
+                                <span class="badge ' . $badge . '">' . $urgency . ' - ' . $qty . ' units</span>',
                             'category_name' => '<span class="badge badge-warning">Low Stock</span>',
-                            'traceability'  => '<small><strong>Type:</strong> Low Stock<br><strong>Available:</strong> ' . $qty . ' units<br><strong>Status:</strong> ' . $urgency . '</small>',
+                            'traceability'  => '<small>
+                                <strong>Type:</strong> Low Stock<br>
+                                <strong>Available:</strong> ' . $qty . ' units<br>
+                                <strong>Status:</strong> ' . $urgency . '
+                                </small>',
                             'quantity' => $qty,
                             'image'    => $product->thumbnail,
-                            'status'   => 'Low Stock'
+                            'status'   => 'Low Stock',
                         ];
                     }
                 } catch (\Exception $e) {
@@ -315,7 +363,7 @@ class ReportsController extends Controller
                 'draw'            => (int) $request->get('draw', 1),
                 'recordsTotal'    => count($data),
                 'recordsFiltered' => count($data),
-                'data'            => $data
+                'data'            => $data,
             ]);
         } catch (\Exception $e) {
             \Log::error('Daily Report Error: ' . $e->getMessage());
@@ -324,7 +372,7 @@ class ReportsController extends Controller
                 'recordsTotal'    => 0,
                 'recordsFiltered' => 0,
                 'data'            => [],
-                'error'           => $e->getMessage()
+                'error'           => $e->getMessage(),
             ], 500);
         }
     }
