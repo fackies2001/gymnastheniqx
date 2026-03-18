@@ -38,11 +38,11 @@
     {{-- Shared Modals --}}
     <x-bootstrap.pincode />
 
-    {{-- ✅ SESSION HIJACKED MODAL (kapag na-redirect mula sa ibang device) --}}
+    {{-- ✅ SESSION HIJACKED MODAL --}}
     @if (session('session_hijacked'))
         <div id="hijackModal"
             style="
-        position: fixed; inset: 0; z-index: 9999;
+        position: fixed; inset: 0; z-index: 99999;
         background: rgba(0,0,0,0.65);
         display: flex; align-items: center; justify-content: center;">
             <div
@@ -70,7 +70,7 @@
     @auth
         <div id="sessionWarningModal"
             style="
-    display: none !important; position: fixed; inset: 0; z-index: 99999;
+        display: none !important; position: fixed; inset: 0; z-index: 99999;
         background: rgba(0,0,0,0.65);
         align-items: center; justify-content: center;">
             <div
@@ -218,19 +218,9 @@
         <script>
             let sessionWarningShown = false;
 
+            // ✅ Simple GET redirect — walang CSRF issue
             function forceLogout() {
-                const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-                fetch('/logout-forced', {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': token,
-                        'Content-Type': 'application/json'
-                    }
-                }).then(() => {
-                    window.location.href = '/login';
-                }).catch(() => {
-                    window.location.href = '/login';
-                });
+                window.location.href = '/logout-forced';
             }
 
             function startSessionCountdown() {
@@ -254,6 +244,7 @@
                 startSessionCountdown();
             }
 
+            // ✅ Poll every 3 seconds
             setInterval(async () => {
                 if (sessionWarningShown) return;
                 try {
@@ -264,7 +255,7 @@
                         showSessionWarning();
                     }
                 } catch (e) {}
-            }, 5000);
+            }, 3000);
         </script>
     @endauth
 @stop
