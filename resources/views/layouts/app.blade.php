@@ -1,8 +1,6 @@
 @extends('adminlte::page')
 
-{{-- =========================
-|   HEAD
-|========================= --}}
+{{-- ========================= --}}
 @section('adminlte_head')
     @if (session()->has('sanctum_token'))
         <meta name="api-token" content="{{ session('sanctum_token') }}">
@@ -10,9 +8,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 @endsection
 
-{{-- =========================
-|   TITLE
-|========================= --}}
+{{-- ========================= --}}
 @section('title')
     {{ config('adminlte.title') }}
     @hasSection('subtitle')
@@ -20,9 +16,7 @@
     @endif
 @stop
 
-{{-- =========================
-|   CONTENT HEADER
-|========================= --}}
+{{-- ========================= --}}
 @section('content_header')
     @hasSection('content_header_title')
         <h1 class="text-muted">
@@ -37,16 +31,14 @@
     @endif
 @stop
 
-{{-- =========================
-|   MAIN CONTENT
-|========================= --}}
+{{-- ========================= --}}
 @section('content')
     @yield('content_body')
 
     {{-- Shared Modals --}}
     <x-bootstrap.pincode />
 
-    {{-- ✅ SESSION HIJACKED MODAL --}}
+    {{-- ✅ SESSION HIJACKED MODAL (kapag na-redirect mula sa ibang device) --}}
     @if (session('session_hijacked'))
         <div id="hijackModal"
             style="
@@ -106,12 +98,9 @@
     @endauth
 @stop
 
-{{-- =========================
-|   CSS
-|========================= --}}
+{{-- ========================= --}}
 @section('css')
     <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
-
     <style>
         .navbar-nav .nav-item.dropdown.user-menu .dropdown-toggle {
             padding: 0.5rem 1rem;
@@ -150,21 +139,21 @@
             object-fit: cover;
         }
     </style>
-
     @stack('css')
 @stop
 
-{{-- =========================
-|   JAVASCRIPT
-|========================= --}}
+{{-- ========================= --}}
 @section('js')
+    {{-- 1. VITE APP.JS FIRST --}}
     @vite('resources/js/app.js')
 
+    {{-- 2. STACK JS --}}
     @stack('js')
 
+    {{-- 3. PINCODE JS --}}
     @vite('resources/js/pincode_LOCKED.js')
 
-    {{-- PIN MODAL LOGIC --}}
+    {{-- 4. PIN MODAL LOGIC --}}
     <script>
         (function() {
             'use strict';
@@ -224,7 +213,7 @@
         })();
     </script>
 
-    {{-- ✅ SINGLE DEVICE LOGIN — Polling Script --}}
+    {{-- 5. ✅ SINGLE DEVICE LOGIN — Polling Script --}}
     @auth
         <script>
             let sessionWarningShown = false;
@@ -252,7 +241,6 @@
                 startSessionCountdown();
             }
 
-            // Poll every 5 seconds
             setInterval(async () => {
                 if (sessionWarningShown) return;
                 try {
