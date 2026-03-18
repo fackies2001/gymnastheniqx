@@ -74,20 +74,11 @@
                     </div>
                     <div class="mb-3 col-md-6">
                         <label class="form-label font-weight-bold">Barcode</label>
-                        <input type="text" name="barcode" id="barcode_new" class="form-control" required>
+                        <input type="text" name="barcode" id="barcode_new" class="form-control" inputmode="numeric"
+                            pattern="[0-9]+" placeholder="Numbers only" required>
                     </div>
+                </div>{{-- END .row --}}
 
-                    {{-- ✅ CONSUMABLE CHECKBOX - Always Visible --}}
-                    <div class="mb-3 col-md-12" id="consumable-container" style="display: block !important;">
-                        <div class="custom-control custom-checkbox">
-                            <input type="checkbox" class="custom-control-input" id="is_consumable" name="is_consumable"
-                                value="1">
-                            <label class="custom-control-label font-weight-bold" for="is_consumable">
-                                Mark as Consumable (No Serial Required)
-                            </label>
-                        </div>
-                    </div>
-                </div>
                 <x-slot:footer>
                     <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Close</button>
                     <button type="button" class="btn btn-primary btn-sm" id="submitProductBtn">Save Product</button>
@@ -96,19 +87,6 @@
         </form>
     @endnot_api
 @endsection
-
-@push('css')
-    <style>
-        /* ✅ Force consumable checkbox to always be visible */
-        #consumable-container,
-        #is_consumable,
-        #is_consumable+label {
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-        }
-    </style>
-@endpush
 
 @push('js')
     <script>
@@ -133,22 +111,22 @@
                     },
                     {
                         data: 'name',
-                        name: 'supplier_product.name', // ✅ FIX
+                        name: 'supplier_product.name',
                         title: 'Product Name'
                     },
                     {
                         data: 'system_sku',
-                        name: 'supplier_product.system_sku', // ✅ FIX
+                        name: 'supplier_product.system_sku',
                         title: 'SKU'
                     },
                     {
                         data: 'cost_price',
-                        name: 'supplier_product.cost_price', // ✅ FIX
+                        name: 'supplier_product.cost_price',
                         title: 'Price'
                     },
                     {
                         data: 'barcode',
-                        name: 'supplier_product.barcode', // ✅ FIX
+                        name: 'supplier_product.barcode',
                         title: 'Barcode'
                     }
                 ],
@@ -160,33 +138,12 @@
                 }
             });
 
-            // 2. Modal open - ensure checkbox is visible
+            // 2. Focus on Product Name when modal opens
             $('#createProductModal').on('shown.bs.modal', function() {
                 $('#name').focus();
-
-                // ✅ Force checkbox visibility
-                $('#consumable-container').show().css({
-                    'display': 'block',
-                    'visibility': 'visible',
-                    'opacity': '1'
-                });
-
-                console.log('Modal opened, checkbox visible:', $('#is_consumable').is(':visible'));
             });
 
-            // 3. ✅ Prevent category change from hiding checkbox
-            $('#category_id').on('change select2:select', function() {
-                setTimeout(function() {
-                    $('#consumable-container').show().css({
-                        'display': 'block',
-                        'visibility': 'visible',
-                        'opacity': '1'
-                    });
-                    console.log('Category changed, checkbox still visible');
-                }, 100);
-            });
-
-            // 4. Submit Button Logic
+            // 3. Submit Button Logic
             $(document).off('click', '#submitProductBtn').on('click', '#submitProductBtn', function(e) {
                 e.preventDefault();
 
@@ -195,9 +152,21 @@
                 var form = $('#createProductForm');
                 var submitBtn = $(this);
 
-                // Validation
+                // HTML5 native validation
                 if (!form[0].checkValidity()) {
                     form[0].reportValidity();
+                    return false;
+                }
+
+                // ✅ Barcode - numbers only validation
+                var barcode = $('#barcode_new').val().trim();
+                if (!/^\d+$/.test(barcode)) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Invalid Barcode',
+                        text: 'Barcode must contain numbers only. Letters and special characters are not allowed.',
+                        confirmButtonColor: '#3085d6'
+                    });
                     return false;
                 }
 
@@ -212,8 +181,6 @@
                         'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
                     },
                     success: function(response) {
-                        console.log('Success:', response);
-
                         // Close modal
                         $('#createProductModal').modal('hide');
 
@@ -224,15 +191,24 @@
                         // Reload table
                         table.ajax.reload(null, false);
 
-                        // Success message
-                        if (response.message) {
-                            alert(response.message);
-                        }
+                        // ✅ SweetAlert success
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success!',
+                            text: response.message ||
+                                'Supplier product created successfully!',
+                            confirmButtonColor: '#3085d6'
+                        });
                     },
                     error: function(xhr) {
-                        console.error('Error Details:', xhr);
-                        alert('Error: ' + (xhr.responseJSON?.message ||
-                            'Failed to save product'));
+                        // ✅ SweetAlert error
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: xhr.responseJSON?.message ||
+                                'Failed to save product.',
+                            confirmButtonColor: '#d33'
+                        });
                     },
                     complete: function() {
                         setTimeout(function() {
@@ -242,16 +218,6 @@
                     }
                 });
             });
-
-            // 5. ✅ Debug helper - check if checkbox is being hidden by external scripts
-            setInterval(function() {
-                if ($('#createProductModal').hasClass('show')) {
-                    if (!$('#is_consumable').is(':visible')) {
-                        console.warn('⚠️ Checkbox was hidden! Forcing visibility...');
-                        $('#consumable-container').show().css('display', 'block');
-                    }
-                }
-            }, 500);
         });
     </script>
 @endpush
