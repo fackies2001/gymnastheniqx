@@ -119,7 +119,7 @@
                                             <thead class="thead-dark" style="position: sticky; top: 0; z-index: 1;">
                                                 <tr>
                                                     <th>Product</th>
-                                                    <th class="text-center" width="90">Unit Cost</th>
+                                                    <th class="text-center" width="120">Unit Cost</th>
                                                     <th class="text-center" width="110">Qty</th>
                                                     <th class="text-center" width="100">Subtotal</th>
                                                     <th class="text-center" width="50"></th>
@@ -521,6 +521,19 @@
 
             let currentViewPRId = null;
             let currentViewStatus = null;
+
+            // I-dagdag ito bago mag-close ng $(document).ready
+            $(document).on('keypress', '.qty-input', function(e) {
+                return /[0-9]/.test(String.fromCharCode(e.which));
+            });
+
+            $(document).on('keypress', '.unit-cost-input', function(e) {
+                let char = String.fromCharCode(e.which);
+                let val = $(this).val();
+                // Allow digits and one decimal point only
+                if (char === '.') return val.indexOf('.') === -1;
+                return /[0-9]/.test(char);
+            });
 
             // ============================================
             // GRAND TOTAL
@@ -1058,19 +1071,18 @@
                         <tr>
                             <td class="small">${item.name}</td>
                             <td>
-                                <input type="number" name="products[${item.id}][unit_cost]"
+                                <input type="text" inputmode="decimal" name="products[${item.id}][unit_cost]"
                                     class="form-control form-control-sm text-center unit-cost-input"
-                                    style="min-width: 90px;"
-                                    data-index="${index}" value="${item.price.toFixed(2)}"
-                                    step="0.01" min="0">
+                                    style="min-width: 110px;"
+                                    data-index="${index}" value="${item.price.toFixed(2)}">
                             </td>
                             <td>
-                                <input type="number" name="products[${item.id}][quantity]"
+                                <input type="text" inputmode="numeric" name="products[${item.id}][quantity]"
                                     class="form-control form-control-sm text-center qty-input"
-                                    style="min-width: 90px;"
-                                    data-index="${index}" value="${item.quantity}" min="1">
+                                    style="min-width: 110px;"
+                                    data-index="${index}" value="${item.quantity}">
                             </td>
-                            <td class="text-center font-weight-bold">₱${item.subtotal.toFixed(2)}</td>
+                         <td class="text-center font-weight-bold subtotal-cell">₱${item.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                             <td class="text-center">
                                 <button type="button" class="btn btn-sm btn-danger remove-item"
                                     data-index="${index}">
@@ -1085,12 +1097,21 @@
             $(document).on('input', '.qty-input, .unit-cost-input', function() {
                 let index = $(this).data('index');
                 if (!selectedItems[index]) return;
-                let qty = parseInt($(`.qty-input[data-index="${index}"]`).val()) || 0;
+
+                let qty = parseFloat($(`.qty-input[data-index="${index}"]`).val()) || 0;
                 let cost = parseFloat($(`.unit-cost-input[data-index="${index}"]`).val()) || 0;
+
                 selectedItems[index].quantity = qty;
                 selectedItems[index].price = cost;
                 selectedItems[index].subtotal = qty * cost;
-                renderSelectedItems();
+
+                // I-update lang yung subtotal cell ng row na yan, hindi buong table
+                $(this).closest('tr').find('.subtotal-cell')
+                    .text('₱' + selectedItems[index].subtotal.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    }));
+
                 updateGrandTotal();
             });
 
@@ -1221,6 +1242,12 @@
             margin-bottom: 15px;
         }
 
+        #selectedItemsTable .qty-input,
+        #selectedItemsTable .unit-cost-input {
+            min-width: 110px;
+            width: 100%;
+        }
+
         @media (max-width: 768px) {
             #viewPRModal .modal-dialog {
                 margin: 0.5rem;
@@ -1229,17 +1256,22 @@
             #viewPRModal .table-responsive {
                 font-size: 0.8rem;
             }
+        }
 
-            #selectedItemsTable .qty-input {
-                min-width: 90px;
-                width: 100%;
-            }
+        #viewPRModal .table-responsive {
+            font-size: 0.8rem;
+        }
 
-            #selectedItemsTable .qty-input,
-            #selectedItemsTable .unit-cost-input {
-                min-width: 90px;
-                width: 100%;
-            }
+        #selectedItemsTable .qty-input {
+            min-width: 90px;
+            width: 100%;
+        }
+
+        #selectedItemsTable .qty-input,
+        #selectedItemsTable .unit-cost-input {
+            min-width: 90px;
+            width: 100%;
+        }
         }
     </style>
 @endpush
