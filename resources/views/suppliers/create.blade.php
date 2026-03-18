@@ -2,7 +2,7 @@
 
 @section('subtitle', 'Supplier')
 @section('content_header_title', 'Supplier')
-{{-- @section('content_header_subtitle', 'Dashboard') --}}
+
 @section('content_body')
     <div class="container">
         <div class="row">
@@ -12,15 +12,11 @@
                         <div class="card-title mb-0" style="letter-spacing: 1ch; text-transform: uppercase;" id="title_emp">
                             <h3 class="my-4">Create Supplier</h3>
                         </div>
-                        <!-- Button to trigger the Create Supplier modal -->
-                        {{-- <a href="#" class="btn btn-sm btn-primary ml-auto" data-toggle="modal"
-                        data-target="#createSupplierModal">Create Supplier</a> --}}
                     </div>
-                    <form method="POST" action="{{ route('suppliers.store') }}">
+                    <form method="POST" action="{{ route('suppliers.store') }}" id="createSupplierForm">
                         <div class="card-body row">
                             @csrf
                             <div class="col-sm-12 @can('can-create-supplier-api') col-md-6 @endcan">
-
 
                                 <div class="mb-3">
                                     <x-bootstrap.label for="name" value="Supplier Name" />
@@ -35,7 +31,6 @@
                                     <x-bootstrap.input-error :messages="$errors->get('email')" />
                                 </div>
                                 <div class="mb-3">
-                                    {{-- BAGO --}}
                                     <x-bootstrap.label for="contact_number" value="Supplier Phone" />
                                     <x-bootstrap.input id="contact_number" name="contact_number" required
                                         placeholder="Enter supplier phone" />
@@ -53,16 +48,66 @@
                                         placeholder="Enter contact person name" />
                                     <x-bootstrap.input-error :messages="$errors->get('contact_person')" />
                                 </div>
+
                             </div>
                         </div>
                         <div class="card-footer d-flex">
-                            <button type="submit" class="btn btn-success btn-sm ml-auto" id="createSupplierSubmit"> Save
-                                Supplier</button>
+                            <button type="button" class="btn btn-success btn-sm ml-auto" id="createSupplierSubmit">
+                                Save Supplier
+                            </button>
                         </div>
                     </form>
                 </div>
             </div>
         </div>
     </div>
-
 @stop
+
+@push('js')
+    <script>
+        $(document).ready(function() {
+
+            $('#createSupplierSubmit').on('click', function(e) {
+                e.preventDefault();
+
+                var supplierName = $('#name').val().trim();
+
+                // HTML5 native validation muna
+                if (!document.getElementById('createSupplierForm').checkValidity()) {
+                    document.getElementById('createSupplierForm').reportValidity();
+                    return false;
+                }
+
+                // ✅ AJAX duplicate check
+                $.ajax({
+                    url: '{{ route('suppliers.check_duplicate') }}',
+                    type: 'GET',
+                    data: {
+                        name: supplierName
+                    },
+                    success: function(response) {
+                        if (response.exists) {
+                            // ❌ Duplicate found — show SweetAlert
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Supplier Already Exists!',
+                                text: '"' + supplierName +
+                                    '" is already registered as a supplier. Please use a different name.',
+                                confirmButtonColor: '#3085d6',
+                                confirmButtonText: 'OK'
+                            });
+                        } else {
+                            // ✅ No duplicate — submit the form
+                            $('#createSupplierForm').submit();
+                        }
+                    },
+                    error: function() {
+                        // If check fails, proceed na lang para hindi mablock ang user
+                        $('#createSupplierForm').submit();
+                    }
+                });
+            });
+
+        });
+    </script>
+@endpush

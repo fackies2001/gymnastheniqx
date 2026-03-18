@@ -190,6 +190,8 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session'])->group(funct
             Route::put('/suppliers/{id}', 'update')->name('suppliers.update');
             Route::delete('/suppliers/{id}', 'destroy')->name('suppliers.destroy');
             Route::get('/suppliers/{id}', 'show')->name('suppliers.show');
+            Route::get('suppliers/check-duplicate', [SuppliersController::class, 'checkDuplicate'])
+                ->name('suppliers.check_duplicate');
         });
 
         // SUPPLIER PRODUCTS

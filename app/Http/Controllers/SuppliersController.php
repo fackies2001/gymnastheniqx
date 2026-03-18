@@ -135,4 +135,11 @@ class SuppliersController extends Controller
         return redirect()->route('suppliers.index')
             ->with('success', 'Supplier deleted successfully!');
     }
+
+    public function checkduplicate()
+    {
+        $exists = Supplier::whereRaw('LOWER(name) = ?', [strtolower($request->name)])->exists();
+
+        return response()->json(['exists' => $exists]);
+    }
 }
