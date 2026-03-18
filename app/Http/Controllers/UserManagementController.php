@@ -19,12 +19,10 @@ class UserManagementController extends Controller
     {
         $employees = User::with(['role', 'warehouse', 'department'])->get();
 
-        // ✅ Show only admin, staff, manager roles
         $roles = Role::whereIn('role_name', ['admin', 'staff', 'manager'])->get();
 
         $warehouses = Warehouse::all();
 
-        // ✅ Show only Operations department
         $departments = \App\Models\Department::where('name', 'Operations')->get();
 
         return view('settings.user-management.index', compact('employees', 'roles', 'warehouses', 'departments'));
@@ -36,33 +34,32 @@ class UserManagementController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'full_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:employee,email',
-            'username' => 'required|string|unique:employee,username',
-            'role_id' => 'required|exists:role,id',
-            'department_id' => 'nullable|exists:department,id', // ✅ Dagdag
-            'assigned_at' => 'nullable|exists:warehouse,id',
+            'full_name'      => 'required|string|max:255',
+            'email'          => 'required|email|unique:employee,email',
+            // ✅ FIX: Removed username validation — username no longer required
+            'role_id'        => 'required|exists:role,id',
+            'department_id'  => 'nullable|exists:department,id',
+            'assigned_at'    => 'nullable|exists:warehouse,id',
             'contact_number' => 'nullable|string',
-            'address' => 'nullable|string',
-            'date_hired' => 'nullable|date',
-            'status' => 'required|in:Active,Inactive,active,inactive',
-            'profile_photo' => 'nullable|image|max:2048'
+            'address'        => 'nullable|string',
+            'date_hired'     => 'nullable|date',
+            'status'         => 'required|in:Active,Inactive,active,inactive',
+            'profile_photo'  => 'nullable|image|max:2048',
         ]);
 
-        // Handle profile photo upload
         if ($request->hasFile('profile_photo')) {
-            $validated['profile_photo'] = $request->file('profile_photo')->store('profile_photos', 'public');
+            $validated['profile_photo'] = $request->file('profile_photo')
+                ->store('profile_photos', 'public');
         }
 
-        // Set default password (you can change this logic)
-        $validated['password'] = Hash::make('password123'); // Default password
+        $validated['password'] = Hash::make('password123');
+        $validated['status']   = ucfirst(strtolower($validated['status']));
 
-        $validated['status'] = ucfirst(strtolower($validated['status']));
-        $employee = User::create($validated);
+        User::create($validated);
 
         return response()->json([
             'success' => true,
-            'message' => 'Employee created successfully!'
+            'message' => 'Employee created successfully!',
         ]);
     }
 
@@ -71,39 +68,37 @@ class UserManagementController extends Controller
      */
     public function update(Request $request)
     {
-        $id = $request->input('id');
+        $id       = $request->input('id');
         $employee = User::findOrFail($id);
 
         $validated = $request->validate([
-            'full_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:employee,email,' . $id,
-            'username' => 'required|string|unique:employee,username,' . $id,
-            'role_id' => 'required|exists:role,id',
-            'department_id' => 'nullable|exists:department,id', // ✅ Dagdag
-            'assigned_at' => 'nullable|exists:warehouse,id',
+            'full_name'      => 'required|string|max:255',
+            'email'          => 'required|email|unique:employee,email,' . $id,
+            // ✅ FIX: Removed username validation — username no longer required
+            'role_id'        => 'required|exists:role,id',
+            'department_id'  => 'nullable|exists:department,id',
+            'assigned_at'    => 'nullable|exists:warehouse,id',
             'contact_number' => 'nullable|string',
-            'address' => 'nullable|string',
-            'date_hired' => 'nullable|date',
-            'status' => 'required|in:active,inactive',
-            'profile_photo' => 'nullable|image|max:2048'
+            'address'        => 'nullable|string',
+            'date_hired'     => 'nullable|date',
+            'status'         => 'required|in:active,inactive',
+            'profile_photo'  => 'nullable|image|max:2048',
         ]);
 
-        // Handle profile photo upload
         if ($request->hasFile('profile_photo')) {
-            // Delete old photo
             if ($employee->profile_photo) {
                 Storage::disk('public')->delete($employee->profile_photo);
             }
-            $validated['profile_photo'] = $request->file('profile_photo')->store('profile_photos', 'public');
+            $validated['profile_photo'] = $request->file('profile_photo')
+                ->store('profile_photos', 'public');
         }
 
-        // ✅ FIX: Capitalize status para consistent sa profile display
         $validated['status'] = ucfirst(strtolower($validated['status']));
         $employee->update($validated);
 
         return response()->json([
             'success' => true,
-            'message' => 'Employee updated successfully!'
+            'message' => 'Employee updated successfully!',
         ]);
     }
 
@@ -114,7 +109,6 @@ class UserManagementController extends Controller
     {
         $employee = User::findOrFail($id);
 
-        // Delete profile photo if exists
         if ($employee->profile_photo) {
             Storage::disk('public')->delete($employee->profile_photo);
         }
@@ -123,7 +117,7 @@ class UserManagementController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Employee deleted successfully!'
+            'message' => 'Employee deleted successfully!',
         ]);
     }
 
@@ -133,27 +127,24 @@ class UserManagementController extends Controller
     public function resetPin(Request $request)
     {
         $request->validate([
-            'id' => 'required|exists:employee,id' // ✅ CHANGED from 'user_id' to 'id'
+            'id' => 'required|exists:employee,id',
         ]);
 
-        $user = User::findOrFail($request->id); // ✅ Use 'id' instead of 'user_id'
-
-        // Clear the PIN
+        $user      = User::findOrFail($request->id);
         $user->pin = null;
         $user->save();
 
-        // ✅ REMOVE PIN VERIFICATION SESSION
         session()->forget(['pin_verified', 'show_pin_modal', 'pin_mode']);
 
         Log::info('🔓 Admin Reset PIN', [
-            'admin_id' => auth()->id(),
-            'target_user_id' => $user->id,
-            'target_user_name' => $user->full_name
+            'admin_id'         => auth()->id(),
+            'target_user_id'   => $user->id,
+            'target_user_name' => $user->full_name,
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'PIN has been reset. User will be prompted to set a new PIN on next login.'
+            'message' => 'PIN has been reset. User will be prompted to set a new PIN on next login.',
         ]);
     }
 
@@ -163,39 +154,36 @@ class UserManagementController extends Controller
     public function verifyPin(Request $request)
     {
         $request->validate([
-            'pin' => 'required|array|size:6',
-            'pin.*' => 'required|numeric|digits:1'
+            'pin'   => 'required|array|size:6',
+            'pin.*' => 'required|numeric|digits:1',
         ]);
 
-        $pin = implode('', $request->pin);
+        $pin  = implode('', $request->pin);
         $user = auth()->user();
 
-        // Check if PIN matches
         if (Hash::check($pin, $user->pin)) {
-            // ✅ PIN is correct
             session(['pin_verified' => true]);
             session()->forget(['show_pin_modal', 'pin_mode']);
 
             Log::info('✅ PIN Verified Successfully', [
-                'user_id' => $user->id,
-                'user_name' => $user->full_name
+                'user_id'   => $user->id,
+                'user_name' => $user->full_name,
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => 'PIN verified successfully'
+                'message' => 'PIN verified successfully',
             ]);
         }
 
-        // ❌ PIN is incorrect
         Log::warning('❌ PIN Verification Failed', [
-            'user_id' => $user->id,
-            'user_name' => $user->full_name
+            'user_id'   => $user->id,
+            'user_name' => $user->full_name,
         ]);
 
         return response()->json([
             'success' => false,
-            'message' => 'Incorrect PIN. Please try again.'
+            'message' => 'Incorrect PIN. Please try again.',
         ], 422);
     }
 
@@ -205,30 +193,28 @@ class UserManagementController extends Controller
     public function updatePin(Request $request)
     {
         $request->validate([
-            'pin' => 'required|array|size:6',
-            'pin.*' => 'required|numeric|digits:1'
+            'pin'   => 'required|array|size:6',
+            'pin.*' => 'required|numeric|digits:1',
         ]);
 
-        $pin = implode('', $request->pin);
+        $pin  = implode('', $request->pin);
         $user = auth()->user();
 
-        // Save hashed PIN
         $user->pin = Hash::make($pin);
         $user->save();
 
-        // ✅ Mark as verified after setting new PIN
         session(['pin_verified' => true]);
         session()->forget(['show_pin_modal', 'pin_mode']);
 
         Log::info('✅ PIN Set/Updated Successfully', [
-            'user_id' => $user->id,
+            'user_id'   => $user->id,
             'user_name' => $user->full_name,
-            'is_new_pin' => session('pin_mode') === 'set'
+            'is_new_pin' => session('pin_mode') === 'set',
         ]);
 
         return response()->json([
             'success' => true,
-            'message' => 'PIN saved successfully'
+            'message' => 'PIN saved successfully',
         ]);
     }
 }
