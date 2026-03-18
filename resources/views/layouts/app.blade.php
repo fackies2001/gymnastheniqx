@@ -219,7 +219,18 @@
             let sessionWarningShown = false;
 
             function forceLogout() {
-                window.location.href = '/logout-forced';
+                const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                fetch('/logout-forced', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': token,
+                        'Content-Type': 'application/json'
+                    }
+                }).then(() => {
+                    window.location.href = '/login';
+                }).catch(() => {
+                    window.location.href = '/login';
+                });
             }
 
             function startSessionCountdown() {

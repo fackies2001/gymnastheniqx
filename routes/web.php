@@ -40,14 +40,14 @@ Route::get('/', function () {
 // ✅ LOGOUT FORCED — OUTSIDE auth middleware
 // (kailangan accessible kahit expired na session)
 // ─────────────────────────────────────────────
-Route::get('/logout-forced', function () {
+Route::match(['get', 'post'], '/logout-forced', function () {
     $user = auth()->user();
     if ($user) $user->update(['session_token' => null]);
     Auth::guard('web')->logout();
     request()->session()->invalidate();
     request()->session()->regenerateToken();
     return redirect('/login')->with('session_hijacked', true);
-});
+})->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class]);
 
 // ─────────────────────────────────────────────
 // ✅ PIN VERIFICATION ROUTES
@@ -98,7 +98,7 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session'])->group(funct
 
     Route::get('/test-user-methods', function () {
         $user = Auth::user();
-        return response()->json([   
+        return response()->json([
             'full_name'          => $user->full_name,
             'adminlte_image'     => $user->adminlte_image(),
             'adminlte_desc'      => $user->adminlte_desc(),
