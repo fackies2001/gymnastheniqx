@@ -90,11 +90,11 @@ class SuppliersController extends Controller
 
     public function store(StoreSupplierRequest $request)
     {
-        // ✅ Handle null email properly
         $email = $request->email ? strtolower($request->email) : null;
+        $baseName = trim($request->name);
 
-        $query = Supplier::whereRaw('LOWER(name) = ?', [strtolower($request->name)]);
-
+        // Check kung may exact duplicate (same name + same email)
+        $query = Supplier::whereRaw('LOWER(name) = ?', [strtolower($baseName)]);
         if ($email) {
             $query->whereRaw('LOWER(email) = ?', [$email]);
         } else {
@@ -105,6 +105,12 @@ class SuppliersController extends Controller
             return back()->withErrors([
                 'name' => 'A supplier with this name and email already exists.'
             ])->withInput();
+        }
+
+        // ✅ Auto-number kung may same name na (sister company)
+        $sameNameCount = Supplier::whereRaw('LOWER(name) LIKE ?', [strtolower($baseName) . '%'])->count();
+        if ($sameNameCount > 0) {
+            $request->merge(['name' => $baseName . ' #' . ($sameNameCount + 1)]);
         }
 
         return $this->supplierProductServices->store_supplier($request);
@@ -177,11 +183,9 @@ class SuppliersController extends Controller
 
     public function checkDuplicate(Request $request)
     {
-        // ✅ Handle null email properly
         $email = $request->email ? strtolower($request->email) : null;
 
         $query = Supplier::whereRaw('LOWER(name) = ?', [strtolower($request->name)]);
-
         if ($email) {
             $query->whereRaw('LOWER(email) = ?', [$email]);
         } else {

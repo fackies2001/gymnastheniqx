@@ -74,6 +74,7 @@ class SupplierProductServices
                     ]);
                 }
             }
+            // ✅ TANGGALIN na ang return redirect() dito
         });
     }
 
