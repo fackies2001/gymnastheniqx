@@ -90,8 +90,8 @@ class SuppliersController extends Controller
 
     public function store(StoreSupplierRequest $request)
     {
-        // $email = $request->email ? strtolower($request->email) : null;
-        // $baseName = trim($request->name);
+        $email = $request->email ? strtolower($request->email) : null;
+        $baseName = trim($request->name);
 
         // Check exact duplicate (same name + same email)
         // $query = Supplier::whereRaw('LOWER(name) = ?', [strtolower($baseName)]);
