@@ -190,7 +190,7 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session'])->group(funct
             Route::get('/suppliers/create', 'create')->name('suppliers.create');
 
             // ✅ DAPAT NANDITO — BAGO ang {id} routes
-            Route::get('/suppliers/check-duplicate', 'checkDuplicate')->name('suppliers.check_duplicate');
+            Route::get('/suppliers/check_duplicate', 'checkDuplicate')->name('suppliers.check_duplicate');
 
             Route::post('/suppliers/store', 'store')->name('suppliers.store');
             Route::get('/suppliers/{id}/products-table', 'showTable')->name('suppliers_products.show_table');
