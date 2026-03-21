@@ -18,7 +18,7 @@
                                 <th>Photo</th>
                                 <th>Full Name</th>
                                 <th>Email</th>
-                                {{-- ✅ FIX: Removed Username column --}}
+                                <th>Employee ID</th>
                                 <th>Contact Number</th>
                                 <th>Address</th>
                                 <th>Date Hired</th>
@@ -30,6 +30,14 @@
                         <tbody>
                             @foreach ($employees as $employee)
                                 <tr>
+
+                                    {{-- Employee ID --}}
+                                    <td class="text-center">
+                                        <span class="badge badge-dark" style="font-size:12px; letter-spacing:1px;">
+                                            EMP-{{ str_pad($employee->id, 4, '0', STR_PAD_LEFT) }}
+                                        </span>
+                                    </td>
+
                                     {{-- Photo --}}
                                     <td class="text-center">
                                         @if ($employee->profile_photo)
@@ -352,9 +360,9 @@
                                 type: 'DELETE',
                                 success: function(res) {
                                     Swal.fire('Deleted!', res.message, 'success').then(
-                                () => {
-                                        location.reload();
-                                    });
+                                        () => {
+                                            location.reload();
+                                        });
                                 },
                                 error: function(xhr) {
                                     Swal.fire('Error!', xhr.responseJSON?.message ||
