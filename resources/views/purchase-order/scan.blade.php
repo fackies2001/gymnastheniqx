@@ -68,19 +68,22 @@
                                 <small class="text-muted font-weight-bold text-uppercase">Scan Mode:</small>
                             </div>
                             <div class="btn-group btn-group-sm w-100" role="group" id="scanModeGroup">
-                                <input type="radio" class="btn-check" name="scan_mode" id="modePiece" value="piece"
-                                    checked>
-                                <label class="btn btn-outline-primary w-50" for="modePiece">
+                                <input type="radio" class="btn-check" name="scan_mode" id="modePiece" value="piece" <div
+                                    class="d-flex w-100" id="scanModeGroup">
+                                <button type="button" class="btn btn-primary w-50 mr-1 scan-mode-btn active"
+                                    data-mode="piece" id="modePieceBtn">
                                     <i class="fas fa-cube mr-1"></i> Piece
                                     <div style="font-size:9px;opacity:0.8;">Unique serial per scan</div>
-                                </label>
-
-                                <input type="radio" class="btn-check" name="scan_mode" id="modeBox" value="box">
-                                <label class="btn btn-outline-warning w-50" for="modeBox">
+                                </button>
+                                <button type="button" class="btn btn-outline-warning w-50 scan-mode-btn" data-mode="box"
+                                    id="modeBoxBtn">
                                     <i class="fas fa-box mr-1"></i> Box / Bulk
-                                    <div style="font-size:9px;opacity:0.8;" id="boxPcsHint">1 scan = multiple pcs</div>
-                                </label>
+                                    <div style="font-size:9px;opacity:0.8;">1 scan = multiple pcs</div>
+                                </button>
                             </div>
+
+                            {{-- Hidden input para ma-read ng JS --}}
+                            <input type="hidden" id="scanModeValue" value="piece">
 
                             {{-- Mode indicator --}}
                             <div id="scanModeIndicator" class="mt-2 p-2 rounded text-center"

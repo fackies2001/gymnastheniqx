@@ -129,22 +129,41 @@ if (barcodeInput) {
         }
 
         // ✅ Scan mode toggle indicator
-        document.querySelectorAll('input[name="scan_mode"]').forEach(radio => {
-            radio.addEventListener('change', function () {
-                const indicator = document.getElementById('scanModeIndicator');
-                if (!indicator) return;
+        document.querySelectorAll('.scan-mode-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+        const mode = this.dataset.mode;
 
-                if (this.value === 'box') {
-                    indicator.style.background = '#fff8e1';
-                    indicator.style.color      = '#e65100';
-                    indicator.innerHTML = '<i class="fas fa-box mr-1"></i> BOX MODE — Same serial number para sa lahat ng pieces';
-                } else {
-                    indicator.style.background = '#e3f2fd';
-                    indicator.style.color      = '#1565c0';
-                    indicator.innerHTML = '<i class="fas fa-cube mr-1"></i> PIECE MODE — Unique serial number per scan';
-                }
-            });
+        // I-update ang hidden input
+        document.getElementById('scanModeValue').value = mode;
+
+        // Toggle button styles
+        document.querySelectorAll('.scan-mode-btn').forEach(b => {
+            b.classList.remove('btn-primary', 'btn-warning', 'active');
+            b.classList.add('btn-outline-warning');
         });
+
+        if (mode === 'box') {
+            this.classList.remove('btn-outline-warning');
+            this.classList.add('btn-warning', 'active');
+        } else {
+            this.classList.remove('btn-outline-warning');
+            this.classList.add('btn-primary', 'active');
+        }
+
+        // I-update ang indicator
+        const indicator = document.getElementById('scanModeIndicator');
+        if (!indicator) return;
+        if (mode === 'box') {
+            indicator.style.background = '#fff8e1';
+            indicator.style.color      = '#e65100';
+            indicator.innerHTML = '<i class="fas fa-box mr-1"></i> BOX MODE — Same serial number para sa lahat ng pieces';
+        } else {
+            indicator.style.background = '#e3f2fd';
+            indicator.style.color      = '#1565c0';
+            indicator.innerHTML = '<i class="fas fa-cube mr-1"></i> PIECE MODE — Unique serial number per scan';
+        }
+    });
+});
 
         console.log('✅ Event listeners ready');
     }
@@ -299,7 +318,7 @@ if (barcodeInput) {
                 return;
             }
 
-             const scanMode = document.querySelector('input[name="scan_mode"]:checked')?.value ?? 'piece';
+            const scanMode = document.getElementById('scanModeValue')?.value ?? 'piece';
  
             const response = await fetch(`/purchase-order/${this.poId}/scan-item`, {
                 method: 'POST',
