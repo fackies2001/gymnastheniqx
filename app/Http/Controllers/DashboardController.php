@@ -96,7 +96,7 @@ class DashboardController extends Controller
     {
         try {
             return RetailerOrder::whereDate('created_at', Carbon::today())
-                ->where('status', 'completed')
+                ->whereIn('status', ['Completed', 'completed', 'Approved', 'approved'])
                 ->sum('total_amount') ?? 0;
         } catch (\Exception $e) {
             \Log::error('Error getting total sales today: ' . $e->getMessage());
@@ -110,7 +110,7 @@ class DashboardController extends Controller
     private function getTotalSalesAllTime()
     {
         try {
-            return RetailerOrder::where('status', 'completed')
+            return RetailerOrder::whereIn('status', ['Completed', 'completed', 'Approved', 'approved'])
                 ->sum('total_amount') ?? 0;
         } catch (\Exception $e) {
             \Log::error('Error getting total sales all time: ' . $e->getMessage());
@@ -567,7 +567,7 @@ class DashboardController extends Controller
     private function getTotalSalesFiltered(Request $request)
     {
         try {
-            $query = RetailerOrder::where('status', 'completed');
+            $query = RetailerOrder::whereIn('status', ['Completed', 'completed', 'Approved', 'approved']);
 
             if ($request->filled('filter_type')) {
                 $this->applyDateFilter($query, $request);

@@ -5,6 +5,7 @@
 @section('content_header_title', 'Retailer Orders')
 
 @section('content_body')
+
     {{-- 1. SUMMARY CARDS --}}
     <div class="row no-print">
         <div class="col-md-4">
@@ -56,8 +57,8 @@
                             </option>
                             <option value="yesterday" {{ request('filter_type') == 'yesterday' ? 'selected' : '' }}>
                                 Yesterday</option>
-                            <option value="last_7_days" {{ request('filter_type') == 'last_7_days' ? 'selected' : '' }}>
-                                Last 7 Days</option>
+                            <option value="last_7_days" {{ request('filter_type') == 'last_7_days' ? 'selected' : '' }}>Last
+                                7 Days</option>
                             <option value="last_30_days" {{ request('filter_type') == 'last_30_days' ? 'selected' : '' }}>
                                 Last 30 Days</option>
                             <option value="this_month" {{ request('filter_type') == 'this_month' ? 'selected' : '' }}>This
@@ -72,17 +73,13 @@
                     </div>
                     <div class="col-lg-2 col-md-6 mb-3" id="customDateRange"
                         style="display: {{ request('filter_type') == 'custom' ? 'block' : 'none' }};">
-                        <label class="font-weight-bold">
-                            <i class="fas fa-calendar-day text-success"></i> From
-                        </label>
+                        <label class="font-weight-bold"><i class="fas fa-calendar-day text-success"></i> From</label>
                         <input type="date" name="start_date" id="startDate"
                             class="form-control form-control-lg shadow-sm" value="{{ request('start_date') }}">
                     </div>
                     <div class="col-lg-2 col-md-6 mb-3" id="customDateRangeEnd"
                         style="display: {{ request('filter_type') == 'custom' ? 'block' : 'none' }};">
-                        <label class="font-weight-bold">
-                            <i class="fas fa-calendar-check text-danger"></i> To
-                        </label>
+                        <label class="font-weight-bold"><i class="fas fa-calendar-check text-danger"></i> To</label>
                         <input type="date" name="end_date" id="endDate" class="form-control form-control-lg shadow-sm"
                             value="{{ request('end_date') }}">
                     </div>
@@ -156,29 +153,47 @@
                 <button class="btn btn-primary btn-sm shadow-sm" data-toggle="modal" data-target="#createOrderModal">
                     <i class="fas fa-plus"></i> CREATE RETAILER ORDER
                 </button>
-                <button class="btn btn-info btn-sm shadow-sm ml-2" onclick="printTable()">
+                <button class="btn btn-info btn-sm shadow-sm ml-2" onclick="handleOrderPrint()">
                     <i class="fas fa-print"></i> PRINT ALL
                 </button>
             </div>
         </div>
-        <div class="card-body" id="printableTable">
+        <div class="card-body">
             <table class="table table-bordered table-hover" id="retailerTable">
                 <thead class="bg-dark text-white">
                     <tr>
+                        <th>Order #</th>
                         <th>Retailer Name</th>
                         <th>Product</th>
                         <th>Qty</th>
+                        <th>Unit Price</th>
                         <th>Total Amount</th>
+                        <th>Status</th>
                         <th class="no-print">Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($retailer_orders as $order)
                         <tr>
+                            <td class="font-weight-bold text-muted">
+                                ORD-{{ str_pad($order->id, 6, '0', STR_PAD_LEFT) }}
+                            </td>
                             <td>{{ $order->retailer_name }}</td>
                             <td>{{ $order->product_name }}</td>
-                            <td>{{ $order->quantity }}</td>
+                            <td class="text-center">{{ $order->quantity }}</td>
+                            <td>₱ {{ number_format($order->unit_price ?? 0, 2) }}</td>
                             <td class="text-primary font-weight-bold">₱ {{ number_format($order->total_amount, 2) }}</td>
+                            <td>
+                                @if ($order->status == 'Pending')
+                                    <span class="badge badge-warning">Pending</span>
+                                @elseif ($order->status == 'Approved')
+                                    <span class="badge badge-success">Approved</span>
+                                @elseif ($order->status == 'Completed')
+                                    <span class="badge badge-dark">Completed</span>
+                                @else
+                                    <span class="badge badge-danger">Rejected</span>
+                                @endif
+                            </td>
                             <td class="no-print">
                                 @if ($order->status == 'Pending')
                                     @if (Auth::user()->role && strtolower(Auth::user()->role->role_name) === 'admin')
@@ -195,8 +210,7 @@
                                         <span class="badge badge-warning">
                                             <i class="fas fa-hourglass-half"></i> Awaiting Admin Approval
                                         </span>
-                                        <br><small class="text-muted">Submitted by:
-                                            {{ $order->created_by ?? 'You' }}</small>
+                                        <br><small class="text-muted">By: {{ $order->created_by ?? 'You' }}</small>
                                     @endif
                                 @elseif ($order->status == 'Approved')
                                     <span class="badge badge-success">
@@ -204,12 +218,10 @@
                                     </span>
                                     @if ($order->approved_by)
                                         <br><small class="text-muted">by {{ $order->approved_by }}</small>
-                                        <br><small
-                                            class="text-muted">{{ $order->approved_at ? $order->approved_at->format('M d, Y h:i A') : '' }}</small>
                                     @endif
                                     @if (Auth::user()->role && strtolower(Auth::user()->role->role_name) === 'admin')
                                         <br>
-                                        <button class="btn btn-sm btn-primary mt-2 ship-order-btn"
+                                        <button class="btn btn-sm btn-primary mt-1 ship-order-btn"
                                             data-order-id="{{ $order->id }}"
                                             data-retailer="{{ $order->retailer_name }}"
                                             data-qty="{{ $order->quantity }}">
@@ -227,8 +239,6 @@
                                     </span>
                                     @if ($order->rejected_by)
                                         <br><small class="text-muted">by {{ $order->rejected_by }}</small>
-                                        <br><small
-                                            class="text-muted">{{ $order->rejected_at ? $order->rejected_at->format('M d, Y h:i A') : '' }}</small>
                                     @endif
                                 @endif
                             </td>
@@ -236,6 +246,116 @@
                     @endforeach
                 </tbody>
             </table>
+        </div>
+    </div>
+
+    {{-- ✅ PRINT AREA --}}
+    <div id="printArea" style="display:none;">
+        <div style="font-family: 'Courier New', monospace; padding: 20px; color: black;">
+            <div style="text-align:center; margin-bottom:20px;">
+                <h2 style="font-weight:bold; margin:0;">GYMNASTHENIQX INVENTORY SYSTEM</h2>
+                <p style="margin:4px 0; text-transform:uppercase;">Warehouse:
+                    {{ auth()->user()->adminlte_warehouse() ?? 'Main Warehouse' }}</p>
+                <h4
+                    style="border-bottom: 2px solid #000; display:inline-block; padding-bottom:5px; text-transform:uppercase; font-weight:bold;">
+                    RETAILER ORDERS REPORT
+                </h4>
+                <p style="font-size:12px; margin-top:8px;">
+                    Generated: {{ date('F d, Y h:i A') }}
+                    @if (request('filter_type'))
+                        | Filter:
+                        @switch(request('filter_type'))
+                            @case('today')
+                                Today
+                            @break
+
+                            @case('yesterday')
+                                Yesterday
+                            @break
+
+                            @case('last_7_days')
+                                Last 7 Days
+                            @break
+
+                            @case('last_30_days')
+                                Last 30 Days
+                            @break
+
+                            @case('this_month')
+                                This Month
+                            @break
+
+                            @case('last_month')
+                                Last Month
+                            @break
+
+                            @case('this_year')
+                                This Year
+                            @break
+
+                            @case('custom')
+                                {{ request('start_date') }} to {{ request('end_date') }}
+                            @break
+                        @endswitch
+                    @endif
+                </p>
+            </div>
+
+            <table style="width:100%; border-collapse:collapse; font-size:11px; border: 2px solid black;">
+                <thead>
+                    <tr style="background:#eee;">
+                        <th style="border:1px solid black; padding:6px;">ORDER #</th>
+                        <th style="border:1px solid black; padding:6px;">RETAILER NAME</th>
+                        <th style="border:1px solid black; padding:6px;">PRODUCT</th>
+                        <th style="border:1px solid black; padding:6px; text-align:center;">QTY</th>
+                        <th style="border:1px solid black; padding:6px; text-align:right;">UNIT PRICE</th>
+                        <th style="border:1px solid black; padding:6px; text-align:right;">TOTAL AMOUNT</th>
+                        <th style="border:1px solid black; padding:6px; text-align:center;">STATUS</th>
+                    </tr>
+                </thead>
+                <tbody id="printOrdersBody">
+                </tbody>
+                <tfoot>
+                    <tr style="background:#f0f0f0; font-weight:bold;">
+                        <td colspan="5" style="border:1px solid black; padding:6px; text-align:right;">GRAND TOTAL:
+                        </td>
+                        <td style="border:1px solid black; padding:6px; text-align:right;" id="printGrandTotal">₱0.00</td>
+                        <td style="border:1px solid black; padding:6px;"></td>
+                    </tr>
+                </tfoot>
+            </table>
+
+            {{-- ✅ SUMMARY BOX --}}
+            <table style="width:100%; margin-top:15px; font-size:11px; border-collapse:collapse;">
+                <tr>
+                    <td style="width:33%; border:1px solid black; padding:8px; text-align:center;">
+                        <strong>Total Orders</strong><br>
+                        <span id="printTotalOrders" style="font-size:18px; font-weight:bold;">0</span>
+                    </td>
+                    <td style="width:33%; border:1px solid black; padding:8px; text-align:center;">
+                        <strong>Total Items Sold</strong><br>
+                        <span id="printTotalItems" style="font-size:18px; font-weight:bold;">0</span>
+                    </td>
+                    <td style="width:33%; border:1px solid black; padding:8px; text-align:center;">
+                        <strong>Total Sales Amount</strong><br>
+                        <span id="printTotalAmount" style="font-size:18px; font-weight:bold; color:#000;">₱0.00</span>
+                    </td>
+                </tr>
+            </table>
+
+            {{-- ✅ SIGNATURE --}}
+            <div style="display:flex; margin-top:60px; text-align:center;">
+                <div style="flex:1;">
+                    <div style="border-top:1px solid black; width:80%; margin:40px auto 5px auto;"></div>
+                    <strong>ADMIN</strong><br>
+                    <small>Prepared By</small>
+                </div>
+                <div style="flex:1;">
+                    <div style="border-top:1px solid black; width:80%; margin:40px auto 5px auto;"></div>
+                    <strong>MANAGER</strong><br>
+                    <small>Noted By</small>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -288,12 +408,15 @@
                     <input type="hidden" id="modal-order-id">
                 </div>
                 <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal"><i class="fas fa-times"></i>
-                        Close</button>
-                    <button type="button" class="btn btn-danger" id="btn-reject-order"><i class="fas fa-ban"></i>
-                        REJECT ORDER</button>
-                    <button type="button" class="btn btn-success" id="btn-approve-order"><i
-                            class="fas fa-check-circle"></i> APPROVE ORDER</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                    <button type="button" class="btn btn-danger" id="btn-reject-order">
+                        <i class="fas fa-ban"></i> REJECT ORDER
+                    </button>
+                    <button type="button" class="btn btn-success" id="btn-approve-order">
+                        <i class="fas fa-check-circle"></i> APPROVE ORDER
+                    </button>
                 </div>
             </div>
         </div>
@@ -317,14 +440,12 @@
                                     placeholder="Enter Retailer's Full Name" required>
                             </div>
 
-                            {{-- ✅ FIX: Dropdown — product name + SKU only, NO price in option text --}}
                             <div class="col-md-6 mb-3">
                                 <label class="font-weight-bold">Select Product</label>
                                 <select name="product_id" id="sel_prod" class="form-control shadow-sm" required>
                                     <option value="">-- Select Product --</option>
                                     @foreach ($warehouse_products as $p)
                                         @php $displaySku = $p->system_sku ?? ($p->supplier_sku ?? ($p->barcode ?? 'No SKU')); @endphp
-                                        {{-- ✅ FIX: Removed price from option label, kept as data attributes --}}
                                         <option value="{{ $p->id }}" data-cost="{{ $p->cost_price ?? 0 }}"
                                             data-selling="{{ $p->selling_price ?? 0 }}"
                                             data-has-selling="{{ $p->selling_price ? '1' : '0' }}"
@@ -335,9 +456,7 @@
                                 </select>
                             </div>
 
-                            {{-- ✅ Selling Price — editable for both admin and staff --}}
                             <div class="col-md-6 mb-3">
-                                @php $isAdmin = Auth::user()->role && strtolower(Auth::user()->role->role_name) === 'admin'; @endphp
                                 <label class="font-weight-bold text-success">
                                     <i class="fas fa-edit"></i> Selling Price
                                     <small class="text-muted font-weight-normal">(editable)</small>
@@ -346,21 +465,19 @@
                                     class="form-control shadow-sm border-success" required
                                     placeholder="Enter selling price">
 
-                                {{-- ✅ Supplier original price info box — shown after product selection --}}
                                 <div id="price_info_box" class="mt-2 p-2 rounded"
                                     style="display:none; background:#f8f9fa; border:1px solid #dee2e6;">
                                     <small>
                                         <i class="fas fa-tag text-secondary mr-1"></i>
-                                        <strong>Original Price (from Supplier):</strong>
+                                        <strong>Original Price:</strong>
                                         <span class="text-danger font-weight-bold" id="orig_cost_display">₱0.00</span>
                                         &nbsp;|&nbsp;
-                                        <strong>Suggested Selling:</strong>
+                                        <strong>Suggested:</strong>
                                         <span class="text-success font-weight-bold" id="suggested_price_display">Not
                                             set</span>
                                     </small>
                                 </div>
 
-                                {{-- Below cost warning --}}
                                 <div id="below_cost_warn" class="mt-1" style="display:none;">
                                     <small class="text-danger">
                                         <i class="fas fa-exclamation-triangle"></i>
@@ -368,7 +485,6 @@
                                     </small>
                                 </div>
 
-                                {{-- Markup display (shown after entering price) --}}
                                 <div id="markup_info" class="mt-1" style="display:none;">
                                     <small class="text-info">
                                         <i class="fas fa-chart-line"></i>
@@ -412,17 +528,34 @@
 
 @push('css')
     <style>
+        .bg-gradient-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+
+        #inp_price.border-success {
+            border-color: #28a745 !important;
+            border-width: 2px;
+        }
+
+        .view-pending-order:hover,
+        .ship-order-btn:hover {
+            opacity: 0.8;
+            transform: scale(1.02);
+            transition: all 0.2s;
+        }
+
         @media print {
             body * {
                 visibility: hidden;
             }
 
-            #printableTable,
-            #printableTable * {
+            #printArea,
+            #printArea * {
                 visibility: visible;
             }
 
-            #printableTable {
+            #printArea {
+                display: block !important;
                 position: absolute;
                 left: 0;
                 top: 0;
@@ -433,22 +566,6 @@
                 display: none !important;
             }
         }
-
-        .view-pending-order:hover,
-        .ship-order-btn:hover {
-            opacity: 0.8;
-            transform: scale(1.02);
-            transition: all 0.2s;
-        }
-
-        .bg-gradient-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        #inp_price.border-success {
-            border-color: #28a745 !important;
-            border-width: 2px;
-        }
     </style>
 @endpush
 
@@ -457,7 +574,61 @@
     <script>
         const IS_ADMIN = {{ $isAdmin ? 'true' : 'false' }};
 
-        function printTable() {
+        // ✅ UPDATED PRINT FUNCTION
+        function handleOrderPrint() {
+            const rows = document.querySelectorAll('#retailerTable tbody tr');
+            if (!rows.length) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No Data',
+                    text: 'No orders to print.'
+                });
+                return;
+            }
+
+            let html = '';
+            let grandTotal = 0;
+            let totalItems = 0;
+            let totalOrders = 0;
+
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('td');
+                if (cells.length < 7) return;
+
+                const orderNo = cells[0].innerText.trim();
+                const retailer = cells[1].innerText.trim();
+                const product = cells[2].innerText.trim();
+                const qty = cells[3].innerText.trim();
+                const unitPrice = cells[4].innerText.trim();
+                const total = cells[5].innerText.trim();
+                const status = cells[6].innerText.trim();
+
+                const totalNum = parseFloat(total.replace(/[₱,]/g, '')) || 0;
+                grandTotal += totalNum;
+                totalItems += parseInt(qty) || 0;
+                totalOrders++;
+
+                html += `<tr>
+                    <td style="border:1px solid black;padding:5px;">${orderNo}</td>
+                    <td style="border:1px solid black;padding:5px;">${retailer}</td>
+                    <td style="border:1px solid black;padding:5px;">${product}</td>
+                    <td style="border:1px solid black;padding:5px;text-align:center;">${qty}</td>
+                    <td style="border:1px solid black;padding:5px;text-align:right;">${unitPrice}</td>
+                    <td style="border:1px solid black;padding:5px;text-align:right;">${total}</td>
+                    <td style="border:1px solid black;padding:5px;text-align:center;">${status}</td>
+                </tr>`;
+            });
+
+            document.getElementById('printOrdersBody').innerHTML = html;
+            document.getElementById('printGrandTotal').innerText = '₱' + grandTotal.toLocaleString(undefined, {
+                minimumFractionDigits: 2
+            });
+            document.getElementById('printTotalOrders').innerText = totalOrders;
+            document.getElementById('printTotalItems').innerText = totalItems;
+            document.getElementById('printTotalAmount').innerText = '₱' + grandTotal.toLocaleString(undefined, {
+                minimumFractionDigits: 2
+            });
+
             window.print();
         }
 
@@ -495,11 +666,11 @@
                 autoWidth: false,
                 destroy: true,
                 order: [
-                    [0, 'asc']
+                    [0, 'desc']
                 ],
                 pageLength: 10,
                 language: {
-                    emptyTable: 'No records found for the selected period'
+                    emptyTable: 'No records found'
                 },
                 columnDefs: [{
                     targets: -1,
@@ -527,12 +698,7 @@
                     $('#markup_amount').text(markup.toFixed(2));
                     $('#markup_pct').text(markupPct);
                     $('#markup_info').show();
-
-                    if (entered < cost) {
-                        $('#below_cost_warn').show();
-                    } else {
-                        $('#below_cost_warn').hide();
-                    }
+                    $('#below_cost_warn').toggle(entered < cost);
                 } else {
                     $('#markup_info').hide();
                     $('#below_cost_warn').hide();
@@ -540,18 +706,14 @@
                 calculate();
             }
 
-            // ✅ Product select — show original supplier price info box
             $('#sel_prod').on('change', function() {
                 let selected = $(this).find(':selected');
                 let cost = parseFloat(selected.data('cost')) || 0;
                 let selling = parseFloat(selected.data('selling')) || 0;
-                let hasSelling = selected.data('has-selling');
 
-                // ✅ Set price field to selling price if available, else blank
                 $('#inp_price').val(selling > 0 ? selling : '');
 
                 if (cost > 0 || selling > 0) {
-                    // Show original supplier price info
                     $('#orig_cost_display').text('₱' + cost.toFixed(2));
                     $('#suggested_price_display').text(selling > 0 ? '₱' + selling.toFixed(2) : 'Not set');
                     $('#price_info_box').show();
@@ -565,11 +727,25 @@
             $('#inp_price').on('input', updateMarkup);
             $('#inp_qty').on('input', calculate);
 
-            // Submit with below-cost warning
             $('#createOrderForm').on('submit', function(e) {
                 e.preventDefault();
                 let enteredPrice = parseFloat($('#inp_price').val()) || 0;
                 let costPrice = parseFloat($('#sel_prod').find(':selected').data('cost')) || 0;
+
+                const proceed = () => {
+                    Swal.fire({
+                        title: 'Submit Order?',
+                        text: 'This order will be marked as Pending and require admin approval.',
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonColor: '#28a745',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Yes, Submit!',
+                        cancelButtonText: 'Cancel'
+                    }).then((result) => {
+                        if (result.isConfirmed) this.submit();
+                    });
+                };
 
                 if (costPrice > 0 && enteredPrice < costPrice) {
                     Swal.fire({
@@ -582,23 +758,11 @@
                         confirmButtonText: 'Ituloy pa rin',
                         cancelButtonText: 'Baguhin ang price'
                     }).then((result) => {
-                        if (result.isConfirmed) this.submit();
+                        if (result.isConfirmed) proceed();
                     });
-                    return;
+                } else {
+                    proceed();
                 }
-
-                Swal.fire({
-                    title: 'Submit Order?',
-                    text: 'This order will be marked as Pending and require admin approval.',
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonColor: '#28a745',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Yes, Submit!',
-                    cancelButtonText: 'Cancel'
-                }).then((result) => {
-                    if (result.isConfirmed) this.submit();
-                });
             });
 
             $(document).on('click', '.view-pending-order', function() {
@@ -656,7 +820,7 @@
                 let qty = $(this).data('qty');
                 Swal.fire({
                     title: 'Ship this order?',
-                    html: `This will:<br>• Mark <b>${qty} items</b> as <b class="text-success">SOLD</b><br>• Update inventory counts<br>• Complete transaction for <b>${retailer}</b>`,
+                    html: `This will:<br>• Mark <b>${qty} items</b> as <b class="text-success">SOLD</b><br>• Complete transaction for <b>${retailer}</b>`,
                     icon: 'question',
                     showCancelButton: true,
                     confirmButtonText: '<i class="fas fa-shipping-fast"></i> Yes, Ship It!',
@@ -716,6 +880,7 @@
                     $(this).val('');
                 }
             });
+
         });
     </script>
 @endpush

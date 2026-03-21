@@ -15,10 +15,10 @@
                     <table id="sampleId" class="table table-bordered w-100">
                         <thead class="bg-dark text-white">
                             <tr>
+                                <th>Employee ID</th>
                                 <th>Photo</th>
                                 <th>Full Name</th>
                                 <th>Email</th>
-                                <th>Employee ID</th>
                                 <th>Contact Number</th>
                                 <th>Address</th>
                                 <th>Date Hired</th>
