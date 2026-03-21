@@ -71,16 +71,24 @@
     <script>
         $(document).ready(function() {
 
+            let isSubmitting = false; // ✅ Guard para hindi mag-double submit
+
             $('#createSupplierSubmit').on('click', function(e) {
                 e.preventDefault();
+                e.stopPropagation();
 
-                // HTML5 native validation muna
+                if (isSubmitting) return; // ✅ Prevent double click
+
+                // HTML5 validation
                 if (!document.getElementById('createSupplierForm').checkValidity()) {
                     document.getElementById('createSupplierForm').reportValidity();
                     return false;
                 }
 
-                // ✅ AJAX duplicate check — name + email combo
+                isSubmitting = true;
+                $('#createSupplierSubmit').prop('disabled', true).text('Saving...');
+
+                // ✅ AJAX duplicate check
                 $.ajax({
                     url: '{{ route('suppliers.check_duplicate') }}',
                     type: 'GET',
@@ -90,17 +98,21 @@
                     },
                     success: function(response) {
                         if (response.exists) {
-                            // ✅ SweetAlert ang mag-hahandle ng duplicate
+                            // ✅ Duplicate — show SweetAlert, reset guard
+                            isSubmitting = false;
+                            $('#createSupplierSubmit').prop('disabled', false).text(
+                                'Save Supplier');
+
                             Swal.fire({
                                 icon: 'warning',
                                 title: 'Supplier Already Exists!',
                                 text: '"' + $('#name').val().trim() +
-                                    '" with this email is already registered. Sister company? Use a different email.',
+                                    '" with this email is already registered.',
                                 confirmButtonColor: '#3085d6',
                                 confirmButtonText: 'OK'
                             });
                         } else {
-                            // ✅ Walang duplicate — i-submit via AJAX
+                            // ✅ No duplicate — AJAX submit
                             $.ajax({
                                 url: $('#createSupplierForm').attr('action'),
                                 type: 'POST',
@@ -120,14 +132,28 @@
                                     }
                                 },
                                 error: function() {
-                                    $('#createSupplierForm').submit();
+                                    isSubmitting = false;
+                                    $('#createSupplierSubmit').prop('disabled',
+                                        false).text('Save Supplier');
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Error!',
+                                        text: 'Something went wrong. Please try again.',
+                                        confirmButtonColor: '#d33',
+                                    });
                                 }
                             });
                         }
                     },
                     error: function() {
-                        // Kung nag-error ang AJAX, i-submit na lang para hindi ma-block ang user
-                        $('#createSupplierForm').submit();
+                        isSubmitting = false;
+                        $('#createSupplierSubmit').prop('disabled', false).text(
+                            'Save Supplier');
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: 'Could not check duplicate. Please try again.',
+                        });
                     }
                 });
             });
