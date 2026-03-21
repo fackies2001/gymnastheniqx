@@ -128,6 +128,24 @@ if (barcodeInput) {
             });
         }
 
+        // ✅ Scan mode toggle indicator
+        document.querySelectorAll('input[name="scan_mode"]').forEach(radio => {
+            radio.addEventListener('change', function () {
+                const indicator = document.getElementById('scanModeIndicator');
+                if (!indicator) return;
+
+                if (this.value === 'box') {
+                    indicator.style.background = '#fff8e1';
+                    indicator.style.color      = '#e65100';
+                    indicator.innerHTML = '<i class="fas fa-box mr-1"></i> BOX MODE — Same serial number para sa lahat ng pieces';
+                } else {
+                    indicator.style.background = '#e3f2fd';
+                    indicator.style.color      = '#1565c0';
+                    indicator.innerHTML = '<i class="fas fa-cube mr-1"></i> PIECE MODE — Unique serial number per scan';
+                }
+            });
+        });
+
         console.log('✅ Event listeners ready');
     }
 
@@ -281,6 +299,8 @@ if (barcodeInput) {
                 return;
             }
 
+             const scanMode = document.querySelector('input[name="scan_mode"]:checked')?.value ?? 'piece';
+ 
             const response = await fetch(`/purchase-order/${this.poId}/scan-item`, {
                 method: 'POST',
                 headers: {
@@ -288,18 +308,28 @@ if (barcodeInput) {
                     'X-CSRF-TOKEN': csrfToken.content,
                     'Accept': 'application/json',
                 },
-                body: JSON.stringify({ barcode: barcode.trim() })
+                body: JSON.stringify({
+                    barcode:   barcode.trim(),
+                    scan_type: scanMode,   // ✅ BAGONG FIELD
+                })
             });
 
             const data = await response.json();
             console.log('📡 Response:', data);
 
-            if (data.success) {
-                this.addScannedItem(data.product);
+               if (data.success) {
+                // ✅ Kapag BOX — dagdag ang qty_added sa totalScanned (hindi 1 lang)
+                const qtyAdded = data.product.qty_added ?? 1;
+                this.addScannedItem(data.product, qtyAdded);
                 this.updatePOItemProgress(data.product);
                 this.playSuccessSound();
                 this.flashScan('success');
-                this.showToast('success', `✓ ${data.product.name} scanned! (${data.product.quantity_scanned}/${data.product.quantity_ordered})`);
+ 
+                // ✅ Toast — ipakita kung box o piece ang na-scan
+                const modeLabel = data.product.scan_type === 'box'
+                    ? `📦 BOX scanned! +${qtyAdded} pcs`
+                    : `✓ Piece scanned`;
+                this.showToast('success', `${modeLabel} — ${data.product.name} (${data.product.quantity_scanned}/${data.product.quantity_ordered})`);
             } else {
                 this.playErrorSound();
                 this.flashScan('error');
@@ -315,52 +345,67 @@ if (barcodeInput) {
         }
     }
 
-    addScannedItem(product) {
+    // ✅ UPDATED: addScannedItem — may qtyAdded param para sa box scan
+    addScannedItem(product, qtyAdded = 1) {
         const tbody = document.getElementById('scannedItemsBody');
         if (!tbody) return;
-
+ 
         // Remove empty state row
         const emptyRow = tbody.querySelector('.empty-state-row');
         if (emptyRow) emptyRow.remove();
-
+ 
         let existingRow = tbody.querySelector(`tr[data-product-id="${product.id}"]`);
-
+ 
         if (existingRow) {
             // Update quantity and total for existing row
             const qtyCell   = existingRow.querySelector('.qty-cell');
             const totalCell = existingRow.querySelector('.total-cell');
-
+ 
             const currentQty = parseInt(qtyCell.textContent) || 0;
-            const newQty     = currentQty + 1;
+            const newQty     = currentQty + qtyAdded;   // ✅ +qtyAdded hindi +1
             const newTotal   = newQty * parseFloat(product.unit_cost);
-
+ 
             qtyCell.textContent   = newQty;
             totalCell.textContent = `₱${newTotal.toFixed(2)}`;
-
+ 
             // Flash highlight
             existingRow.style.background = 'rgba(34,197,94,0.15)';
             setTimeout(() => { existingRow.style.background = ''; }, 600);
-
+ 
         } else {
             // New row
+            const scanLabel = product.scan_type === 'box'
+                ? `📦 Box (${qtyAdded} pcs)`
+                : `🔹 Piece`;
+ 
             const row = document.createElement('tr');
             row.setAttribute('data-product-id', product.id);
             row.classList.add('new-row-anim');
             row.innerHTML = `
-                <td><code>${product.barcode || '—'}</code></td>
+                <td>
+                    <code>${product.barcode || '—'}</code>
+                    <div style="font-size:9px;margin-top:2px;">${scanLabel}</div>
+                </td>
                 <td><strong>${product.name}</strong></td>
-                <td class="text-center"><span class="qty-cell"
-                    style="background:rgba(61,142,248,0.15);color:#3d8ef8;font-family:'IBM Plex Mono',monospace;
-                           font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;">1</span></td>
+                <td class="text-center">
+                    <span class="qty-cell"
+                        style="background:rgba(61,142,248,0.15);color:#3d8ef8;
+                               font-family:'IBM Plex Mono',monospace;
+                               font-size:11px;font-weight:600;
+                               padding:2px 8px;border-radius:20px;">
+                        ${qtyAdded}
+                    </span>
+                </td>
                 <td class="text-right total-cell"
                     style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#7c8499;">
-                    ₱${parseFloat(product.unit_cost).toFixed(2)}
+                    ₱${(qtyAdded * parseFloat(product.unit_cost)).toFixed(2)}
                 </td>
             `;
             tbody.insertBefore(row, tbody.firstChild);
         }
-
-        this.totalScanned++;
+ 
+        // ✅ totalScanned += qtyAdded (hindi += 1 para tama ang overall progress)
+        this.totalScanned += qtyAdded;
         this.updateGrandTotal();
         this.updateStats();
         this.updateScannedCount();

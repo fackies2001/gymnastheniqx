@@ -163,120 +163,179 @@ class PurchaseOrderController extends Controller
     public function scanItem(Request $request, $id)
     {
         $validated = $request->validate([
-            'barcode' => 'required|string',
+            'barcode'   => 'required|string',
+            'scan_type' => 'nullable|in:box,piece',
         ]);
 
-        // ✅ START TRANSACTION to prevent race conditions
+        $scannedBarcode = $validated['barcode'];
+        $scanType       = $validated['scan_type'] ?? 'piece';
+
         DB::beginTransaction();
         try {
-            $po = PurchaseOrder::with('items.supplierProduct')->lockForUpdate()->findOrFail($id);
+            $po = PurchaseOrder::with('items.supplierProduct')
+                ->lockForUpdate()
+                ->findOrFail($id);
 
             Log::info('Scan attempt:', [
-                'po_id' => $id,
-                'barcode' => $validated['barcode'],
-                'timestamp' => now()
+                'po_id'     => $id,
+                'barcode'   => $scannedBarcode,
+                'scan_type' => $scanType,
+                'time'      => now(),
             ]);
 
-            // Find product by barcode OR supplier_sku
-            $product = \App\Models\SupplierProduct::where(function ($query) use ($validated) {
-                $query->where('barcode', $validated['barcode'])
-                    ->orWhere('supplier_sku', $validated['barcode'])
-                    ->orWhere('barcode', 'LIKE', $validated['barcode'] . '%'); // ⭐ Partial match
-            })
-                ->first();
+            // ─────────────────────────────────────────────────────
+            // 1. Hanapin ang product
+            // ─────────────────────────────────────────────────────
+            $product = \App\Models\SupplierProduct::where(function ($query) use ($scannedBarcode) {
+                $query->where('barcode', $scannedBarcode)
+                    ->orWhere('supplier_sku', $scannedBarcode)
+                    ->orWhere('barcode', 'LIKE', $scannedBarcode . '%');
+            })->first();
 
             if (!$product) {
                 DB::rollBack();
-                Log::warning('Barcode not found:', ['barcode' => $validated['barcode']]);
+                Log::warning('Barcode not found:', ['barcode' => $scannedBarcode]);
                 return response()->json([
                     'success' => false,
-                    'message' => 'Barcode not found in product list'
+                    'message' => 'Barcode not found. Please check if the product is registered.'
                 ], 404);
             }
 
-            // Check if product is in this PO
+            // ─────────────────────────────────────────────────────
+            // 2. I-check kung nasa PO ang product
+            // ─────────────────────────────────────────────────────
             $poItem = $po->items->where('product_id', $product->id)->first();
 
             if (!$poItem) {
                 DB::rollBack();
-                Log::warning('Product not in PO:', [
-                    'product_id' => $product->id,
-                    'po_id' => $id
-                ]);
                 return response()->json([
                     'success' => false,
-                    'message' => 'Product not in this purchase order'
+                    'message' => 'Product "' . $product->name . '" is not in this purchase order.'
                 ], 400);
             }
 
-            // ✅ CRITICAL: Check if quantity limit reached
-            if ($poItem->quantity_scanned >= $poItem->quantity_ordered) {
+            // ─────────────────────────────────────────────────────
+            // 3. Kalkulahin ang qty na idadagdag
+            //    BOX   → pieces_per_box (e.g. 10)
+            //    PIECE → 1
+            // ─────────────────────────────────────────────────────
+            $piecesPerBox = (int) ($product->pieces_per_box ?? 1);
+            $qtyToAdd     = ($scanType === 'box') ? $piecesPerBox : 1;
+            $remaining    = $poItem->quantity_ordered - $poItem->quantity_scanned;
+
+            // ─────────────────────────────────────────────────────
+            // 4. Quantity validation
+            // ─────────────────────────────────────────────────────
+            if ($remaining <= 0) {
                 DB::rollBack();
-                Log::warning('Quantity limit reached:', [
-                    'product' => $product->name,
-                    'scanned' => $poItem->quantity_scanned,
-                    'ordered' => $poItem->quantity_ordered
-                ]);
                 return response()->json([
                     'success' => false,
-                    'message' => 'Quantity limit reached for this product (' . $poItem->quantity_ordered . ' max)'
+                    'message' => 'Quantity limit reached for "' . $product->name . '" (' . $poItem->quantity_ordered . ' max)'
                 ], 400);
             }
 
-            // ✅ FIXED: Check for recent duplicate scans (within 2 seconds)
+            if ($qtyToAdd > $remaining) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => "Box scan would exceed ordered quantity! "
+                        . "Only {$remaining} piece(s) remaining but 1 box = {$piecesPerBox} pieces. "
+                        . "I-scan na lang as PIECE."
+                ], 400);
+            }
+
+            // ─────────────────────────────────────────────────────
+            // 5. Duplicate scan guard (within 500ms)
+            // ─────────────────────────────────────────────────────
             $recentScan = SerializedProduct::where('product_id', $product->id)
                 ->where('purchase_order_id', $po->id)
-                ->where('scanned_at', '>=', now()->subMilliseconds(500)) // Changed from 2 seconds
+                ->where('scanned_at', '>=', now()->subMilliseconds(500))
                 ->exists();
 
             if ($recentScan) {
                 DB::rollBack();
-                Log::warning('Duplicate scan detected:', [
-                    'product' => $product->name,
-                    'barcode' => $validated['barcode']
-                ]);
                 return response()->json([
                     'success' => false,
                     'message' => 'Duplicate scan detected. Please wait before scanning again.'
                 ], 400);
             }
 
-            // ✅ CREATE serialized product entry
-            $serialNumber = 'SN-' . strtoupper(uniqid());
-
-            // ⭐⭐⭐ NEW CODE - GET USER INFO ⭐⭐⭐
-            $scannedBy = auth()->user()->employee->id ?? null;
+            // ─────────────────────────────────────────────────────
+            // 6. Gumawa ng serialized product records
+            //
+            //    BOX scan:
+            //      - $qtyToAdd (e.g. 10) records
+            //      - LAHAT = SAME serial number (iisang box)
+            //      - Example: SN-BOX-ABCD1234 x10
+            //
+            //    PIECE scan:
+            //      - 1 record lang
+            //      - UNIQUE serial number
+            //      - Example: SN-PC-ABCD1234
+            // ─────────────────────────────────────────────────────
+            $scannedBy   = auth()->user()->employee->id ?? null;
             $warehouseId = auth()->user()->employee->assigned_at ?? null;
+            $scannedAt   = now();
 
-            $serializedProduct = SerializedProduct::create([
-                'product_id' => $product->id,
-                'purchase_order_id' => $po->id,
-                'barcode' => $product->barcode,
-                'serial_number' => $serialNumber,
-                'status' => 1,
-                'scanned_at' => now(),
-                'scanned_by' => $scannedBy,        // ⭐ NEW
-                'warehouse_id' => $warehouseId,    // ⭐ NEW
-            ]);
+            if ($scanType === 'box') {
+                // ✅ BOX: Generate IISANG serial number para sa buong box
+                // Lahat ng pieces sa box na ito = same serial number
+                $boxSerialNumber = 'SN-BOX-' . strtoupper(uniqid('', true));
 
-            Log::info('Serialized product created:', [
-                'id' => $serializedProduct->id,
-                'serial_number' => $serialNumber,
-                'scanned_by' => $scannedBy,
-                'warehouse_id' => $warehouseId
-            ]);
+                for ($i = 0; $i < $qtyToAdd; $i++) {
+                    SerializedProduct::create([
+                        'product_id'        => $product->id,
+                        'purchase_order_id' => $po->id,
+                        'barcode'           => $product->barcode,
+                        'serial_number'     => $boxSerialNumber, // ← SAME para sa lahat
+                        'status'            => 1,
+                        'scanned_at'        => $scannedAt,
+                        'scanned_by'        => $scannedBy,
+                        'warehouse_id'      => $warehouseId,
+                    ]);
+                }
 
-            // ✅ UPDATE PO item quantity
-            $poItem->increment('quantity_scanned');
+                Log::info('BOX scanned:', [
+                    'product'       => $product->name,
+                    'serial_number' => $boxSerialNumber,
+                    'qty_added'     => $qtyToAdd,
+                ]);
+            } else {
+                // ✅ PIECE: Generate UNIQUE serial number
+                $pieceSerialNumber = 'SN-PC-' . strtoupper(uniqid('', true));
+
+                SerializedProduct::create([
+                    'product_id'        => $product->id,
+                    'purchase_order_id' => $po->id,
+                    'barcode'           => $product->barcode,
+                    'serial_number'     => $pieceSerialNumber, // ← UNIQUE
+                    'status'            => 1,
+                    'scanned_at'        => $scannedAt,
+                    'scanned_by'        => $scannedBy,
+                    'warehouse_id'      => $warehouseId,
+                ]);
+
+                Log::info('PIECE scanned:', [
+                    'product'       => $product->name,
+                    'serial_number' => $pieceSerialNumber,
+                ]);
+            }
+
+            // ─────────────────────────────────────────────────────
+            // 7. I-update ang quantity_scanned ng PO item
+            // ─────────────────────────────────────────────────────
+            $poItem->increment('quantity_scanned', $qtyToAdd);
             $poItem->refresh();
 
-            // Calculate progress
             $progress = ($poItem->quantity_scanned / $poItem->quantity_ordered) * 100;
 
-            // ✅ Check if ALL items in PO are complete
-            $allComplete = $po->items->every(function ($item) {
-                return $item->quantity_scanned >= $item->quantity_ordered;
-            });
+            // ─────────────────────────────────────────────────────
+            // 8. I-check kung kumpleto na ang lahat ng PO items
+            // ─────────────────────────────────────────────────────
+            $po->load('items');
+            $allComplete = $po->items->every(
+                fn($item) => $item->quantity_scanned >= $item->quantity_ordered
+            );
 
             if ($allComplete) {
                 $po->update(['status' => 'completed']);
@@ -285,44 +344,43 @@ class PurchaseOrderController extends Controller
 
             DB::commit();
 
-            Log::info('Scan successful:', [
-                'product' => $product->name,
-                'scanned' => $poItem->quantity_scanned,
-                'ordered' => $poItem->quantity_ordered,
-                'progress' => $progress
-            ]);
+            // ─────────────────────────────────────────────────────
+            // 9. Response
+            // ─────────────────────────────────────────────────────
+            $message = $scanType === 'box'
+                ? "📦 Box scanned! {$qtyToAdd} pieces added (1 box = {$piecesPerBox} pcs)"
+                : '✅ Piece scanned successfully!';
 
             return response()->json([
                 'success' => true,
-                'message' => 'Item scanned successfully',
+                'message' => $message,
                 'product' => [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'image_url' => $product->thumbnail ?? '/images/no-image.png',
-                    'barcode' => $product->barcode,
-                    'cost_price' => $poItem->unit_cost,
-                    'unit_cost' => $poItem->unit_cost,
+                    'id'               => $product->id,
+                    'name'             => $product->name,
+                    'image_url'        => $product->thumbnail ?? '/images/no-image.png',
+                    'barcode'          => $product->barcode,
+                    'unit_cost'        => $poItem->unit_cost,
                     'quantity_scanned' => $poItem->quantity_scanned,
                     'quantity_ordered' => $poItem->quantity_ordered,
-                    'progress' => round($progress, 2),
+                    'progress'         => round($progress, 2),
+                    'scan_type'        => $scanType,
+                    'qty_added'        => $qtyToAdd,
+                    'pieces_per_box'   => $piecesPerBox,
                 ]
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
             Log::error('Scan Item Error:', [
-                'barcode' => $validated['barcode'],
-                'po_id' => $id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'barcode' => $scannedBarcode,
+                'po_id'   => $id,
+                'error'   => $e->getMessage(),
             ]);
-
             return response()->json([
                 'success' => false,
                 'message' => 'Error scanning item: ' . $e->getMessage()
             ], 500);
         }
     }
-
     /**
      * Complete scanning process
      */

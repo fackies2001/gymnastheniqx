@@ -62,6 +62,33 @@
                             <i class="fas fa-stop"></i> END SCAN
                         </button>
 
+                        {{-- ✅ BOX / PIECE TOGGLE — Idinagdag para sa bulk scanning --}}
+                        <div class="mb-3 mt-2">
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <small class="text-muted font-weight-bold text-uppercase">Scan Mode:</small>
+                            </div>
+                            <div class="btn-group btn-group-sm w-100" role="group" id="scanModeGroup">
+                                <input type="radio" class="btn-check" name="scan_mode" id="modePiece" value="piece"
+                                    checked>
+                                <label class="btn btn-outline-primary w-50" for="modePiece">
+                                    <i class="fas fa-cube mr-1"></i> Piece
+                                    <div style="font-size:9px;opacity:0.8;">Unique serial per scan</div>
+                                </label>
+
+                                <input type="radio" class="btn-check" name="scan_mode" id="modeBox" value="box">
+                                <label class="btn btn-outline-warning w-50" for="modeBox">
+                                    <i class="fas fa-box mr-1"></i> Box / Bulk
+                                    <div style="font-size:9px;opacity:0.8;" id="boxPcsHint">1 scan = multiple pcs</div>
+                                </label>
+                            </div>
+
+                            {{-- Mode indicator --}}
+                            <div id="scanModeIndicator" class="mt-2 p-2 rounded text-center"
+                                style="background:#e3f2fd;font-size:11px;color:#1565c0;font-weight:600;">
+                                <i class="fas fa-cube mr-1"></i> PIECE MODE — Unique serial number per scan
+                            </div>
+                        </div>
+
                         {{-- BARCODE INPUT --}}
                         <div class="input-group" id="barcodeInputWrap">
                             <div class="input-group-prepend">
