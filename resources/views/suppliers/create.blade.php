@@ -100,8 +100,29 @@
                                 confirmButtonText: 'OK'
                             });
                         } else {
-                            // ✅ Walang duplicate — i-submit na ang form
-                            $('#createSupplierForm').submit();
+                            // ✅ Walang duplicate — i-submit via AJAX
+                            $.ajax({
+                                url: $('#createSupplierForm').attr('action'),
+                                type: 'POST',
+                                data: $('#createSupplierForm').serialize(),
+                                success: function(response) {
+                                    if (response.success) {
+                                        Swal.fire({
+                                            icon: 'success',
+                                            title: 'Success!',
+                                            text: response.message,
+                                            confirmButtonColor: '#3085d6',
+                                            confirmButtonText: 'OK'
+                                        }).then(function() {
+                                            window.location.href = response
+                                                .redirect;
+                                        });
+                                    }
+                                },
+                                error: function() {
+                                    $('#createSupplierForm').submit();
+                                }
+                            });
                         }
                     },
                     error: function() {

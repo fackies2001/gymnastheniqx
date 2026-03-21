@@ -90,22 +90,8 @@ class SuppliersController extends Controller
 
     public function store(StoreSupplierRequest $request)
     {
-        $email = $request->email ? strtolower($request->email) : null;
+        $email    = $request->email ? strtolower($request->email) : null;
         $baseName = trim($request->name);
-
-        // Check exact duplicate (same name + same email)
-        // $query = Supplier::whereRaw('LOWER(name) = ?', [strtolower($baseName)]);
-        // if ($email) {
-        //     $query->whereRaw('LOWER(email) = ?', [$email]);
-        // } else {
-        //     $query->whereNull('email');
-        // }
-
-        // if ($query->exists()) {
-        //     return back()->withErrors([
-        //         'name' => 'A supplier with this name and email already exists.'
-        //     ])->withInput();
-        // }
 
         // ✅ Auto-number kung may same name na (sister company)
         $sameNameCount = Supplier::whereRaw('LOWER(name) LIKE ?', [strtolower($baseName) . '%'])->count();
@@ -113,9 +99,8 @@ class SuppliersController extends Controller
             $request->merge(['name' => $baseName . ' #' . ($sameNameCount + 1)]);
         }
 
-        // ✅ Direktang create dito — hindi na kailangan ang services redirect
-        $isStudent = auth()->user()->is_student;
-        $source_id = $isStudent ? 2 : 3;
+        $isStudent    = auth()->user()->is_student;
+        $source_id    = $isStudent ? 2 : 3;
         $validatedData = $request->all();
 
         if (!\DB::table('source')->where('id', $source_id)->exists()) {
@@ -143,6 +128,15 @@ class SuppliersController extends Controller
                 }
             }
         });
+
+        // ✅ AJAX response para sa SweetAlert
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'success'  => true,
+                'message'  => 'Supplier created successfully!',
+                'redirect' => route('suppliers.index')
+            ]);
+        }
 
         return redirect()->route('suppliers.index')
             ->with('success', 'Supplier created successfully!');
