@@ -192,6 +192,11 @@ class PurchaseOrderController extends Controller
                     ->orWhere('barcode', 'LIKE', $scannedBarcode . '%');
             })->first();
 
+            // ✅ Fresh query para masigurado ang pieces_per_box value
+            if ($product) {
+                $product = \App\Models\SupplierProduct::find($product->id);
+            }
+
             if (!$product) {
                 DB::rollBack();
                 Log::warning('Barcode not found:', ['barcode' => $scannedBarcode]);
@@ -219,12 +224,14 @@ class PurchaseOrderController extends Controller
             //    BOX   → pieces_per_box (e.g. 10)
             //    PIECE → 1
             // ─────────────────────────────────────────────────────
-            $piecesPerBox = (int) ($product->pieces_per_box ?? 1);
+            // ✅ Force fresh read mula sa DB
+            $freshProduct = \App\Models\SupplierProduct::find($product->id);
+            $piecesPerBox = (int) ($freshProduct->pieces_per_box ?? 1);
             \Log::info('pieces_per_box value:', [
-                'product_id'     => $product->id,
-                'pieces_per_box' => $product->pieces_per_box,
-                'piecesPerBox'   => $piecesPerBox,
-                'scan_type'      => $scanType,
+                'product_id'      => $product->id,
+                'pieces_per_box'  => $freshProduct->pieces_per_box,
+                'piecesPerBox'    => $piecesPerBox,
+                'scan_type'       => $scanType,
             ]);
 
             $qtyToAdd     = ($scanType === 'box') ? $piecesPerBox : 1;
