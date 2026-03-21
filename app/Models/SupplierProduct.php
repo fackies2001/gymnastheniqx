@@ -53,6 +53,7 @@ class SupplierProduct extends Model implements Auditable
         'thumbnail',
         'images',
         'source_id',
+        'pieces_per_box',
     ];
 
     protected $casts = [
