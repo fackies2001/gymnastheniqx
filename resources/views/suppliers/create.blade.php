@@ -19,25 +19,25 @@
                             <div class="col-sm-12 @can('can-create-supplier-api') col-md-6 @endcan">
 
                                 <div class="mb-3">
-                                    <x-bootstrap.label for="name" value="Supplier Name" />
+                                    <x-bootstrap.label for="name" value="Supplier Name" :required="true" />
                                     <x-bootstrap.input id="name" name="name" required
                                         placeholder="Enter supplier name" />
                                     <x-bootstrap.input-error :messages="$errors->get('name')" />
                                 </div>
                                 <div class="mb-3">
-                                    <x-bootstrap.label for="email" value="Supplier Email" />
+                                    <x-bootstrap.label for="email" value="Supplier Email" :required="true" />
                                     <x-bootstrap.input id="email" name="email" type="email" required
                                         placeholder="Enter supplier email" />
                                     <x-bootstrap.input-error :messages="$errors->get('email')" />
                                 </div>
                                 <div class="mb-3">
-                                    <x-bootstrap.label for="contact_number" value="Supplier Phone" />
+                                    <x-bootstrap.label for="contact_number" value="Supplier Phone" :required="true" />
                                     <x-bootstrap.input id="contact_number" name="contact_number" required
                                         placeholder="Enter supplier phone" />
                                     <x-bootstrap.input-error :messages="$errors->get('contact_number')" />
                                 </div>
                                 <div class="mb-3">
-                                    <x-bootstrap.label for="address" value="Supplier Address" />
+                                    <x-bootstrap.label for="address" value="Supplier Address" :required="true" />
                                     <x-bootstrap.input id="address" name="address" required
                                         placeholder="Enter supplier address" />
                                     <x-bootstrap.input-error :messages="$errors->get('address')" />
@@ -70,63 +70,38 @@
             $('#createSupplierSubmit').on('click', function(e) {
                 e.preventDefault();
 
-                var supplierName = $('#name').val().trim();
-
                 // HTML5 native validation muna
                 if (!document.getElementById('createSupplierForm').checkValidity()) {
                     document.getElementById('createSupplierForm').reportValidity();
                     return false;
                 }
 
-
-                {{-- Palitan ang mga label na ito --}}
-                    <
-                    x - bootstrap.label
-                for = "name"
-                value = "Supplier Name": required = "true" / >
-                    <
-                    x - bootstrap.label
-                for = "email"
-                value = "Supplier Email": required = "true" / >
-                    <
-                    x - bootstrap.label
-                for = "contact_number"
-                value = "Supplier Phone": required = "true" / >
-                    <
-                    x - bootstrap.label
-                for = "address"
-                value = "Supplier Address": required = "true" / >
-                    <
-                    x - bootstrap.label
-                for = "contact_person"
-                value = "Contact Person" / >
-
-                    // ✅ AJAX duplicate check
-                    $.ajax({
-                        url: '{{ route('suppliers.check_duplicate') }}',
-                        type: 'GET',
-                        data: {
-                            name: $('#name').val().trim(),
-                            email: $('#email').val().trim() // ← dagdag ito
-                        },
-                        success: function(response) {
-                            if (response.exists) {
-                                Swal.fire({
-                                    icon: 'warning',
-                                    title: 'Supplier Already Exists!',
-                                    text: '"' + $('#name').val().trim() +
-                                        '" with this email is already registered. Sister company? Use a different email.',
-                                    confirmButtonColor: '#3085d6',
-                                    confirmButtonText: 'OK'
-                                });
-                            } else {
-                                $('#createSupplierForm').submit();
-                            }
-                        },
-                        error: function() {
+                // ✅ AJAX duplicate check — name + email combo
+                $.ajax({
+                    url: '{{ route('suppliers.check_duplicate') }}',
+                    type: 'GET',
+                    data: {
+                        name: $('#name').val().trim(),
+                        email: $('#email').val().trim()
+                    },
+                    success: function(response) {
+                        if (response.exists) {
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Supplier Already Exists!',
+                                text: '"' + $('#name').val().trim() +
+                                    '" with this email is already registered. Sister company? Use a different email.',
+                                confirmButtonColor: '#3085d6',
+                                confirmButtonText: 'OK'
+                            });
+                        } else {
                             $('#createSupplierForm').submit();
                         }
-                    });
+                    },
+                    error: function() {
+                        $('#createSupplierForm').submit();
+                    }
+                });
             });
 
         });
