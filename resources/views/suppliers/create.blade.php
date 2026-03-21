@@ -21,31 +21,35 @@
                                 <div class="mb-3">
                                     <x-bootstrap.label for="name" value="Supplier Name" :required="true" />
                                     <x-bootstrap.input id="name" name="name" required
-                                        placeholder="Enter supplier name" />
-                                    <x-bootstrap.input-error :messages="$errors->get('name')" />
+                                        placeholder="Enter supplier name" value="{{ old('name') }}" />
+                                    {{-- ✅ INALIS ang x-bootstrap.input-error para hindi mag-show ng PHP validation error --}}
                                 </div>
+
                                 <div class="mb-3">
                                     <x-bootstrap.label for="email" value="Supplier Email" :required="true" />
                                     <x-bootstrap.input id="email" name="email" type="email" required
-                                        placeholder="Enter supplier email" />
-                                    <x-bootstrap.input-error :messages="$errors->get('email')" />
+                                        placeholder="Enter supplier email" value="{{ old('email') }}" />
+                                    {{-- ✅ INALIS ang x-bootstrap.input-error --}}
                                 </div>
+
                                 <div class="mb-3">
                                     <x-bootstrap.label for="contact_number" value="Supplier Phone" :required="true" />
                                     <x-bootstrap.input id="contact_number" name="contact_number" required
-                                        placeholder="Enter supplier phone" />
+                                        placeholder="Enter supplier phone" value="{{ old('contact_number') }}" />
                                     <x-bootstrap.input-error :messages="$errors->get('contact_number')" />
                                 </div>
+
                                 <div class="mb-3">
                                     <x-bootstrap.label for="address" value="Supplier Address" :required="true" />
                                     <x-bootstrap.input id="address" name="address" required
-                                        placeholder="Enter supplier address" />
+                                        placeholder="Enter supplier address" value="{{ old('address') }}" />
                                     <x-bootstrap.input-error :messages="$errors->get('address')" />
                                 </div>
+
                                 <div class="mb-3">
                                     <x-bootstrap.label for="contact_person" value="Contact Person" />
                                     <x-bootstrap.input id="contact_person" name="contact_person"
-                                        placeholder="Enter contact person name" />
+                                        placeholder="Enter contact person name" value="{{ old('contact_person') }}" />
                                     <x-bootstrap.input-error :messages="$errors->get('contact_person')" />
                                 </div>
 
@@ -86,6 +90,7 @@
                     },
                     success: function(response) {
                         if (response.exists) {
+                            // ✅ SweetAlert ang mag-hahandle ng duplicate
                             Swal.fire({
                                 icon: 'warning',
                                 title: 'Supplier Already Exists!',
@@ -95,10 +100,12 @@
                                 confirmButtonText: 'OK'
                             });
                         } else {
+                            // ✅ Walang duplicate — i-submit na ang form
                             $('#createSupplierForm').submit();
                         }
                     },
                     error: function() {
+                        // Kung nag-error ang AJAX, i-submit na lang para hindi ma-block ang user
                         $('#createSupplierForm').submit();
                     }
                 });

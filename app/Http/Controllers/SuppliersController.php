@@ -90,22 +90,22 @@ class SuppliersController extends Controller
 
     public function store(StoreSupplierRequest $request)
     {
-        $email = $request->email ? strtolower($request->email) : null;
-        $baseName = trim($request->name);
+        // $email = $request->email ? strtolower($request->email) : null;
+        // $baseName = trim($request->name);
 
         // Check exact duplicate (same name + same email)
-        $query = Supplier::whereRaw('LOWER(name) = ?', [strtolower($baseName)]);
-        if ($email) {
-            $query->whereRaw('LOWER(email) = ?', [$email]);
-        } else {
-            $query->whereNull('email');
-        }
+        // $query = Supplier::whereRaw('LOWER(name) = ?', [strtolower($baseName)]);
+        // if ($email) {
+        //     $query->whereRaw('LOWER(email) = ?', [$email]);
+        // } else {
+        //     $query->whereNull('email');
+        // }
 
-        if ($query->exists()) {
-            return back()->withErrors([
-                'name' => 'A supplier with this name and email already exists.'
-            ])->withInput();
-        }
+        // if ($query->exists()) {
+        //     return back()->withErrors([
+        //         'name' => 'A supplier with this name and email already exists.'
+        //     ])->withInput();
+        // }
 
         // ✅ Auto-number kung may same name na (sister company)
         $sameNameCount = Supplier::whereRaw('LOWER(name) LIKE ?', [strtolower($baseName) . '%'])->count();
@@ -147,7 +147,7 @@ class SuppliersController extends Controller
         return redirect()->route('suppliers.index')
             ->with('success', 'Supplier created successfully!');
     }
-    
+
     public function showTable(Request $request, $id)
     {
         $request->merge(['id' => $id]);
