@@ -90,6 +90,16 @@ class SuppliersController extends Controller
 
     public function store(StoreSupplierRequest $request)
     {
+        $exists = Supplier::whereRaw('LOWER(name) = ?', [strtolower($request->name)])
+            ->whereRaw('LOWER(email) = ?', [strtolower($request->email)])
+            ->exists();
+
+        if ($exists) {
+            return back()->withErrors([
+                'name' => 'A supplier with this name and email already exists.'
+            ])->withInput();
+        }
+
         return $this->supplierProductServices->store_supplier($request);
     }
 
@@ -160,7 +170,10 @@ class SuppliersController extends Controller
 
     public function checkDuplicate(Request $request)
     {
-        $exists = Supplier::whereRaw('LOWER(name) = ?', [strtolower($request->name)])->exists();
+        $exists = Supplier::whereRaw('LOWER(name) = ?', [strtolower($request->name)])
+            ->whereRaw('LOWER(email) = ?', [strtolower($request->email)])
+            ->exists();
+
         return response()->json(['exists' => $exists]);
     }
 }

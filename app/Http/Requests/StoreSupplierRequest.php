@@ -23,7 +23,7 @@ class StoreSupplierRequest extends FormRequest
     public function rules()
     {
         $rules = [
-            'name' => 'required|string|max:255|unique:supplier,name',
+            'name' => 'required|string|max:255',
             'contact_person' => 'nullable|string|max:255',      // ✅ ADDED
             'contact_number' => 'nullable|string|max:50',       // ✅ CHANGED FROM 'phone'
             'email' => 'nullable|email|max:255',

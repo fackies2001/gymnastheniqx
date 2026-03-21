@@ -78,34 +78,55 @@
                     return false;
                 }
 
-                // ✅ AJAX duplicate check
-                $.ajax({
-                    url: '{{ route('suppliers.check_duplicate') }}',
-                    type: 'GET',
-                    data: {
-                        name: supplierName
-                    },
-                    success: function(response) {
-                        if (response.exists) {
-                            // ❌ Duplicate found — show SweetAlert
-                            Swal.fire({
-                                icon: 'warning',
-                                title: 'Supplier Already Exists!',
-                                text: '"' + supplierName +
-                                    '" is already registered as a supplier. Please use a different name.',
-                                confirmButtonColor: '#3085d6',
-                                confirmButtonText: 'OK'
-                            });
-                        } else {
-                            // ✅ No duplicate — submit the form
+
+                {{-- Palitan ang mga label na ito --}}
+                    <
+                    x - bootstrap.label
+                for = "name"
+                value = "Supplier Name": required = "true" / >
+                    <
+                    x - bootstrap.label
+                for = "email"
+                value = "Supplier Email": required = "true" / >
+                    <
+                    x - bootstrap.label
+                for = "contact_number"
+                value = "Supplier Phone": required = "true" / >
+                    <
+                    x - bootstrap.label
+                for = "address"
+                value = "Supplier Address": required = "true" / >
+                    <
+                    x - bootstrap.label
+                for = "contact_person"
+                value = "Contact Person" / >
+
+                    // ✅ AJAX duplicate check
+                    $.ajax({
+                        url: '{{ route('suppliers.check_duplicate') }}',
+                        type: 'GET',
+                        data: {
+                            name: $('#name').val().trim(),
+                            email: $('#email').val().trim() // ← dagdag ito
+                        },
+                        success: function(response) {
+                            if (response.exists) {
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'Supplier Already Exists!',
+                                    text: '"' + $('#name').val().trim() +
+                                        '" with this email is already registered. Sister company? Use a different email.',
+                                    confirmButtonColor: '#3085d6',
+                                    confirmButtonText: 'OK'
+                                });
+                            } else {
+                                $('#createSupplierForm').submit();
+                            }
+                        },
+                        error: function() {
                             $('#createSupplierForm').submit();
                         }
-                    },
-                    error: function() {
-                        // If check fails, proceed na lang para hindi mablock ang user
-                        $('#createSupplierForm').submit();
-                    }
-                });
+                    });
             });
 
         });
