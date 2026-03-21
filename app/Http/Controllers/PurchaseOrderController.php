@@ -220,6 +220,13 @@ class PurchaseOrderController extends Controller
             //    PIECE → 1
             // ─────────────────────────────────────────────────────
             $piecesPerBox = (int) ($product->pieces_per_box ?? 1);
+            \Log::info('pieces_per_box value:', [
+                'product_id'     => $product->id,
+                'pieces_per_box' => $product->pieces_per_box,
+                'piecesPerBox'   => $piecesPerBox,
+                'scan_type'      => $scanType,
+            ]);
+
             $qtyToAdd     = ($scanType === 'box') ? $piecesPerBox : 1;
             $remaining    = $poItem->quantity_ordered - $poItem->quantity_scanned;
 
