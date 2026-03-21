@@ -6,7 +6,7 @@
 @section('content_body')
     <div class="container-fluid">
 
-        {{-- ACTIONS ROW (Filter & Print) --}}
+        {{-- ACTIONS ROW --}}
         <div class="row mb-4 no-print align-items-center">
             <div class="col-md-6">
                 <form action="{{ route('reports.strategic') }}" method="GET" class="form-inline">
@@ -21,9 +21,49 @@
                 </form>
             </div>
             <div class="col-md-6 text-right">
-                <button onclick="window.print()" class="btn btn-secondary shadow-sm">
+                <button onclick="handleStrategicPrint()" class="btn btn-secondary shadow-sm">
                     <i class="fas fa-print mr-1"></i> Print Annual Report
                 </button>
+            </div>
+        </div>
+
+        {{-- ✅ SELECTIVE PRINT CHECKBOXES (No Print) --}}
+        <div class="card card-outline card-secondary shadow-sm mb-4 no-print">
+            <div class="card-header">
+                <h3 class="card-title font-weight-bold">
+                    <i class="fas fa-check-square mr-2"></i> Select Sections to Print
+                </h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input strategic-print-check" id="printSummary"
+                                value="summary" checked>
+                            <label class="custom-control-label font-weight-bold" for="printSummary">
+                                <i class="fas fa-coins mr-1"></i> Yearly Summary
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input strategic-print-check" id="printTrend"
+                                value="trend" checked>
+                            <label class="custom-control-label font-weight-bold" for="printTrend">
+                                <i class="fas fa-chart-line mr-1"></i> Monthly Performance Trend
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="custom-control custom-checkbox">
+                            <input type="checkbox" class="custom-control-input strategic-print-check" id="printForecast"
+                                value="forecast" checked>
+                            <label class="custom-control-label font-weight-bold" for="printForecast">
+                                <i class="fas fa-binoculars mr-1"></i> Forecast & Dead Stock
+                            </label>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -37,7 +77,7 @@
         </div>
 
         {{-- ROW 1: YEARLY SUMMARY CARDS --}}
-        <div class="row">
+        <div class="row strategic-section" id="section-summary">
             <div class="col-md-4 col-sm-6 col-12">
                 <div class="info-box shadow-sm print-box">
                     <span class="info-box-icon bg-success"><i class="fas fa-coins"></i></span>
@@ -61,10 +101,8 @@
                     <span class="info-box-icon bg-info"><i class="fas fa-chart-pie"></i></span>
                     <div class="info-box-content">
                         <span class="info-box-text">Gross Profit Margin</span>
-                        <span class="info-box-number">
-                            ₱ {{ number_format($totalYearlyRevenue - $totalYearlyCost, 2) }}
-                        </span>
-                        {{-- ✅ Disclaimer: shown only when margin is negative --}}
+                        <span class="info-box-number">₱
+                            {{ number_format($totalYearlyRevenue - $totalYearlyCost, 2) }}</span>
                         @if ($totalYearlyRevenue - $totalYearlyCost < 0)
                             <small class="text-white d-block mt-1" style="font-size: 11px; opacity: 0.85;">
                                 <i class="fas fa-info-circle mr-1"></i>
@@ -78,8 +116,7 @@
         </div>
 
         {{-- ROW 2: CHART & QUARTERLY TABLE --}}
-        <div class="row">
-            {{-- SEASONAL CHART --}}
+        <div class="row strategic-section" id="section-trend">
             <div class="col-md-8">
                 <div class="card card-primary card-outline shadow-sm h-100">
                     <div class="card-header">
@@ -91,7 +128,6 @@
                 </div>
             </div>
 
-            {{-- QUARTERLY BREAKDOWN TABLE --}}
             <div class="col-md-4">
                 <div class="card card-secondary card-outline shadow-sm h-100 print-card">
                     <div class="card-header">
@@ -128,7 +164,6 @@
                                 @endforeach
                             </tbody>
                         </table>
-                        {{-- ✅ Note for empty quarters --}}
                         <div class="px-3 py-2">
                             <small class="text-muted">
                                 <i class="fas fa-info-circle mr-1"></i>
@@ -140,16 +175,17 @@
             </div>
         </div>
 
-        {{-- ROW 3: PROJECTIONS (Next Year) & DEAD STOCK --}}
-        <div class="row mt-4 break-before">
-            {{-- PROJECTION --}}
+        {{-- ROW 3: PROJECTIONS & DEAD STOCK --}}
+        <div class="row mt-4 strategic-section" id="section-forecast">
             <div class="col-md-6">
                 <div class="card card-outline card-warning h-100 shadow-sm print-card">
                     <div class="card-header">
                         <h3 class="card-title font-weight-bold">
                             <i class="fas fa-binoculars mr-2"></i> Forecast for {{ $selectedYear + 1 }}
                         </h3>
-                        <div class="card-tools no-print"><small>Based on {{ $selectedYear }} Sales + 10%</small></div>
+                        <div class="card-tools no-print">
+                            <small>Based on {{ $selectedYear }} Sales + 10%</small>
+                        </div>
                     </div>
                     <div class="card-body p-0">
                         <table class="table table-sm table-hover text-center">
@@ -186,7 +222,6 @@
                 </div>
             </div>
 
-            {{-- DEAD STOCK --}}
             <div class="col-md-6">
                 <div class="card card-outline card-danger h-100 shadow-sm print-card">
                     <div class="card-header">
@@ -222,17 +257,19 @@
             </div>
         </div>
 
-        {{-- PRINT SIGNATORIES --}}
+        {{-- ✅ PRINT FOOTER — Admin at Manager LANG --}}
         <div class="d-none d-print-block mt-5 pt-5">
             <div class="row text-center">
                 <div class="col-6">
                     <div class="border-top border-dark mx-5 pt-2">
-                        <p class="font-weight-bold mb-0">OPERATIONS MANAGER</p>
+                        <p class="font-weight-bold mb-0">ADMIN</p>
+                        <small>Prepared By</small>
                     </div>
                 </div>
                 <div class="col-6">
                     <div class="border-top border-dark mx-5 pt-2">
-                        <p class="font-weight-bold mb-0">CHIEF EXECUTIVE OFFICER</p>
+                        <p class="font-weight-bold mb-0">MANAGER</p>
+                        <small>Approved By</small>
                     </div>
                 </div>
             </div>
@@ -245,14 +282,11 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         $(function() {
-            // ✅ FIX: Destroy existing chart instance before creating new one
             var existingChart = Chart.getChart('strategyChart');
-            if (existingChart) {
-                existingChart.destroy();
-            }
+            if (existingChart) existingChart.destroy();
 
             var ctx = document.getElementById('strategyChart').getContext('2d');
-            var strategyChart = new Chart(ctx, {
+            new Chart(ctx, {
                 type: 'line',
                 data: {
                     labels: @json($months),
@@ -285,6 +319,50 @@
                 }
             });
         });
+
+        // ✅ SELECTIVE PRINT
+        function handleStrategicPrint() {
+            const selected = [];
+            $('.strategic-print-check:checked').each(function() {
+                selected.push($(this).val());
+            });
+
+            if (selected.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'No Section Selected',
+                    text: 'Please select at least one section to print.'
+                });
+                return;
+            }
+
+            // Map checkbox values to section IDs
+            const sectionMap = {
+                'summary': 'section-summary',
+                'trend': 'section-trend',
+                'forecast': 'section-forecast'
+            };
+
+            // Hide unselected sections
+            $('.strategic-section').each(function() {
+                const sectionId = $(this).attr('id');
+                const isSelected = Object.entries(sectionMap).some(([key, val]) =>
+                    val === sectionId && selected.includes(key)
+                );
+                if (!isSelected) {
+                    $(this).addClass('hidden-for-print');
+                } else {
+                    $(this).removeClass('hidden-for-print');
+                }
+            });
+
+            window.print();
+
+            // Restore after print
+            setTimeout(function() {
+                $('.strategic-section').removeClass('hidden-for-print');
+            }, 1000);
+        }
     </script>
 @endpush
 
@@ -327,8 +405,9 @@
                 text-align: center;
             }
 
-            .break-before {
-                page-break-inside: avoid;
+            /* ✅ Hide unselected sections */
+            .strategic-section.hidden-for-print {
+                display: none !important;
             }
         }
     </style>

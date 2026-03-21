@@ -15,7 +15,7 @@
             </div>
         </div>
 
-        {{-- FILTER BY DATE (No Print) — same style as Daily Report --}}
+        {{-- FILTER BY DATE (No Print) --}}
         <div class="card card-primary shadow-sm mb-4 no-print">
             <div class="card-header" style="background-color: #1a73e8;">
                 <h3 class="card-title font-weight-bold text-white">
@@ -59,7 +59,7 @@
             </div>
         </div>
 
-        {{-- PRINT HEADER (Hidden on Screen, Visible on Print) --}}
+        {{-- PRINT HEADER --}}
         <div class="d-none d-print-block text-center mb-4">
             <h1 class="font-weight-bold text-uppercase m-0">GYMNASTHENIQX WAREHOUSE</h1>
             <h4 class="text-uppercase">Monthly Financial & Planning Report</h4>
@@ -70,7 +70,6 @@
 
         {{-- ROW 1: KEY FINANCIAL METRICS --}}
         <div class="row">
-            {{-- 1. TOTAL INVENTORY VALUE --}}
             <div class="col-md-6 col-12">
                 <div class="small-box bg-gradient-primary shadow-sm print-box">
                     <div class="inner">
@@ -78,13 +77,10 @@
                         <p class="font-weight-bold text-uppercase">Total Inventory Asset Value</p>
                         <small class="d-block">Sum of (Stock × Cost Price)</small>
                     </div>
-                    <div class="icon">
-                        <i class="fas fa-warehouse"></i>
-                    </div>
+                    <div class="icon"><i class="fas fa-warehouse"></i></div>
                 </div>
             </div>
 
-            {{-- 2. SALES GROWTH COMPARISON --}}
             <div class="col-md-6 col-12">
                 <div
                     class="small-box bg-gradient-{{ $growthStatus == 'increase' ? 'success' : ($growthStatus == 'decrease' ? 'danger' : 'secondary') }} shadow-sm print-box">
@@ -100,7 +96,6 @@
                             Current: ₱{{ number_format($currentMonthSales, 2) }} vs
                             Last Month: ₱{{ number_format($lastMonthSales, 2) }}
                         </small>
-                        {{-- ✅ FIX #2: Disclaimer when no previous month data --}}
                         @if ($lastMonthSales == 0 && $currentMonthSales > 0)
                             <small class="d-block mt-1" style="opacity: 0.85;">
                                 <i class="fas fa-info-circle"></i>
@@ -108,16 +103,14 @@
                             </small>
                         @endif
                     </div>
-                    <div class="icon">
-                        <i class="fas fa-chart-line"></i>
-                    </div>
+                    <div class="icon"><i class="fas fa-chart-line"></i></div>
                 </div>
             </div>
         </div>
 
         {{-- ROW 2: BEST SELLERS & SUPPLIER STATS --}}
         <div class="row">
-            {{-- TOP 5 BEST SELLERS --}}
+            {{-- TOP 5 REVENUE GENERATORS --}}
             <div class="col-md-6">
                 <div class="card card-outline card-warning h-100 shadow-sm print-card">
                     <div class="card-header">
@@ -149,6 +142,16 @@
                                         <td colspan="4" class="text-muted">No sales data for this month.</td>
                                     </tr>
                                 @endforelse
+
+                                {{-- ✅ TOTAL ROW --}}
+                                @if ($topProducts->count() > 0)
+                                    <tr class="bg-light font-weight-bold">
+                                        <td colspan="2" class="text-right">TOTAL:</td>
+                                        <td>{{ $topProducts->sum('total_sold') }}</td>
+                                        <td class="text-primary">₱
+                                            {{ number_format($topProducts->sum('total_revenue'), 2) }}</td>
+                                    </tr>
+                                @endif
                             </tbody>
                         </table>
                     </div>
@@ -195,18 +198,18 @@
             </div>
         </div>
 
-        {{-- EXECUTIVE SUMMARY --}}
-        <div class="row mt-4">
+        {{-- ✅ EXECUTIVE SUMMARY — NO PRINT (hindi kasama sa print) --}}
+        <div class="row mt-4 no-print">
             <div class="col-12">
                 <div class="card shadow-sm border print-card">
                     <div class="card-body bg-light">
-                        <h5 class="font-weight-bold"><i class="fas fa-info-circle text-primary"></i> Executive Summary &
-                            Analysis</h5>
+                        <h5 class="font-weight-bold">
+                            <i class="fas fa-info-circle text-primary"></i> Executive Summary & Analysis
+                        </h5>
                         <p class="text-muted mb-0" style="font-size: 14px;">
                             - <strong>Inventory Value:</strong> Currently at ₱{{ number_format($totalInventoryValue, 2) }}.
                             @if ($growthStatus == 'decrease' && $totalInventoryValue > 10000)
-                                ⚠️ Overstocked alert! High inventory with declining sales. Consider reducing purchase
-                                orders.
+                                ⚠️ Overstocked alert! High inventory with declining sales.
                             @elseif ($totalInventoryValue < 5000)
                                 🔴 Low inventory! Consider restocking immediately.
                             @else
@@ -215,31 +218,28 @@
                             <br>
                             - <strong>Sales Growth:</strong>
                             @if ($lastMonthSales == 0 && $currentMonthSales > 0)
-                                📊 No previous month data available for comparison. Current sales:
+                                📊 No previous month data available. Current sales:
                                 ₱{{ number_format($currentMonthSales, 2) }}.
                             @elseif ($growthStatus == 'increase' && $growthPercentage >= 50)
-                                🚀 Excellent performance! Sales grew by {{ number_format($growthPercentage, 1) }}%.
-                                Strategy is effective!
+                                🚀 Excellent! Sales grew by {{ number_format($growthPercentage, 1) }}%.
                             @elseif ($growthStatus == 'increase')
-                                ✅ Positive growth of {{ number_format($growthPercentage, 1) }}%. Keep it up!
+                                ✅ Positive growth of {{ number_format($growthPercentage, 1) }}%.
                             @elseif ($growthStatus == 'decrease' && abs($growthPercentage) >= 50)
-                                🔴 Warning! Sales declined by {{ number_format(abs($growthPercentage), 1) }}%. Consider
-                                promotions or discounts immediately.
+                                🔴 Warning! Sales declined by {{ number_format(abs($growthPercentage), 1) }}%.
                             @elseif ($growthStatus == 'decrease')
-                                ⚠️ Sales declined by {{ number_format(abs($growthPercentage), 1) }}%. Review marketing or
-                                pricing strategy.
+                                ⚠️ Sales declined by {{ number_format(abs($growthPercentage), 1) }}%.
                             @else
-                                📊 Stable performance. No significant changes this month.
+                                📊 Stable performance.
                             @endif
                             <br>
                             - <strong>Supplier Strategy:</strong>
                             @if ($supplierPerformance->count() > 0)
-                                Focus negotiations with
+                                Focus on
                                 <strong>{{ $supplierPerformance->first()->supplier->name ?? 'top supplier' }}</strong>
-                                who has <strong>{{ $supplierPerformance->first()->total_pos }}</strong> POs worth
-                                ₱{{ number_format($supplierPerformance->first()->total_spent, 2) }} to improve margins.
+                                with <strong>{{ $supplierPerformance->first()->total_pos }}</strong> POs
+                                worth ₱{{ number_format($supplierPerformance->first()->total_spent, 2) }}.
                             @else
-                                No supplier activity recorded for {{ $selectedDate->format('F Y') }}.
+                                No supplier activity for {{ $selectedDate->format('F Y') }}.
                             @endif
                         </p>
                     </div>
@@ -247,18 +247,18 @@
             </div>
         </div>
 
-        {{-- PRINT FOOTER: SIGNATORIES --}}
+        {{-- ✅ PRINT FOOTER — Admin at Manager LANG --}}
         <div class="d-none d-print-block mt-5 pt-5">
             <div class="row text-center">
                 <div class="col-6">
                     <div class="border-top border-dark mx-5 pt-2">
-                        <p class="font-weight-bold mb-0">FINANCE MANAGER</p>
-                        <small>Analyzed & Prepared By</small>
+                        <p class="font-weight-bold mb-0">ADMIN</p>
+                        <small>Prepared By</small>
                     </div>
                 </div>
                 <div class="col-6">
                     <div class="border-top border-dark mx-5 pt-2">
-                        <p class="font-weight-bold mb-0">GENERAL MANAGER</p>
+                        <p class="font-weight-bold mb-0">MANAGER</p>
                         <small>Approved By</small>
                     </div>
                 </div>
@@ -335,7 +335,8 @@
             .text-success,
             .text-danger,
             .text-warning,
-            .text-info {
+            .text-info,
+            .text-primary {
                 color: black !important;
             }
         }
