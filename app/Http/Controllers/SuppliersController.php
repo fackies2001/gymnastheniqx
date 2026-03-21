@@ -100,7 +100,10 @@ class SuppliersController extends Controller
             ])->withInput();
         }
 
-        return $this->supplierProductServices->store_supplier($request);
+        $result = $this->supplierProductServices->store_supplier($request);
+
+        return redirect()->route('suppliers.index')
+            ->with('success', 'Supplier created successfully!');
     }
 
     public function showTable(Request $request, $id)

@@ -279,6 +279,7 @@
 
 @push('js')
     <script>
+        {{-- Search filter --}}
         document.getElementById('searchInput').addEventListener('keyup', function(e) {
             const searchTerm = e.target.value.toLowerCase();
             const supplierItems = document.querySelectorAll('.supplier-item');
@@ -303,5 +304,26 @@
                 e.preventDefault();
             }
         });
+
+        {{-- Success/Error flash messages --}}
+        @if (session('success'))
+            Swal.fire({
+                icon: 'success',
+                title: 'Success!',
+                text: "{{ session('success') }}",
+                confirmButtonColor: '#2d3748',
+                timer: 2500,
+                showConfirmButton: false
+            });
+        @endif
+
+        @if (session('error'))
+            Swal.fire({
+                icon: 'error',
+                title: 'Error!',
+                text: "{{ session('error') }}",
+                confirmButtonColor: '#2d3748',
+            });
+        @endif
     </script>
 @endpush
