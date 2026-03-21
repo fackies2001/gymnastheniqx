@@ -90,20 +90,24 @@ class SuppliersController extends Controller
 
     public function store(StoreSupplierRequest $request)
     {
-        $exists = Supplier::whereRaw('LOWER(name) = ?', [strtolower($request->name)])
-            ->whereRaw('LOWER(email) = ?', [strtolower($request->email)])
-            ->exists();
+        // ✅ Handle null email properly
+        $email = $request->email ? strtolower($request->email) : null;
 
-        if ($exists) {
+        $query = Supplier::whereRaw('LOWER(name) = ?', [strtolower($request->name)]);
+
+        if ($email) {
+            $query->whereRaw('LOWER(email) = ?', [$email]);
+        } else {
+            $query->whereNull('email');
+        }
+
+        if ($query->exists()) {
             return back()->withErrors([
                 'name' => 'A supplier with this name and email already exists.'
             ])->withInput();
         }
 
-        $result = $this->supplierProductServices->store_supplier($request);
-
-        return redirect()->route('suppliers.index')
-            ->with('success', 'Supplier created successfully!');
+        return $this->supplierProductServices->store_supplier($request);
     }
 
     public function showTable(Request $request, $id)
@@ -173,10 +177,17 @@ class SuppliersController extends Controller
 
     public function checkDuplicate(Request $request)
     {
-        $exists = Supplier::whereRaw('LOWER(name) = ?', [strtolower($request->name)])
-            ->whereRaw('LOWER(email) = ?', [strtolower($request->email)])
-            ->exists();
+        // ✅ Handle null email properly
+        $email = $request->email ? strtolower($request->email) : null;
 
-        return response()->json(['exists' => $exists]);
+        $query = Supplier::whereRaw('LOWER(name) = ?', [strtolower($request->name)]);
+
+        if ($email) {
+            $query->whereRaw('LOWER(email) = ?', [$email]);
+        } else {
+            $query->whereNull('email');
+        }
+
+        return response()->json(['exists' => $query->exists()]);
     }
 }

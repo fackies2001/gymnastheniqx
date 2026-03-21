@@ -43,11 +43,12 @@ class SupplierProductServices
         return Supplier::pluck('name', 'id');
     }
 
+    // TANGGALIN ang return redirect() dito — hayaan ang controller mag-handle
     public function store_supplier($request)
     {
         $isStudent = auth()->user()->is_student;
         $source_id = $isStudent ? 2 : 3;
-        $validatedData = $request->all(); // Siguraduhing all() ang gamit
+        $validatedData = $request->all();
 
         if (!\DB::table('source')->where('id', $source_id)->exists()) {
             $source_id = 1;
@@ -60,24 +61,20 @@ class SupplierProductServices
                 'contact_number' => $validatedData['phone'] ?? $validatedData['contact_number'] ?? null,
                 'email'          => $validatedData['email'] ?? null,
                 'address'        => $validatedData['address'] ?? null,
-                'created_by' => auth()->user()->employee_id,
+                'created_by'     => auth()->user()->employee_id,
                 'source_id'      => $source_id,
             ]);
 
             if (Gate::allows('can-create-supplier-api')) {
                 if ($request->filled('api_url')) {
                     $supplier->supplierApis()->create([
-                        'api_url' => $validatedData['api_url'],
-                        'headers' => $validatedData['headers'] ?? null,
+                        'api_url'       => $validatedData['api_url'],
+                        'headers'       => $validatedData['headers'] ?? null,
                         'service_class' => $validatedData['service_class'] ?? null,
                     ]);
                 }
             }
         });
-
-        return redirect()
-            ->route('suppliers.index')
-            ->with('success', 'Supplier created successfully.');
     }
 
     public function get_all_supplier_product()
