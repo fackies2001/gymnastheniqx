@@ -326,8 +326,8 @@ if (barcodeInput) {
                 this.flashScan('success');
  
                 // ✅ Toast — ipakita kung box o piece ang na-scan
-                const modeLabel = data.product.scan_type === 'box'
-                    ? `📦 BOX scanned! +${qtyAdded} pcs`
+               const modeLabel = data.product.scan_type === 'box'
+                    ? `📦 BOX scanned! +${data.product.pieces_per_box} pcs`
                     : `✓ Piece scanned`;
                 this.showToast('success', `${modeLabel} — ${data.product.name} (${data.product.quantity_scanned}/${data.product.quantity_ordered})`);
             } else {
@@ -375,7 +375,7 @@ if (barcodeInput) {
         } else {
             // New row
             const scanLabel = product.scan_type === 'box'
-                ? `📦 Box (${qtyAdded} pcs)`
+                ? `📦 Box (${product.pieces_per_box} pcs)`
                 : `🔹 Piece`;
  
             const row = document.createElement('tr');
