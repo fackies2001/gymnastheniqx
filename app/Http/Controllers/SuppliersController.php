@@ -93,7 +93,7 @@ class SuppliersController extends Controller
         $email = $request->email ? strtolower($request->email) : null;
         $baseName = trim($request->name);
 
-        // Check kung may exact duplicate (same name + same email)
+        // Check exact duplicate (same name + same email)
         $query = Supplier::whereRaw('LOWER(name) = ?', [strtolower($baseName)]);
         if ($email) {
             $query->whereRaw('LOWER(email) = ?', [$email]);
@@ -113,9 +113,41 @@ class SuppliersController extends Controller
             $request->merge(['name' => $baseName . ' #' . ($sameNameCount + 1)]);
         }
 
-        return $this->supplierProductServices->store_supplier($request);
-    }
+        // ✅ Direktang create dito — hindi na kailangan ang services redirect
+        $isStudent = auth()->user()->is_student;
+        $source_id = $isStudent ? 2 : 3;
+        $validatedData = $request->all();
 
+        if (!\DB::table('source')->where('id', $source_id)->exists()) {
+            $source_id = 1;
+        }
+
+        \DB::transaction(function () use ($validatedData, $request, $source_id) {
+            $supplier = Supplier::create([
+                'name'           => $validatedData['name'],
+                'contact_person' => $validatedData['contact_person'] ?? null,
+                'contact_number' => $validatedData['phone'] ?? $validatedData['contact_number'] ?? null,
+                'email'          => $validatedData['email'] ?? null,
+                'address'        => $validatedData['address'] ?? null,
+                'created_by'     => auth()->user()->employee_id,
+                'source_id'      => $source_id,
+            ]);
+
+            if (\Gate::allows('can-create-supplier-api')) {
+                if ($request->filled('api_url')) {
+                    $supplier->supplierApis()->create([
+                        'api_url'       => $validatedData['api_url'],
+                        'headers'       => $validatedData['headers'] ?? null,
+                        'service_class' => $validatedData['service_class'] ?? null,
+                    ]);
+                }
+            }
+        });
+
+        return redirect()->route('suppliers.index')
+            ->with('success', 'Supplier created successfully!');
+    }
+    
     public function showTable(Request $request, $id)
     {
         $request->merge(['id' => $id]);
