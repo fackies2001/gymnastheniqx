@@ -83,12 +83,6 @@ class ReportsController extends Controller
         ));
     }
 
-    // ============================================================
-    // ✅ REPLACE ONLY THIS METHOD inside ReportsController
-    //    getDailyData() — added original price + total amount
-    //    to Received traceability, and original price + selling
-    //    price to Outflow traceability
-    // ============================================================
     public function getDailyData(Request $request)
     {
         $filterType = $request->get('filter_type', null);
@@ -124,7 +118,6 @@ class ReportsController extends Controller
 
         try {
             \Log::info("=== DAILY REPORT START ===");
-            \Log::info("Filter Type: " . ($filterType ?? 'none') . " | Date: " . ($date ?? 'all') . " | Type: " . ($type ?? 'all'));
 
             // ===== DAILY RECEIVED =====
             if (!$type || $type === 'received') {
@@ -152,47 +145,37 @@ class ReportsController extends Controller
                             ->find($item->product_id);
                         $purchaseOrder   = \App\Models\PurchaseOrder::find($item->purchase_order_id);
 
-                        $productName  = $supplierProduct->name             ?? 'Unnamed Product';
-                        $supplierName = $supplierProduct->supplier->name   ?? 'N/A';
-                        $categoryName = $supplierProduct->category->name   ?? 'General';
-                        $receivedDate = \Carbon\Carbon::parse($item->received_date)->format('M d, Y h:i A');
-                        $poNumber     = $purchaseOrder->po_number           ?? 'N/A';
+                        $productName  = $supplierProduct->name           ?? 'Unnamed Product';
+                        $categoryName = $supplierProduct->category->name ?? 'General';
+                        $poNumber     = $purchaseOrder->po_number         ?? 'N/A';
 
-                        // ✅ FIX: Original price from supplier (cost_price)
                         $originalPrice = $supplierProduct->cost_price ?? 0;
-
-                        // ✅ FIX: Get unit_cost from PO item if cost_price is 0
                         if ($originalPrice == 0 && $purchaseOrder) {
-                            $poItem = \App\Models\PurchaseOrderItem::where('purchase_order_id', $purchaseOrder->id)
+                            $poItem        = \App\Models\PurchaseOrderItem::where('purchase_order_id', $purchaseOrder->id)
                                 ->where('product_id', $item->product_id)
                                 ->first();
                             $originalPrice = $poItem->unit_cost ?? 0;
                         }
 
-                        // ✅ FIX: Total amount = qty * original price
                         $totalAmount = $item->total_qty * $originalPrice;
 
                         $data[] = [
-                            'product_name'  => '<strong style="font-size: 16px; color: black;">' . e($productName) . '</strong><br>
-                                <span style="font-size: 13px; color: #666;">Supplier: ' . e($supplierName) . '</span><br>
-                                <span style="font-size: 12px; color: #999;"><i class="far fa-clock"></i> ' . $receivedDate . '</span>',
+                            // ✅ PRODUCT NAME ONLY — walang date/time at supplier
+                            'product_name'  => '<strong style="font-size:15px;color:black;">' . e($productName) . '</strong>',
                             'category_name' => '<span class="badge badge-info">' . e($categoryName) . '</span>',
-                            // ✅ FIX: Added Original Price + Total Amount to Received traceability
+                            // ✅ SERIAL/TRACE — walang date
                             'traceability'  => '<small>
-                                <strong>Type:</strong> Scanned from PO<br>
-                                <strong>PO Number:</strong> ' . e($poNumber) . '<br>
-                                <strong>Supplier:</strong> ' . e($supplierName) . '<br>
-                                <strong>Original Price (from Supplier):</strong> <span class="text-danger font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
-                                <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span><br>
-                                <strong>Date Received:</strong> ' . $receivedDate . '
-                                </small>',
+                            <strong>Type:</strong> Scanned from PO<br>
+                            <strong>PO Number:</strong> ' . e($poNumber) . '<br>
+                            <strong>Original Price:</strong> <span class="text-danger font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
+                            <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span>
+                            </small>',
                             'quantity' => $item->total_qty,
-                            'image'    => $supplierProduct->thumbnail ?? null,
                             'status'   => 'Received',
                         ];
                     }
                 } catch (\Exception $e) {
-                    \Log::error("Scanned Products Section Error: " . $e->getMessage());
+                    \Log::error("Received Section Error: " . $e->getMessage());
                 }
             }
 
@@ -211,46 +194,39 @@ class ReportsController extends Controller
                     $retailerOrders = $query->get();
 
                     foreach ($retailerOrders as $order) {
-                        $updatedDate  = Carbon::parse($order->created_at)->format('M d, Y h:i A');
                         $productName  = $order->product_name  ?? 'Unknown Product';
                         $retailerName = $order->retailer_name ?? 'N/A';
 
-                        // ✅ FIX: Get original cost price from supplier product
                         $originalPrice = 0;
                         if ($order->product_id) {
                             $supplierProd  = \App\Models\SupplierProduct::find($order->product_id);
                             $originalPrice = $supplierProd->cost_price ?? 0;
                         }
 
-                        // ✅ Selling price = unit_price used in the order
-                        $sellingPrice = $order->unit_price    ?? 0;
-                        $totalAmount  = $order->total_amount  ?? 0;
-
-                        // ✅ Compute markup
-                        $markup    = $sellingPrice - $originalPrice;
-                        $markupPct = $originalPrice > 0
+                        $sellingPrice = $order->unit_price   ?? 0;
+                        $totalAmount  = $order->total_amount ?? 0;
+                        $markup       = $sellingPrice - $originalPrice;
+                        $markupPct    = $originalPrice > 0
                             ? number_format((($markup / $originalPrice) * 100), 1)
                             : 'N/A';
 
                         $data[] = [
-                            'product_name'  => '<strong style="font-size: 16px; color: black;">' . e($productName) . '</strong><br>
-                                <span style="font-size: 13px; color: #666;">Retailer: ' . e($retailerName) . '</span><br>
-                                <span style="font-size: 12px; color: #999;"><i class="far fa-clock"></i> ' . $updatedDate . '</span>',
+                            // ✅ PRODUCT NAME ONLY — walang date/time at supplier
+                            'product_name'  => '<strong style="font-size:15px;color:black;">' . e($productName) . '</strong><br>
+                            <span style="font-size:13px;color:#666;">Retailer: ' . e($retailerName) . '</span>',
                             'category_name' => '<span class="badge badge-success">Outflow</span>',
-                            // ✅ FIX: Added Original Price + Selling Price + Markup to Outflow traceability
+                            // ✅ SERIAL/TRACE — walang date
                             'traceability'  => '<small>
-                                <strong>Type:</strong> Retailer Order<br>
-                                <strong>Order #:</strong> ' . e($order->id) . '<br>
-                                <strong>Retailer:</strong> ' . e($retailerName) . '<br>
-                                <strong>Qty Out:</strong> ' . $order->quantity . ' pcs<br>
-                                <strong>Original Price (from Supplier):</strong> <span class="text-secondary font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
-                                <strong>Selling Price:</strong> <span class="text-success font-weight-bold">₱' . number_format($sellingPrice, 2) . '</span><br>
-                                <strong>Markup:</strong> <span class="text-info font-weight-bold">₱' . number_format($markup, 2) . ' (' . $markupPct . '%)</span><br>
-                                <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span><br>
-                                <strong>Date:</strong> ' . $updatedDate . '
-                                </small>',
+                            <strong>Type:</strong> Retailer Order<br>
+                            <strong>Order #:</strong> ' . e($order->id) . '<br>
+                            <strong>Retailer:</strong> ' . e($retailerName) . '<br>
+                            <strong>Qty Out:</strong> ' . $order->quantity . ' pcs<br>
+                            <strong>Original Price:</strong> <span class="text-secondary font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
+                            <strong>Selling Price:</strong> <span class="text-success font-weight-bold">₱' . number_format($sellingPrice, 2) . '</span><br>
+                            <strong>Markup:</strong> <span class="text-info font-weight-bold">₱' . number_format($markup, 2) . ' (' . $markupPct . '%)</span><br>
+                            <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span>
+                            </small>',
                             'quantity' => $order->quantity,
-                            'image'    => $order->product->thumbnail ?? null,
                             'status'   => 'Outflow',
                         ];
                     }
@@ -259,7 +235,7 @@ class ReportsController extends Controller
                 }
             }
 
-            // ===== DAMAGED ===== (unchanged)
+            // ===== DAMAGED =====
             if (!$type || $type === 'damage') {
                 try {
                     $query = SerializedProduct::with(['supplierProducts.supplier'])
@@ -274,26 +250,24 @@ class ReportsController extends Controller
                     $damagedItems = $query->get();
 
                     foreach ($damagedItems as $item) {
-                        $productName  = $item->supplierProducts->name              ?? 'Unnamed Product';
-                        $supplierName = $item->supplierProducts->supplier->name    ?? 'N/A';
-                        $updatedDate  = Carbon::parse($item->updated_at)->format('M d, Y h:i A');
+                        $productName  = $item->supplierProducts->name           ?? 'Unnamed Product';
+                        $supplierName = $item->supplierProducts->supplier->name ?? 'N/A';
                         $statusName   = $item->status == 4 ? 'Damaged' : 'Lost';
                         $badgeColor   = $item->status == 4 ? 'badge-danger' : 'badge-dark';
 
                         $data[] = [
-                            'product_name'  => '<strong style="font-size: 16px; color: black;">' . e($productName) . '</strong><br>
-                                <span style="font-size: 13px; color: #666;">SN: ' . e($item->serial_number ?? 'N/A') . '</span><br>
-                                <span style="font-size: 12px; color: #999;"><i class="far fa-clock"></i> ' . $updatedDate . '</span>',
+                            // ✅ PRODUCT NAME ONLY — walang date/time at SN, walang supplier
+                            'product_name'  => '<strong style="font-size:15px;color:black;">' . e($productName) . '</strong>',
                             'category_name' => '<span class="badge ' . $badgeColor . '">' . $statusName . '</span>',
+                            // ✅ SERIAL NUMBER — sariling column na (ipinapasa sa serial_number field)
+                            'serial_number' => e($item->serial_number ?? 'N/A'),
+                            // ✅ SERIAL/TRACE — walang date
                             'traceability'  => '<small>
-                                <strong>Type:</strong> ' . $statusName . '<br>
-                                <strong>Serial No:</strong> ' . e($item->serial_number ?? 'N/A') . '<br>
-                                <strong>Supplier:</strong> ' . e($supplierName) . '<br>
-                                <strong>Remarks:</strong> ' . e($item->remarks ?? 'No remarks') . '<br>
-                                <strong>Date:</strong> ' . $updatedDate . '
-                                </small>',
+                            <strong>Type:</strong> ' . $statusName . '<br>
+                            <strong>Supplier:</strong> ' . e($supplierName) . '<br>
+                            <strong>Remarks:</strong> ' . e($item->remarks ?? 'No remarks') . '
+                            </small>',
                             'quantity' => 1,
-                            'image'    => $item->supplierProducts->thumbnail ?? null,
                             'status'   => $statusName,
                         ];
                     }
@@ -302,7 +276,7 @@ class ReportsController extends Controller
                 }
             }
 
-            // ===== LOW STOCK ===== (unchanged)
+            // ===== LOW STOCK =====
             if (!$type || $type === 'low_stock') {
                 try {
                     $subquery = 'SELECT COUNT(*) FROM serialized_product WHERE serialized_product.product_id = supplier_product.id AND serialized_product.status = 1';
@@ -313,7 +287,6 @@ class ReportsController extends Controller
                         'supplier_product.system_sku',
                         'supplier_product.thumbnail',
                         'category.name as category_name',
-                        'supplier.name as supplier_name',
                         DB::raw("({$subquery}) as available_count")
                     )
                         ->leftJoin('category', 'supplier_product.category_id', '=', 'category.id')
@@ -325,39 +298,22 @@ class ReportsController extends Controller
                     foreach ($lowStockProducts as $product) {
                         $qty = $product->available_count ?? 0;
 
-                        if ($qty <= 5) {
-                            $urgency = 'CRITICAL';
-                            $badge = 'badge-danger';
-                        } elseif ($qty <= 10) {
-                            $urgency = 'WARNING';
-                            $badge = 'badge-warning';
-                        } else {
-                            $urgency = 'LOW';
-                            $badge = 'badge-info';
-                        }
-
                         $data[] = [
-                            'product_name'  => '<strong style="font-size: 16px; color: black;">' . e($product->name) . '</strong><br>
-                                <span style="font-size: 13px; color: #666;">SKU: ' . e($product->system_sku ?? 'N/A') . '</span><br>
-                                <span class="badge ' . $badge . '">' . $urgency . ' - ' . $qty . ' units</span>',
+                            // ✅ PRODUCT NAME + SKU LANG — walang CRITICAL/WARNING text at units
+                            'product_name'  => '<strong style="font-size:15px;color:black;">' . e($product->name) . '</strong><br>
+                            <span style="font-size:12px;color:#999;">SKU: ' . e($product->system_sku ?? 'N/A') . '</span>',
+                            // ✅ CATEGORY — goods na
                             'category_name' => '<span class="badge badge-warning">Low Stock</span>',
-                            'traceability'  => '<small>
-                                <strong>Type:</strong> Low Stock<br>
-                                <strong>Available:</strong> ' . $qty . ' units<br>
-                                <strong>Status:</strong> ' . $urgency . '
-                                </small>',
-                            'quantity' => $qty,
-                            'image'    => $product->thumbnail,
-                            'status'   => 'Low Stock',
+                            // ✅ WALANG Serial/Trace column para sa Low Stock — empty lang
+                            'traceability'  => '',
+                            'quantity'      => $qty,
+                            'status'        => 'Low Stock',
                         ];
                     }
                 } catch (\Exception $e) {
                     \Log::error("Low Stock Section Error: " . $e->getMessage());
                 }
             }
-
-            \Log::info("Total data rows: " . count($data));
-            \Log::info("=== DAILY REPORT END ===");
 
             return response()->json([
                 'draw'            => (int) $request->get('draw', 1),
@@ -376,6 +332,7 @@ class ReportsController extends Controller
             ], 500);
         }
     }
+
 
     public function exportDaily(Request $request)
     {

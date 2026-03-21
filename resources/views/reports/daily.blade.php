@@ -53,7 +53,7 @@
             </div>
         </div>
 
-        {{-- CLEANER DATE FILTER --}}
+        {{-- DATE FILTER --}}
         <div class="card shadow mb-4 no-print">
             <div class="card-header bg-gradient-primary">
                 <h3 class="card-title font-weight-bold text-white">
@@ -63,7 +63,6 @@
             <div class="card-body">
                 <form method="GET" id="dateFilterForm">
                     <div class="row">
-                        {{-- Filter Dropdown --}}
                         <div class="col-lg-5 col-md-6 mb-3">
                             <label class="font-weight-bold">
                                 <i class="fas fa-calendar text-primary"></i> Select Time Period
@@ -90,7 +89,6 @@
                             </select>
                         </div>
 
-                        {{-- Custom Date Input --}}
                         <div class="col-lg-4 col-md-6 mb-3" id="customDateDiv"
                             style="display:{{ ($filterType ?? '') == 'custom' ? 'block' : 'none' }};">
                             <label class="font-weight-bold">
@@ -100,7 +98,6 @@
                                 class="form-control form-control-lg shadow-sm" value="{{ $date ?? '' }}">
                         </div>
 
-                        {{-- Action Buttons --}}
                         <div class="col-lg-3 col-md-6 mb-3">
                             <label class="d-block">&nbsp;</label>
                             <div class="btn-group btn-block">
@@ -114,7 +111,6 @@
                         </div>
                     </div>
 
-                    {{-- Active Filter Badge --}}
                     <div id="activeFilterBadge" style="display:none;">
                         <div class="alert alert-info mt-3 mb-0">
                             <div class="d-flex align-items-center justify-content-between">
@@ -176,9 +172,10 @@
             </div>
         </div>
 
-        {{-- Print Template --}}
+        {{-- ✅ PRINT AREA --}}
         <div id="printArea" class="d-none d-print-block"
             style="font-family: 'Courier New', Courier, monospace; color: black; padding: 10px;">
+
             <div class="text-center mb-4">
                 <h2 class="font-weight-bold mb-0">GYMNASTHENIQX INVENTORY SYSTEM</h2>
                 <p class="mb-0 text-uppercase">Warehouse: {{ auth()->user()->adminlte_warehouse() ?? 'Main Warehouse' }}
@@ -188,37 +185,28 @@
                     DAILY OPERATIONAL & TRACEABILITY REPORT
                 </h4>
                 <p class="small mt-2">
-                    Report Date: {{ \Carbon\Carbon::parse($date)->format('F d, Y') }} |
+                    Report Date: {{ \Carbon\Carbon::parse($date ?? now())->format('F d, Y') }} |
                     Generated: {{ date('F d, Y h:i A') }}
                 </p>
             </div>
 
-            <table class="table table-bordered w-100" style="border: 2px solid black !important; font-size: 12px;">
+            {{-- ✅ Dynamic table — columns change based on filter type --}}
+            <table class="table table-bordered w-100" style="border: 2px solid black !important; font-size: 11px;">
                 <thead style="background-color: #eee !important;">
-                    <tr>
-                        <th style="border: 1px solid black !important;">PRODUCT NAME</th>
-                        <th style="border: 1px solid black !important;">CATEGORY</th>
-                        <th style="border: 1px solid black !important;">SERIAL/TRACE</th>
-                        <th style="border: 1px solid black !important; text-align: center;">QTY</th>
-                    </tr>
+                    <tr id="printTableHeader"></tr>
                 </thead>
                 <tbody id="printTableBody"></tbody>
             </table>
 
+            {{-- ✅ SIGNATURE — Prepared/Filed by at Acknowledged by LANG --}}
             <div class="row mt-5">
-                <div class="col-4 text-center">
+                <div class="col-6 text-center">
                     <p class="mb-0"><strong>Prepared/Filed by:</strong></p>
                     <div style="border-bottom: 1px solid black; width: 85%; margin: 45px auto 5px auto;"></div>
                     <p class="small text-uppercase mb-0">{{ auth()->user()->name }}</p>
                     <p style="font-size: 10px;">(Employee Name & Signature)</p>
                 </div>
-                <div class="col-4 text-center">
-                    <p class="mb-0"><strong>Verified/Received by:</strong></p>
-                    <div style="border-bottom: 1px solid black; width: 85%; margin: 45px auto 5px auto;"></div>
-                    <p class="small text-uppercase mb-0">____________________</p>
-                    <p style="font-size: 10px;">(Warehouse Staff On-Duty)</p>
-                </div>
-                <div class="col-4 text-center">
+                <div class="col-6 text-center">
                     <p class="mb-0"><strong>Acknowledged by:</strong></p>
                     <div style="border-bottom: 1px solid black; width: 85%; margin: 45px auto 5px auto;"></div>
                     <p class="small text-uppercase mb-0">____________________</p>
@@ -226,6 +214,7 @@
                 </div>
             </div>
         </div>
+
     </div>
 @endsection
 
@@ -236,23 +225,18 @@
         var currentData = [];
         var dataTable = null;
 
-        // ✅ FILTER BY STATUS (from cards)
         function filterByStatus(status) {
-            console.log('🔍 Filter:', status);
             activeFilter = status;
             updateFilterBadge(status);
             loadData();
         }
 
-        // ✅ CLEAR FILTER
         function clearFilter() {
-            console.log('🔄 Clearing filter');
             activeFilter = 'all';
             updateFilterBadge('all');
             loadData();
         }
 
-        // ✅ UPDATE FILTER BADGE
         function updateFilterBadge(status) {
             const badge = $('#filterBadge');
             if (status === 'all') {
@@ -268,21 +252,13 @@
             }
         }
 
-        // ✅ LOAD DATA FROM SERVER
         function loadData() {
             const filterType = $('#filterType').val() || 'today';
             const customDate = $('#customDate').val();
             const type = activeFilter === 'all' ? null : activeFilter;
 
-            console.log('📤 Loading:', {
-                filterType,
-                customDate,
-                type
-            });
-
             $('#loadingSpinner').show();
 
-            // ✅ SAFE destroy
             if ($.fn.DataTable.isDataTable('#dailyReportTable')) {
                 $('#dailyReportTable').DataTable().destroy();
                 dataTable = null;
@@ -301,23 +277,20 @@
                     type: type
                 },
                 success: function(response) {
-                    console.log('📥 Received:', response.data?.length || 0, 'rows');
                     currentData = response.data || [];
                     renderTable(currentData);
                     $('#loadingSpinner').hide();
                     $('#recordCount').text(currentData.length + ' records');
                 },
                 error: function(xhr, status, error) {
-                    console.error('❌ Error:', error);
                     $('#dailyReportTable tbody').html(
-                        '<tr><td colspan="4" class="text-center text-danger py-4"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>Error loading data. Please try again.</td></tr>'
+                        '<tr><td colspan="4" class="text-center text-danger py-4"><i class="fas fa-exclamation-triangle fa-2x mb-2"></i><br>Error loading data.</td></tr>'
                     );
                     $('#loadingSpinner').hide();
                 }
             });
         }
 
-        // ✅ RENDER TABLE
         function renderTable(data) {
             let html = '';
 
@@ -360,35 +333,83 @@
             }
         }
 
-        // ✅ PRINT FUNCTION
+        // ✅ UPDATED handlePrint() — dynamic columns per filter type
         function handlePrint() {
             if (!currentData || currentData.length === 0) {
                 alert('No data to print');
                 return;
             }
 
+            const isLowStock = activeFilter === 'low_stock';
+            const isDamage = activeFilter === 'damage';
+
+            // ✅ Dynamic table headers
+            let headerHtml = '';
+            if (isLowStock) {
+                // LOW STOCK — 3 columns lang
+                headerHtml = `
+                    <th style="border:1px solid black;padding:5px;">PRODUCT NAME</th>
+                    <th style="border:1px solid black;padding:5px;">CATEGORY</th>
+                    <th style="border:1px solid black;padding:5px;text-align:center;">QTY</th>
+                `;
+            } else if (isDamage) {
+                // DAMAGE — 4 columns + sariling Serial Number column
+                headerHtml = `
+                    <th style="border:1px solid black;padding:5px;">PRODUCT NAME</th>
+                    <th style="border:1px solid black;padding:5px;">CATEGORY</th>
+                    <th style="border:1px solid black;padding:5px;">SERIAL NUMBER</th>
+                    <th style="border:1px solid black;padding:5px;text-align:center;">QTY</th>
+                `;
+            } else {
+                // RECEIVED / OUTFLOW — 4 columns with Traceability
+                headerHtml = `
+                    <th style="border:1px solid black;padding:5px;">PRODUCT NAME</th>
+                    <th style="border:1px solid black;padding:5px;">CATEGORY</th>
+                    <th style="border:1px solid black;padding:5px;">TRACEABILITY</th>
+                    <th style="border:1px solid black;padding:5px;text-align:center;">QTY</th>
+                `;
+            }
+            document.getElementById('printTableHeader').innerHTML = headerHtml;
+
+            // ✅ Build rows
             let html = '';
             currentData.forEach(item => {
                 let cleanName = $('<div>').html(item.product_name).text();
                 let cleanCat = $('<div>').html(item.category_name).text();
                 let cleanTrace = $('<div>').html(item.traceability).text();
+                let cleanSN = item.serial_number ? item.serial_number : 'N/A';
 
-                html += `<tr>
-                    <td style="border: 1px solid black; padding: 5px;">${cleanName}</td>
-                    <td style="border: 1px solid black; padding: 5px;">${cleanCat}</td>
-                    <td style="border: 1px solid black; padding: 5px;">${cleanTrace}</td>
-                    <td style="border: 1px solid black; padding: 5px; text-align: center;">${item.quantity}</td>
-                </tr>`;
+                if (isLowStock) {
+                    html += `<tr>
+                        <td style="border:1px solid black;padding:5px;">${cleanName}</td>
+                        <td style="border:1px solid black;padding:5px;">${cleanCat}</td>
+                        <td style="border:1px solid black;padding:5px;text-align:center;">${item.quantity}</td>
+                    </tr>`;
+                } else if (isDamage) {
+                    html += `<tr>
+                        <td style="border:1px solid black;padding:5px;">${cleanName}</td>
+                        <td style="border:1px solid black;padding:5px;">${cleanCat}</td>
+                        <td style="border:1px solid black;padding:5px;">${cleanSN}</td>
+                        <td style="border:1px solid black;padding:5px;text-align:center;">${item.quantity}</td>
+                    </tr>`;
+                } else {
+                    html += `<tr>
+                        <td style="border:1px solid black;padding:5px;">${cleanName}</td>
+                        <td style="border:1px solid black;padding:5px;">${cleanCat}</td>
+                        <td style="border:1px solid black;padding:5px;">${cleanTrace}</td>
+                        <td style="border:1px solid black;padding:5px;text-align:center;">${item.quantity}</td>
+                    </tr>`;
+                }
             });
 
-            $('#printTableBody').html(html || '<tr><td colspan="4" class="text-center">No data</td></tr>');
+            document.getElementById('printTableBody').innerHTML =
+                html || '<tr><td colspan="4" class="text-center">No data</td></tr>';
+
             window.print();
         }
 
         // ✅ INITIALIZE
         $(document).ready(function() {
-            console.log('📊 Daily Reports Ready');
-
             const initialFilter = $('#filterType').val();
             if (initialFilter && initialFilter !== 'all_time') {
                 $('#activeFilterBadge').show();
@@ -404,20 +425,16 @@
                 $('#filterLabel').text(labels[initialFilter] || initialFilter);
             }
 
-            // Load initial data
             loadData();
 
-            // ✅ COMBINED filterType change handler (no duplicate)
             $('#filterType').on('change', function() {
-                const selectedValue = $(this).val();
-
-                if (selectedValue === 'custom') {
+                const val = $(this).val();
+                if (val === 'custom') {
                     $('#customDateDiv').show();
                     $('#activeFilterBadge').hide();
                 } else {
                     $('#customDateDiv').hide();
-
-                    if (selectedValue && selectedValue !== 'all_time') {
+                    if (val && val !== 'all_time') {
                         $('#activeFilterBadge').show();
                         const labels = {
                             'today': "Today's Records",
@@ -428,29 +445,23 @@
                             'last_month': 'Last Month',
                             'this_year': 'This Year'
                         };
-                        $('#filterLabel').text(labels[selectedValue] || selectedValue);
+                        $('#filterLabel').text(labels[val] || val);
                     } else {
                         $('#activeFilterBadge').hide();
                     }
-
-                    // ✅ Auto-load data
                     activeFilter = 'all';
                     updateFilterBadge('all');
                     loadData();
                 }
             });
 
-            // ✅ Apply Filter Button
             $('#applyFilterBtn').on('click', function() {
-                console.log('📅 Applying filter');
                 activeFilter = 'all';
                 updateFilterBadge('all');
                 loadData();
             });
 
-            // ✅ Reset Filter Button
             $('#resetFilterBtn').on('click', function() {
-                console.log('🔄 Resetting filter to today');
                 $('#filterType').val('today');
                 $('#customDate').val('');
                 $('#customDateDiv').hide();
@@ -461,45 +472,23 @@
                 loadData();
             });
 
-            // ✅ Custom date change handler
             $('#customDate').on('change', function() {
-                const selectedDate = $(this).val();
-                console.log('📅 Custom date changed:', selectedDate);
                 $('#activeFilterBadge').show();
-                $('#filterLabel').text(selectedDate);
+                $('#filterLabel').text($(this).val());
             });
 
-            // ✅ AUTO-RESET AT MIDNIGHT
+            // Auto-reset at midnight
             function checkMidnightReset() {
                 const now = new Date();
                 const hours = now.getHours();
                 const minutes = now.getMinutes();
-                const currentFilter = $('#filterType').val();
-
-                if (hours === 0 && minutes === 0 && currentFilter === 'today') {
-                    console.log('🌙 Midnight detected! Auto-refreshing for new day...');
-                    $('#filterType').val('today');
-                    $('#activeFilterBadge').show();
-                    $('#filterLabel').text("Today's Records");
+                if (hours === 0 && minutes === 0 && $('#filterType').val() === 'today') {
                     activeFilter = 'all';
                     updateFilterBadge('all');
-
-                    if (typeof Swal !== 'undefined') {
-                        Swal.fire({
-                            icon: 'info',
-                            title: 'New Day!',
-                            text: 'Daily report has been reset for the new day.',
-                            timer: 3000,
-                            showConfirmButton: false
-                        });
-                    }
-
                     loadData();
                 }
             }
-
             setInterval(checkMidnightReset, 60000);
-            checkMidnightReset();
         });
     </script>
 @endpush
@@ -514,21 +503,6 @@
 
         #dailyReportTable tbody tr:hover {
             background-color: #f8f9fa;
-        }
-
-        table.dataTable thead .sorting:before,
-        table.dataTable thead .sorting:after,
-        table.dataTable thead .sorting_asc:before,
-        table.dataTable thead .sorting_asc:after,
-        table.dataTable thead .sorting_desc:before,
-        table.dataTable thead .sorting_desc:after {
-            opacity: 1 !important;
-            color: #fff !important;
-        }
-
-        table.dataTable thead th {
-            position: relative;
-            cursor: pointer;
         }
 
         .bg-gradient-primary {
@@ -548,10 +522,6 @@
         .badge-lg {
             font-size: 1rem;
             padding: 8px 15px;
-        }
-
-        #customDateDiv {
-            transition: all 0.3s ease-in-out;
         }
 
         @media print {
