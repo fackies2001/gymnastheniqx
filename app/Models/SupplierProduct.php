@@ -61,7 +61,8 @@ class SupplierProduct extends Model implements Auditable
         'images'        => 'array',
         'barcode'       => 'string',
         'cost_price'    => 'decimal:2',
-        'selling_price' => 'decimal:2', // ✅ ADDED
+        'selling_price' => 'decimal:2',
+        'pieces_per_box' => 'integer',
     ];
 
     /* ========================================
