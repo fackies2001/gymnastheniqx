@@ -352,6 +352,97 @@
         #sessionWarningModal {
             z-index: 99999 !important;
         }
+
+        /* ✅ SESSION HIJACK MODAL */
+        #sessionHijackModal {
+            position: fixed;
+            inset: 0;
+            z-index: 999999;
+            background: rgba(0, 0, 0, 0.75);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #sessionHijackModal .hijack-box {
+            background: white;
+            border-radius: 15px;
+            padding: 40px 35px;
+            max-width: 420px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            animation: hijackSlideIn 0.4s ease;
+        }
+
+        @keyframes hijackSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-30px) scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        #sessionHijackModal .hijack-icon {
+            width: 72px;
+            height: 72px;
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+
+        #sessionHijackModal .hijack-icon i {
+            font-size: 32px;
+            color: white;
+        }
+
+        #sessionHijackModal h4 {
+            font-weight: bold;
+            color: #1a1a2e;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        #sessionHijackModal p {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.65;
+            margin-bottom: 20px;
+        }
+
+        #sessionHijackModal .hijack-warning {
+            background: #fff8f8;
+            border: 1px solid #fed7d7;
+            border-radius: 8px;
+            padding: 10px 15px;
+            margin-bottom: 25px;
+            font-size: 13px;
+            color: #c53030;
+        }
+
+        #sessionHijackModal .btn-hijack-logout {
+            background: linear-gradient(135deg, #f093fb, #f5576c);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            padding: 13px 30px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            transition: opacity 0.2s;
+        }
+
+        #sessionHijackModal .btn-hijack-logout:hover {
+            opacity: 0.9;
+        }
     </style>
     @stack('css')
 @stop
@@ -361,7 +452,7 @@
 |========================= --}}
 @section('js')
 
-    {{-- ✅ PIN CODE MODAL — IISA LANG, NANDITO SA LAYOUT --}}
+    {{-- ✅ PIN CODE MODAL --}}
     @auth
         <div class="modal fade" id="pincodeModal" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog">
             <div class="modal-dialog modal-dialog-centered" role="document">
@@ -384,7 +475,6 @@
                             <p class="text-muted mb-4">Create a 6-digit PIN to secure your account</p>
                         @endif
 
-                        {{-- ✅ FIXED: Dynamic action — verify kung may PIN na, update kung wala pa --}}
                         <form id="pincodeForm" method="POST"
                             action="{{ Auth::user()->pin ? route('user.verify.pin') : route('user.update.pin') }}">
                             @csrf
@@ -460,6 +550,27 @@
                 </div>
             </div>
         </div>
+
+        {{-- ✅ SESSION HIJACK MODAL --}}
+        <div id="sessionHijackModal" style="display:none;">
+            <div class="hijack-box">
+                <div class="hijack-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h4>Account Accessed on Another Device!</h4>
+                <p>
+                    Your account has been logged in from another device or browser.
+                    For your security, you will be redirected to the login page.
+                </p>
+                <div class="hijack-warning">
+                    <i class="fas fa-info-circle mr-1"></i>
+                    If this wasn't you, please change your password immediately.
+                </div>
+                <button class="btn-hijack-logout" onclick="window.location.href='/logout-forced'">
+                    <i class="fas fa-sign-out-alt mr-2"></i> OK, Logout Me
+                </button>
+            </div>
+        </div>
     @endauth
 
     @vite('resources/js/app.js')
@@ -492,7 +603,7 @@
         })();
     </script>
 
-    {{-- ✅ PIN MODAL INITIALIZATION — IISA LANG DITO, WALA NA SA DASHBOARD --}}
+    {{-- ✅ PIN MODAL INITIALIZATION --}}
     <script>
         $(document).ready(function() {
             @if (session('show_pin_modal'))
@@ -588,12 +699,10 @@
                 }
 
                 function autoLogout() {
-                    // ✅ Gamitin ang form submit para POST ang logout
                     var form = document.querySelector('#sessionWarningModal form[action*="logout"]');
                     if (form) {
                         form.submit();
                     } else {
-                        // ✅ Fallback — redirect sa logout-forced na GET route mo
                         window.location.href = '/logout-forced';
                     }
                 }
@@ -607,7 +716,7 @@
                         headers: {
                             'Accept': 'application/json'
                         }
-                    }).catch(function() {});
+                    }).catch(() => {});
                     resetInactivityTimer();
                 }
 
@@ -629,6 +738,54 @@
 
                 resetInactivityTimer();
                 console.log('[Session] Inactivity timer started ✅ (2 min limit)');
+
+                // ============================================================
+                // ✅ SESSION HIJACK DETECTION — poll every 5 seconds
+                // Kapag nag-login ang ibang device, lalabas ang modal dito
+                // ============================================================
+                (function() {
+                    let hijackCheckInterval = null;
+                    let hijackDetected = false;
+
+                    function checkSessionValidity() {
+                        if (hijackDetected) return;
+
+                        fetch('/check-session-status', {
+                                headers: {
+                                    'Accept': 'application/json',
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? ''
+                                }
+                            })
+                            .then(r => r.json())
+                            .then(data => {
+                                if (!data.valid) {
+                                    hijackDetected = true;
+                                    clearInterval(hijackCheckInterval);
+                                    showHijackModal();
+                                }
+                            })
+                            .catch(() => {});
+                    }
+
+                    function showHijackModal() {
+                        // ✅ Itago ang lahat ng ibang modal
+                        $('#sessionWarningModal').modal('hide');
+                        $('#pincodeModal').modal('hide');
+
+                        // ✅ Ipakita ang hijack modal
+                        const modal = document.getElementById('sessionHijackModal');
+                        if (modal) {
+                            modal.style.display = 'flex';
+                        }
+
+                        console.warn('[Session] ⚠️ Account accessed from another device!');
+                    }
+
+                    // ✅ Start polling every 5 seconds
+                    hijackCheckInterval = setInterval(checkSessionValidity, 5000);
+                    console.log('[Session] Hijack detection started ✅');
+                })();
+
             })
             ();
         </script>
