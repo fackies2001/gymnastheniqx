@@ -217,4 +217,26 @@ class UserManagementController extends Controller
             'message' => 'PIN saved successfully',
         ]);
     }
+
+    public function resetPassword(Request $request)
+    {
+        $request->validate([
+            'id' => 'required|exists:employee,id',
+        ]);
+
+        $user           = User::findOrFail($request->id);
+        $user->password = Hash::make('password123');
+        $user->save();
+
+        Log::info('🔑 Admin Reset Password', [
+            'admin_id'         => auth()->id(),
+            'target_user_id'   => $user->id,
+            'target_user_name' => $user->full_name,
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Password has been reset to default (password123) for ' . $user->full_name . '.',
+        ]);
+    }
 }

@@ -123,6 +123,7 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session'])->group(funct
         Route::post('/user-management/reset-pin', [UserManagementController::class, 'resetPin'])->name('admin.reset.pin');
         Route::get('admin/register/form', [RegisteredUserController::class, 'create'])->name('register');
         Route::post('/employee/register', [RegisteredUserController::class, 'store'])->name('employee.register');
+        Route::post('/user-management/reset-password', [UserManagementController::class, 'resetPassword'])->name('admin.reset.password');
 
         // ✅ Purchase Order — Admin only
         Route::prefix('purchase-order')->group(function () {

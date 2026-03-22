@@ -469,8 +469,7 @@
             <div class="brand-middle">
                 <div class="tag"><i class="fas fa-circle" style="font-size:6px"></i> Account Recovery</div>
                 <h1>RESET YOUR<br><em>ACCESS.</em></h1>
-                <p>Enter your registered email and we'll send you a secure link to reset your password. Link expires in
-                    60 minutes.</p>
+                <p>Enter your email to verify your account. Contact your Admin to reset your password.</p>
             </div>
 
             <div class="brand-bottom">
@@ -494,7 +493,7 @@
                         Back to sign in
                     </a>
                     <h2>FORGOT PASSWORD</h2>
-                    <p>No worries — enter your email below and we'll send you a reset link.</p>
+                    <p>Enter your registered email and your password will be reset to default.</p>
                 </div>
 
                 {{-- Success status --}}
@@ -530,7 +529,7 @@
                     </div>
 
                     <button type="submit" class="btn-submit" id="submitBtn">
-                        SEND RESET LINK
+                        RESET PASSWORD
                     </button>
                 </form>
 

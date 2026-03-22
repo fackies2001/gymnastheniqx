@@ -85,6 +85,11 @@
                                             <i class="fas fa-undo"></i> Reset PIN
                                         </button>
 
+                                        <button class="btn btn-xs btn-info reset-password-btn"
+                                            data-id="{{ $employee->id }}" data-name="{{ $employee->full_name }}">
+                                            <i class="fas fa-key"></i> Reset Password
+                                        </button>
+
                                         <button class="btn btn-xs btn-danger delete-employee-btn"
                                             data-id="{{ $employee->id }}" data-name="{{ $employee->full_name }}">
                                             <i class="fas fa-trash"></i> Delete
