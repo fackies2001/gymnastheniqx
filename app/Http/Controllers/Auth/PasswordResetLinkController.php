@@ -35,16 +35,22 @@ class PasswordResetLinkController extends Controller
             'email' => ['required', 'email'],
         ]);
 
+        // ✅ Hanapin ang user sa email
         $user = User::where('email', $request->email)->first();
 
-        // ✅ Hindi registered sa system
+        // ✅ Kung hindi mahanap ang email — magpakita ng error
         if (!$user) {
             return back()
                 ->withInput($request->only('email'))
                 ->withErrors(['email' => 'No account found with this email address.']);
         }
 
-        // ✅ Registered — sabihin na kontakin ang admin
-        return back()->with('status', 'Account found! Please contact your Admin to reset your password.');
+        // ✅ I-reset ang password pabalik sa default 'password123'
+        $user->password = Hash::make('password123');
+        $user->save();
+
+        // ✅ I-redirect pabalik sa login na may success message
+        return redirect()->route('login')
+            ->with('status', 'Password has been reset to default (password123). Please login and change your password.');
     }
 }

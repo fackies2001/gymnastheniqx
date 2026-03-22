@@ -218,6 +218,10 @@ class UserManagementController extends Controller
         ]);
     }
 
+    /**
+     * ✅ Admin Reset Password — i-reset pabalik sa 'password123'
+     */
+    
     public function resetPassword(Request $request)
     {
         $request->validate([
@@ -236,7 +240,7 @@ class UserManagementController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Password has been reset to default (password123) for ' . $user->full_name . '.',
+            'message' => 'Password of ' . $user->full_name . ' has been reset to password123.',
         ]);
     }
 }

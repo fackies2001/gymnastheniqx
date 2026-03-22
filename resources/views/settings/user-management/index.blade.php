@@ -379,6 +379,51 @@
                 });
 
             }); // end ready
+
+            // ✅ RESET PASSWORD
+            $(document).on('click', '.reset-password-btn', function() {
+                let id = $(this).data('id');
+                let name = $(this).data('name');
+
+                Swal.fire({
+                    title: 'Reset Password?',
+                    html: 'Password ni <b>' + name +
+                        '</b> ay ire-reset pabalik sa default na <b>password123</b>.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#17a2b8',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, Reset it!',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: "{{ route('admin.reset.password') }}",
+                            type: 'POST',
+                            data: {
+                                id: id
+                            },
+                            success: function(res) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Password Reset!',
+                                    text: res.message,
+                                    confirmButtonColor: '#17a2b8'
+                                });
+                            },
+                            error: function(xhr) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error!',
+                                    text: xhr.responseJSON?.message ||
+                                        'Failed to reset password.',
+                                    confirmButtonColor: '#d33'
+                                });
+                            }
+                        });
+                    }
+                });
+            });
         </script>
     @endpush
 
