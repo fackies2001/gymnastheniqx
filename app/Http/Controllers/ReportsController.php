@@ -297,18 +297,33 @@ class ReportsController extends Controller
                     foreach ($lowStockProducts as $product) {
                         $qty = $product->available_count ?? 0;
 
+                        $supplierName = \App\Models\SupplierProduct::with('supplier')
+                            ->find($product->id)?->supplier?->name ?? 'N/A';
+
+                        $lastReceived = \App\Models\SerializedProduct::where('product_id', $product->id)
+                            ->whereNotNull('purchase_order_id')
+                            ->latest('created_at')
+                            ->value('created_at');
+                        $lastReceivedFormatted = $lastReceived
+                            ? \Carbon\Carbon::parse($lastReceived)->format('M d, Y')
+                            : 'No record';
+
+                        $reorderQty = max(0, 20 - $qty);
+
                         $data[] = [
-                            // ✅ PRODUCT NAME + SKU LANG — walang CRITICAL/WARNING text at units
                             'product_name'  => '<strong style="font-size:15px;color:black;">' . e($product->name) . '</strong><br>
-                            <span style="font-size:12px;color:#999;">SKU: ' . e($product->system_sku ?? 'N/A') . '</span>',
-                            // ✅ CATEGORY — goods na
+                <span style="font-size:12px;color:#999;">SKU: ' . e($product->system_sku ?? 'N/A') . '</span>',
                             'category_name' => '<span class="badge badge-warning">Low Stock</span>',
-                            // ✅ WALANG Serial/Trace column para sa Low Stock — empty lang
-                            'traceability'  => '',
+                            'traceability'  => '<small>
+                <strong>Supplier:</strong> ' . e($supplierName) . '<br>
+                <strong>Last Received:</strong> ' . $lastReceivedFormatted . '<br>
+                <strong>Reorder Needed:</strong> <span class="text-danger font-weight-bold">' . $reorderQty . ' pcs</span>
+                </small>',
                             'quantity'      => $qty,
                             'status'        => 'Low Stock',
                         ];
-                    }
+                    }  // ← ISANG CLOSING BRACE LANG NG FOREACH
+
                 } catch (\Exception $e) {
                     \Log::error("Low Stock Section Error: " . $e->getMessage());
                 }

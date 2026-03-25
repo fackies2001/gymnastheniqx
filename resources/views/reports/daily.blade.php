@@ -45,7 +45,7 @@
                 <div class="small-box bg-danger">
                     <div class="inner">
                         <h3>{{ $damagedCount ?? 0 }}</h3>
-                        <p>Damaged/Return</p>
+                        <p>Damaged/Lost</p>
                     </div>
                     <div class="icon"><i class="fas fa-tools"></i></div>
                     <a href="#" class="small-box-footer">View Details <i class="fas fa-arrow-circle-right"></i></a>
