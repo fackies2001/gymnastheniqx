@@ -217,15 +217,14 @@ class ReportsController extends Controller
                             'category_name' => '<span class="badge badge-success">Outflow</span>',
                             // ✅ SERIAL/TRACE — walang date
                             'traceability'  => '<small>
-                            <strong>Type:</strong> Retailer Order<br>
-                            <strong>Order #:</strong> ' . e($order->id) . '<br>
-                            <strong>Retailer:</strong> ' . e($retailerName) . '<br>
-                            <strong>Qty Out:</strong> ' . $order->quantity . ' pcs<br>
-                            <strong>Original Price:</strong> <span class="text-secondary font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
-                            <strong>Selling Price:</strong> <span class="text-success font-weight-bold">₱' . number_format($sellingPrice, 2) . '</span><br>
-                            <strong>Markup:</strong> <span class="text-info font-weight-bold">₱' . number_format($markup, 2) . ' (' . $markupPct . '%)</span><br>
-                            <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span>
-                            </small>',
+                             <strong>Type:</strong> Retailer Order<br>
+                             <strong>Order #:</strong> ' . e($order->id) . '<br>
+                             <strong>Retailer:</strong> ' . e($retailerName) . '<br>
+                             <strong>Original Price:</strong> <span class="text-secondary font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
+                             <strong>Selling Price:</strong> <span class="text-success font-weight-bold">₱' . number_format($sellingPrice, 2) . '</span><br>
+                             <strong>Markup:</strong> <span class="text-info font-weight-bold">₱' . number_format($markup, 2) . ' (' . $markupPct . '%)</span><br>
+                             <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span>
+                             </small>',
                             'quantity' => $order->quantity,
                             'status'   => 'Outflow',
                         ];

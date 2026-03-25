@@ -568,7 +568,6 @@
                                     </div>
                                     <p class="field-hint">
                                         <i class="fab fa-google" style="color:#4285f4; font-size:11px;"></i>
-                                        Linked to Google Account — cannot be changed here
                                     </p>
                                 </div>
                             </div>
@@ -618,7 +617,7 @@
                     <p>
                         Deletion of account and role modifications are restricted to the
                         <strong>User Management</strong> module. If you need to close this account,
-                        please coordinate with the HR or IT Department.
+                        please coordinate with the Admin.
                     </p>
                 </div>
             </div>
