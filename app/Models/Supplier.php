@@ -16,6 +16,7 @@ class Supplier extends Model implements Auditable
     protected $table = 'supplier';
 
     protected $fillable = [
+        'supplier_code',
         'name',
         'contact_person', // Idagdag ito
         'contact_number', // Idagdag ito kapalit ng 'phone'

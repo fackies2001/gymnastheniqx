@@ -107,8 +107,12 @@ class SuppliersController extends Controller
             $source_id = 1;
         }
 
-        \DB::transaction(function () use ($validatedData, $request, $source_id) {
+        $maxId = Supplier::max('id') ?? 0;
+        $supplierCode = 'SUP-' . str_pad($maxId + 1, 4, '0', STR_PAD_LEFT);
+
+        \DB::transaction(function () use ($validatedData, $request, $source_id, $supplierCode) {
             $supplier = Supplier::create([
+                'supplier_code' => $supplierCode,
                 'name'           => $validatedData['name'],
                 'contact_person' => $validatedData['contact_person'] ?? null,
                 'contact_number' => $validatedData['phone'] ?? $validatedData['contact_number'] ?? null,
@@ -131,6 +135,7 @@ class SuppliersController extends Controller
 
         // ✅ AJAX response para sa SweetAlert
         if ($request->ajax() || $request->wantsJson()) {
+            session()->flash('from_ajax', true);
             return response()->json([
                 'success'  => true,
                 'message'  => 'Supplier created successfully!',

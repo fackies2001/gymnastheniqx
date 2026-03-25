@@ -206,7 +206,11 @@
                     data-phone="{{ strtolower($supplier->contact_number ?? '') }}">
                     <div class="card supplier-card"
                         onclick="window.location='{{ route('suppliers.show', $supplier->id) }}'">
+                        {{-- ✅ PALITAN NG GANITO --}}
                         <div class="supplier-card-header">
+                            <span style="font-size:11px; opacity:0.7; letter-spacing:1px;">
+                                {{ $supplier->supplier_code ?? 'N/A' }}
+                            </span>
                             <h5>
                                 <a href="{{ route('suppliers.show', $supplier->id) }}">
                                     {{ $supplier->name }}
@@ -306,7 +310,8 @@
         });
 
         {{-- Success/Error flash messages --}}
-        @if (session('success'))
+        // ✅ BAGO — hindi mag-fire kung galing sa AJAX (may sariling SweetAlert na)
+        @if (session('success') && !session('from_ajax'))
             Swal.fire({
                 icon: 'success',
                 title: 'Success!',

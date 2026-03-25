@@ -19,6 +19,14 @@
                             <div class="col-sm-12 @can('can-create-supplier-api') col-md-6 @endcan">
 
                                 <div class="mb-3">
+                                    <x-bootstrap.label for="supplier_code" value="Supplier ID" />
+                                    <input type="text" class="form-control bg-light"
+                                        value="Auto-generated (e.g. SUP-0012)" readonly disabled
+                                        style="font-weight:600; color:#6c757d; letter-spacing:1px;">
+                                    <small class="text-muted">Automatically assigned upon saving.</small>
+                                </div>
+
+                                <div class="mb-3">
                                     <x-bootstrap.label for="name" value="Supplier Name" :required="true" />
                                     <x-bootstrap.input id="name" name="name" required
                                         placeholder="Enter supplier name" value="{{ old('name') }}" />
