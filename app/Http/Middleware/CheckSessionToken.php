@@ -15,7 +15,7 @@ class CheckSessionToken  // ✅ walang extends
             $user = Auth::user();
             $sessionToken = session('session_token');
 
-            if ($user->session_token && $user->session_token !== $sessionToken) {
+            if ($user->session_token && $sessionToken && $user->session_token !== $sessionToken) {
                 Auth::guard('web')->logout();
                 $request->session()->invalidate();
                 $request->session()->regenerateToken();

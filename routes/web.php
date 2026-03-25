@@ -62,7 +62,11 @@ Route::middleware(['auth'])->group(function () {
         if (!Auth::check()) {
             return response()->json(['valid' => false]);
         }
-        $valid = Auth::user()->session_token === session('session_token');
+
+        $userToken    = Auth::user()->session_token;
+        $sessionToken = session('session_token');
+
+        $valid = !$userToken || !$sessionToken || ($userToken === $sessionToken);
         return response()->json(['valid' => $valid]);
     });
 });
