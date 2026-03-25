@@ -309,13 +309,12 @@
             }
         });
 
-        {{-- Success/Error flash messages --}}
         // ✅ BAGO — hindi mag-fire kung galing sa AJAX (may sariling SweetAlert na)
-        @if (session('success') && !session('from_ajax'))
+        @if (session('crud_success'))
             Swal.fire({
                 icon: 'success',
                 title: 'Success!',
-                text: "{{ session('success') }}",
+                text: "{{ session('crud_success') }}",
                 confirmButtonColor: '#2d3748',
                 timer: 2500,
                 showConfirmButton: false

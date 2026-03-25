@@ -135,7 +135,6 @@ class SuppliersController extends Controller
 
         // ✅ AJAX response para sa SweetAlert
         if ($request->ajax() || $request->wantsJson()) {
-            session()->flash('from_ajax', true);
             return response()->json([
                 'success'  => true,
                 'message'  => 'Supplier created successfully!',
@@ -175,8 +174,9 @@ class SuppliersController extends Controller
             'address' => $request->address,
         ]);
 
+        // ✅ BAGO
         return redirect()->route('suppliers.index')
-            ->with('success', 'Supplier updated successfully!');
+            ->with('crud_success', 'Supplier updated successfully!');
     }
 
     public function destroy($id)
@@ -203,7 +203,7 @@ class SuppliersController extends Controller
             $supplier->delete();
 
             return redirect()->route('suppliers.index')
-                ->with('success', 'Supplier deleted successfully!');
+                ->with('crud_success', 'Supplier deleted successfully!');
         } catch (\Exception $e) {
             \Log::error('Delete Supplier Error: ' . $e->getMessage());
 
