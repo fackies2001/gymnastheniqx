@@ -310,7 +310,7 @@
         });
 
         // ✅ BAGO — hindi mag-fire kung galing sa AJAX (may sariling SweetAlert na)
-        @if (session('crud_success'))
+        @if (session('crud_success') && !request()->ajax())
             Swal.fire({
                 icon: 'success',
                 title: 'Success!',

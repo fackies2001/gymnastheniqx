@@ -135,15 +135,14 @@ class SuppliersController extends Controller
 
         // ✅ AJAX response para sa SweetAlert
         if ($request->ajax() || $request->wantsJson()) {
-            // ✅ Walang session flash — AJAX lang, sariling SweetAlert na sa JS
             return response()->json([
                 'success'  => true,
                 'message'  => 'Supplier created successfully!',
                 'redirect' => route('suppliers.index')
             ]);
         }
-        return redirect()->route('suppliers.index')
-            ->with('crud_success', 'Supplier created successfully!');
+        // ✅ Non-AJAX fallback — walang crud_success para hindi mag-double alert
+        return redirect()->route('suppliers.index');
     }
 
     public function showTable(Request $request, $id)
