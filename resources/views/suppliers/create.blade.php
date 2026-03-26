@@ -137,16 +137,28 @@
                                         window.location.href = response.redirect;
                                     }
                                 },
-                                error: function() {
+                                // ✅ UPDATED — handle 409 conflict separately
+                                error: function(xhr) {
                                     isSubmitting = false;
                                     $('#createSupplierSubmit').prop('disabled',
                                         false).text('Save Supplier');
-                                    Swal.fire({
-                                        icon: 'error',
-                                        title: 'Error!',
-                                        text: 'Something went wrong. Please try again.',
-                                        confirmButtonColor: '#d33',
-                                    });
+
+                                    if (xhr.status === 409) {
+                                        Swal.fire({
+                                            icon: 'warning',
+                                            title: 'Duplicate Detected!',
+                                            text: 'This supplier was already recently submitted.',
+                                            confirmButtonColor: '#3085d6',
+                                            confirmButtonText: 'OK'
+                                        });
+                                    } else {
+                                        Swal.fire({
+                                            icon: 'error',
+                                            title: 'Error!',
+                                            text: 'Something went wrong. Please try again.',
+                                            confirmButtonColor: '#d33',
+                                        });
+                                    }
                                 }
                             });
                         }
@@ -154,7 +166,7 @@
                     error: function() {
                         isSubmitting = false;
                         $('#createSupplierSubmit').prop('disabled', false).text(
-                        'Save Supplier');
+                            'Save Supplier');
                         Swal.fire({
                             icon: 'error',
                             title: 'Error!',
