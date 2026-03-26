@@ -68,73 +68,43 @@
             <hr class="border-dark">
         </div>
 
-        <div class="col-md-6 col-12">
-            <div
-                class="small-box bg-gradient-{{ $growthStatus == 'increase' ? 'success' : ($growthStatus == 'decrease' ? 'danger' : 'secondary') }} shadow-sm print-box">
-                <div class="inner">
-                    <h3>
-                        @if ($growthStatus == 'increase')
-                            +
-                        @endif
-                        {{ number_format($growthPercentage, 1) }}%
-                    </h3>
-                    <p class="font-weight-bold text-uppercase">Monthly Sales Growth</p>
-                    <small class="d-block">
-                        Current: ₱{{ number_format($currentMonthSales, 2) }} vs
-                        Last Month: ₱{{ number_format($lastMonthSales, 2) }}
-                    </small>
-                    @if ($lastMonthSales == 0 && $currentMonthSales > 0)
-                        <small class="d-block mt-1" style="opacity: 0.85;">
-                            <i class="fas fa-info-circle"></i>
-                            No data available for the previous month. Growth rate may not reflect actual performance.
-                        </small>
-                    @endif
+        {{-- ROW 1: KEY FINANCIAL METRICS --}}
+        <div class="row">
+            <div class="col-md-6 col-12">
+                <div class="small-box bg-gradient-primary shadow-sm print-box">
+                    <div class="inner">
+                        <h3>₱ {{ number_format($totalInventoryValue, 2) }}</h3>
+                        <p class="font-weight-bold text-uppercase">Total Inventory Asset Value</p>
+                        <small class="d-block">Sum of (Stock × Cost Price)</small>
+                    </div>
+                    <div class="icon"><i class="fas fa-warehouse"></i></div>
                 </div>
-                <div class="icon"><i class="fas fa-chart-line"></i></div>
             </div>
-            {{-- ✅ TOTAL SALES — nasa baba ng card, kagaya ng Total Inventory Asset Value --}}
-            <div class="small-box bg-gradient-success shadow-sm print-box" style="margin-top: -10px;">
-                <div class="inner">
-                    <h3>₱ {{ number_format($currentMonthSales, 2) }}</h3>
-                    <p class="font-weight-bold text-uppercase">Total Monthly Sales</p>
-                    <small class="d-block">Sum of all Approved & Completed Orders</small>
-                </div>
-                <div class="icon"><i class="fas fa-peso-sign"></i></div>
-            </div>
-        </div>
 
-        <div class="col-md-6 col-12">
-            <div
-                class="small-box bg-gradient-{{ $growthStatus == 'increase' ? 'success' : ($growthStatus == 'decrease' ? 'danger' : 'secondary') }} shadow-sm print-box">
-                <div class="inner">
-                    <h3>
-                        @if ($growthStatus == 'increase')
-                            +
-                        @endif
-                        {{ number_format($growthPercentage, 1) }}%
-                    </h3>
-                    <p class="font-weight-bold text-uppercase">Monthly Sales Growth</p>
-                    <small class="d-block">
-                        Current: ₱{{ number_format($currentMonthSales, 2) }} vs
-                        Last Month: ₱{{ number_format($lastMonthSales, 2) }}
-                    </small>
-                    @if ($lastMonthSales == 0 && $currentMonthSales > 0)
-                        <small class="d-block mt-1" style="opacity: 0.85;">
-                            <i class="fas fa-info-circle"></i>
-                            No data available for the previous month. Growth rate may not reflect actual performance.
+            <div class="col-md-6 col-12">
+                <div
+                    class="small-box bg-gradient-{{ $growthStatus == 'increase' ? 'success' : ($growthStatus == 'decrease' ? 'danger' : 'secondary') }} shadow-sm print-box">
+                    <div class="inner">
+                        <h3>
+                            @if ($growthStatus == 'increase')
+                                +
+                            @endif
+                            {{ number_format($growthPercentage, 1) }}%
+                        </h3>
+                        <p class="font-weight-bold text-uppercase">Monthly Sales Growth</p>
+                        <small class="d-block">
+                            Current: ₱{{ number_format($currentMonthSales, 2) }} vs
+                            Last Month: ₱{{ number_format($lastMonthSales, 2) }}
                         </small>
-                    @endif
+                        @if ($lastMonthSales == 0 && $currentMonthSales > 0)
+                            <small class="d-block mt-1" style="opacity: 0.85;">
+                                <i class="fas fa-info-circle"></i>
+                                No data available for the previous month. Growth rate may not reflect actual performance.
+                            </small>
+                        @endif
+                    </div>
+                    <div class="icon"><i class="fas fa-chart-line"></i></div>
                 </div>
-                <div class="icon"><i class="fas fa-chart-line"></i></div>
-            </div>
-            {{-- ✅ TOTAL SALES — nasa baba ng card, kagaya ng Total Inventory Asset Value --}}
-            <div class="small-box bg-gradient-success shadow-sm print-box" style="margin-top: -10px;">
-                <div class="inner">
-                    <h3>₱ {{ number_format($currentMonthSales, 2) }}</h3>
-                    <p class="font-weight-bold text-uppercase">Total Monthly Sales</p>
-                    <small class="d-block">Sum of all Approved & Completed Orders</small>
-                </div>
-                <div class="icon"><i class="fas fa-peso-sign"></i></div>
             </div>
         </div>
 

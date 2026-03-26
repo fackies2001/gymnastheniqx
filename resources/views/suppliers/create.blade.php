@@ -79,6 +79,12 @@
     <script>
         $(document).ready(function() {
 
+            // ✅ Prevent native form submit entirely
+            $('#createSupplierForm').on('submit', function(e) {
+                e.preventDefault();
+                return false;
+            });
+
             let isSubmitting = false;
 
             $('#createSupplierSubmit').on('click', function(e) {
@@ -96,7 +102,7 @@
                 $('#createSupplierSubmit').prop('disabled', true).text('Saving...');
 
                 $.ajax({
-                    url: "{{ route('suppliers.check_duplicate') }}",
+                    url: '{{ route('suppliers.check_duplicate') }}',
                     type: 'GET',
                     data: {
                         name: $('#name').val().trim(),
@@ -105,8 +111,8 @@
                     success: function(response) {
                         if (response.exists) {
                             isSubmitting = false;
-                            $('#createSupplierSubmit').prop('disabled', false)
-                                .text('Save Supplier');
+                            $('#createSupplierSubmit').prop('disabled', false).text(
+                                'Save Supplier');
                             Swal.fire({
                                 icon: 'warning',
                                 title: 'Supplier Already Exists!',
@@ -125,7 +131,7 @@
                                 },
                                 success: function(response) {
                                     if (response.success) {
-                                        $('#createSupplierSubmit').off('click');
+                                        // ✅ NO Swal here — store in sessionStorage, show on index only
                                         sessionStorage.setItem('swal_success',
                                             response.message);
                                         window.location.href = response.redirect;
@@ -134,8 +140,7 @@
                                 error: function() {
                                     isSubmitting = false;
                                     $('#createSupplierSubmit').prop('disabled',
-                                            false)
-                                        .text('Save Supplier');
+                                        false).text('Save Supplier');
                                     Swal.fire({
                                         icon: 'error',
                                         title: 'Error!',
@@ -148,8 +153,8 @@
                     },
                     error: function() {
                         isSubmitting = false;
-                        $('#createSupplierSubmit').prop('disabled', false)
-                            .text('Save Supplier');
+                        $('#createSupplierSubmit').prop('disabled', false).text(
+                        'Save Supplier');
                         Swal.fire({
                             icon: 'error',
                             title: 'Error!',
@@ -158,7 +163,6 @@
                     }
                 });
             });
-
-        }); // ✅ FIX: Closing ng $(document).ready
+        });
     </script>
 @endpush

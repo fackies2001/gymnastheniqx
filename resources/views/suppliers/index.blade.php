@@ -309,37 +309,45 @@
             }
         });
 
-        // ✅ BAGO — hindi mag-fire kung galing sa AJAX (may sariling SweetAlert na)
-        // AFTER — one unified block, only one Swal fires
+        // ✅ UNIFIED SweetAlert — only ONE fires, never both
         (function() {
-            const ajaxMsg = sessionStorage.getItem('swal_success');
+            var ajaxMsg = sessionStorage.getItem('swal_success');
+
             @if (session('crud_success') && !request()->ajax())
-                const sessionMsg = "{{ session('crud_success') }}";
+                var sessionMsg = "{{ session('crud_success') }}";
             @else
-                const sessionMsg = null;
+                var sessionMsg = null;
             @endif
 
-            const msg = ajaxMsg || sessionMsg; // ajaxMsg takes priority
-            if (msg) {
-                if (ajaxMsg) sessionStorage.removeItem('swal_success'); // clear it
+            if (ajaxMsg) {
+                sessionStorage.removeItem('swal_success'); // clear immediately
                 Swal.fire({
                     icon: 'success',
                     title: 'Success!',
-                    text: msg,
+                    text: ajaxMsg,
+                    confirmButtonColor: '#2d3748',
+                    timer: 2500,
+                    showConfirmButton: false
+                });
+            } else if (sessionMsg) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: sessionMsg,
                     confirmButtonColor: '#2d3748',
                     timer: 2500,
                     showConfirmButton: false
                 });
             }
-        })();
 
-        @if (session('error'))
-            Swal.fire({
-                icon: 'error',
-                title: 'Error!',
-                text: "{{ session('error') }}",
-                confirmButtonColor: '#2d3748',
-            });
-        @endif
+            @if (session('error'))
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error!',
+                    text: "{{ session('error') }}",
+                    confirmButtonColor: '#2d3748',
+                });
+            @endif
+        })();
     </script>
 @endpush
