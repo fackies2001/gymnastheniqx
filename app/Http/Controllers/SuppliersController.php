@@ -109,16 +109,18 @@ class SuppliersController extends Controller
             $source_id = 1;
         }
 
-        // ✅ FIX: Ilipat ang supplier_code generation INSIDE the transaction
-        // at gamitin ang lockForUpdate para walang race condition
-        $supplier = \DB::transaction(function () use ($validatedData, $request, $source_id) {
+        \DB::transaction(function () use ($validatedData, $request, $source_id) {
 
-            // ✅ Lock para hindi mag-race condition sa concurrent requests
             $maxId = Supplier::lockForUpdate()->max('id') ?? 0;
             $supplierCode = 'SUP-' . str_pad($maxId + 1, 4, '0', STR_PAD_LEFT);
 
-            $supplier = Supplier::create([
-                'supplier_code' => $supplierCode,
+            $supplier = new Supplier();
+
+            // ✅ FIX: I-disable ang auditing para hindi mag-double insert
+            $supplier->disableAuditing();
+
+            $supplier->fill([
+                'supplier_code'  => $supplierCode,
                 'name'           => $validatedData['name'],
                 'contact_person' => $validatedData['contact_person'] ?? null,
                 'contact_number' => $validatedData['phone']
@@ -129,6 +131,8 @@ class SuppliersController extends Controller
                 'source_id'      => $source_id,
             ]);
 
+            $supplier->save();
+
             if (\Gate::allows('can-create-supplier-api')) {
                 if ($request->filled('api_url')) {
                     $supplier->supplierApis()->create([
@@ -138,8 +142,6 @@ class SuppliersController extends Controller
                     ]);
                 }
             }
-
-            return $supplier;
         });
 
         if ($request->ajax() || $request->wantsJson()) {
