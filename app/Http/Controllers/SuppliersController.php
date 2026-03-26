@@ -93,29 +93,36 @@ class SuppliersController extends Controller
         $email    = $request->email ? strtolower($request->email) : null;
         $baseName = trim($request->name);
 
-        // ✅ Auto-number kung may same name na (sister company)
-        $sameNameCount = Supplier::whereRaw('LOWER(name) LIKE ?', [strtolower($baseName) . '%'])->count();
+        $sameNameCount = Supplier::whereRaw(
+            'LOWER(name) LIKE ?',
+            [strtolower($baseName) . '%']
+        )->count();
         if ($sameNameCount > 0) {
             $request->merge(['name' => $baseName . ' #' . ($sameNameCount + 1)]);
         }
 
-        $isStudent    = auth()->user()->is_student;
-        $source_id    = $isStudent ? 2 : 3;
+        $isStudent = auth()->user()->is_student;
+        $source_id = $isStudent ? 2 : 3;
         $validatedData = $request->all();
 
         if (!\DB::table('source')->where('id', $source_id)->exists()) {
             $source_id = 1;
         }
 
-        $maxId = Supplier::max('id') ?? 0;
-        $supplierCode = 'SUP-' . str_pad($maxId + 1, 4, '0', STR_PAD_LEFT);
+        // ✅ FIX: Ilipat ang supplier_code generation INSIDE the transaction
+        // at gamitin ang lockForUpdate para walang race condition
+        $supplier = \DB::transaction(function () use ($validatedData, $request, $source_id) {
 
-        \DB::transaction(function () use ($validatedData, $request, $source_id, $supplierCode) {
+            // ✅ Lock para hindi mag-race condition sa concurrent requests
+            $maxId = Supplier::lockForUpdate()->max('id') ?? 0;
+            $supplierCode = 'SUP-' . str_pad($maxId + 1, 4, '0', STR_PAD_LEFT);
+
             $supplier = Supplier::create([
                 'supplier_code' => $supplierCode,
                 'name'           => $validatedData['name'],
                 'contact_person' => $validatedData['contact_person'] ?? null,
-                'contact_number' => $validatedData['phone'] ?? $validatedData['contact_number'] ?? null,
+                'contact_number' => $validatedData['phone']
+                    ?? $validatedData['contact_number'] ?? null,
                 'email'          => $validatedData['email'] ?? null,
                 'address'        => $validatedData['address'] ?? null,
                 'created_by'     => auth()->user()->employee_id,
@@ -131,9 +138,10 @@ class SuppliersController extends Controller
                     ]);
                 }
             }
+
+            return $supplier;
         });
 
-        // ✅ AJAX response para sa SweetAlert
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json([
                 'success'  => true,
@@ -141,7 +149,7 @@ class SuppliersController extends Controller
                 'redirect' => route('suppliers.index')
             ]);
         }
-        // ✅ Non-AJAX fallback — walang crud_success para hindi mag-double alert
+
         return redirect()->route('suppliers.index');
     }
 

@@ -79,92 +79,86 @@
     <script>
         $(document).ready(function() {
 
-            let isSubmitting = false; // ✅ Guard para hindi mag-double submit
+                    let isSubmitting = false; // ✅ Guard para hindi mag-double submit
 
-            $('#createSupplierSubmit').on('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
+                    $('#createSupplierSubmit').on('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
 
-                if (isSubmitting) return; // ✅ Prevent double click
+                        if (isSubmitting) return;
 
-                // HTML5 validation
-                if (!document.getElementById('createSupplierForm').checkValidity()) {
-                    document.getElementById('createSupplierForm').reportValidity();
-                    return false;
-                }
+                        if (!document.getElementById('createSupplierForm').checkValidity()) {
+                            document.getElementById('createSupplierForm').reportValidity();
+                            return false;
+                        }
 
-                isSubmitting = true;
-                $('#createSupplierSubmit').prop('disabled', true).text('Saving...');
+                        isSubmitting = true;
+                        $('#createSupplierSubmit').prop('disabled', true).text('Saving...');
 
-                // ✅ AJAX duplicate check
-                $.ajax({
-                    url: '{{ route('suppliers.check_duplicate') }}',
-                    type: 'GET',
-                    data: {
-                        name: $('#name').val().trim(),
-                        email: $('#email').val().trim()
-                    },
-                    success: function(response) {
-                        if (response.exists) {
-                            // ✅ Duplicate — show SweetAlert, reset guard
-                            isSubmitting = false;
-                            $('#createSupplierSubmit').prop('disabled', false).text(
-                                'Save Supplier');
-
-                            Swal.fire({
-                                icon: 'warning',
-                                title: 'Supplier Already Exists!',
-                                text: '"' + $('#name').val().trim() +
-                                    '" with this email is already registered.',
-                                confirmButtonColor: '#3085d6',
-                                confirmButtonText: 'OK'
-                            });
-                        } else {
-                            // ✅ No duplicate — AJAX submit
-                            // ✅ BAGO — may headers na para madetect ng Laravel
-                            $.ajax({
-                                url: $('#createSupplierForm').attr('action'),
-                                type: 'POST',
-                                data: $('#createSupplierForm').serialize(),
-                                headers: {
-                                    'X-Requested-With': 'XMLHttpRequest'
-                                },
-                                // AFTER — store message, redirect immediately (no Swal here)
-                                success: function(response) {
-                                    if (response.success) {
-                                        sessionStorage.setItem('swal_success',
-                                            response.message);
-                                        window.location.href = response.redirect;
-                                    }
-                                },
-
-                                error: function() {
+                        $.ajax({
+                            url: '{{ route('suppliers.check_duplicate') }}',
+                            type: 'GET',
+                            data: {
+                                name: $('#name').val().trim(),
+                                email: $('#email').val().trim()
+                            },
+                            success: function(response) {
+                                if (response.exists) {
                                     isSubmitting = false;
-                                    $('#createSupplierSubmit').prop('disabled',
-                                        false).text('Save Supplier');
+                                    $('#createSupplierSubmit').prop('disabled', false)
+                                        .text('Save Supplier');
                                     Swal.fire({
-                                        icon: 'error',
-                                        title: 'Error!',
-                                        text: 'Something went wrong. Please try again.',
-                                        confirmButtonColor: '#d33',
+                                        icon: 'warning',
+                                        title: 'Supplier Already Exists!',
+                                        text: '"' + $('#name').val().trim() +
+                                            '" with this email is already registered.',
+                                        confirmButtonColor: '#3085d6',
+                                        confirmButtonText: 'OK'
+                                    });
+                                } else {
+                                    $.ajax({
+                                        url: $('#createSupplierForm').attr('action'),
+                                        type: 'POST',
+                                        data: $('#createSupplierForm').serialize(),
+                                        headers: {
+                                            'X-Requested-With': 'XMLHttpRequest'
+                                        },
+                                        success: function(response) {
+                                            if (response.success) {
+                                                // ✅ FIX: I-unbind agad ang click handler 
+                                                // para talagang hindi na maka-fire ulit
+                                                $('#createSupplierSubmit').off('click');
+                                                sessionStorage.setItem('swal_success',
+                                                    response.message);
+                                                window.location.href = response.redirect;
+                                            }
+                                        },
+                                        error: function() {
+                                            isSubmitting = false;
+                                            $('#createSupplierSubmit').prop('disabled',
+                                                    false)
+                                                .text('Save Supplier');
+                                            Swal.fire({
+                                                icon: 'error',
+                                                title: 'Error!',
+                                                text: 'Something went wrong. Please try again.',
+                                                confirmButtonColor: '#d33',
+                                            });
+                                        }
                                     });
                                 }
-                            });
-                        }
-                    },
-                    error: function() {
-                        isSubmitting = false;
-                        $('#createSupplierSubmit').prop('disabled', false).text(
-                            'Save Supplier');
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error!',
-                            text: 'Could not check duplicate. Please try again.',
+                            },
+                            error: function() {
+                                isSubmitting = false;
+                                $('#createSupplierSubmit').prop('disabled', false)
+                                    .text('Save Supplier');
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Error!',
+                                    text: 'Could not check duplicate. Please try again.',
+                                });
+                            }
                         });
-                    }
-                });
-            });
-
-        });
+                    });
     </script>
 @endpush
