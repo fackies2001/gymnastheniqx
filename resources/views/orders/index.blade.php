@@ -233,12 +233,11 @@
                                         <i class="fas fa-check-double"></i> Completed
                                     </span>
                                     <br><small class="text-muted">Shipped & Sold</small>
-                                @else
-                                    <span class="badge badge-danger">
-                                        <i class="fas fa-times-circle"></i> Rejected
-                                    </span>
-                                    @if ($order->rejected_by)
-                                        <br><small class="text-muted">by {{ $order->rejected_by }}</small>
+                                    @if ($order->shipped_at)
+                                        <br><small class="text-info">
+                                            <i class="fas fa-clock mr-1"></i>
+                                            {{ \Carbon\Carbon::parse($order->shipped_at)->format('M d, Y h:i A') }}
+                                        </small>
                                     @endif
                                 @endif
                             </td>
