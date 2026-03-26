@@ -93,16 +93,18 @@ class SuppliersController extends Controller
         $email    = $request->email ? strtolower($request->email) : null;
         $baseName = trim($request->name);
 
+        // ✅ Auto-number kung may same name na (sister company)
         $sameNameCount = Supplier::whereRaw(
             'LOWER(name) LIKE ?',
             [strtolower($baseName) . '%']
         )->count();
+
         if ($sameNameCount > 0) {
             $request->merge(['name' => $baseName . ' #' . ($sameNameCount + 1)]);
         }
 
-        $isStudent = auth()->user()->is_student;
-        $source_id = $isStudent ? 2 : 3;
+        $isStudent     = auth()->user()->is_student;
+        $source_id     = $isStudent ? 2 : 3;
         $validatedData = $request->all();
 
         if (!\DB::table('source')->where('id', $source_id)->exists()) {
@@ -111,13 +113,12 @@ class SuppliersController extends Controller
 
         \DB::transaction(function () use ($validatedData, $request, $source_id) {
 
-            $maxId = Supplier::lockForUpdate()->max('id') ?? 0;
-            $supplierCode = 'SUP-' . str_pad($maxId + 1, 4, '0', STR_PAD_LEFT);
+            // ✅ Sequential — count-based, hindi max(id)
+            $nextCode     = Supplier::count() + 1;
+            $supplierCode = 'SUP-' . str_pad($nextCode, 4, '0', STR_PAD_LEFT);
 
             $supplier = new Supplier();
-
-            // ✅ FIX: I-disable ang auditing para hindi mag-double insert
-            $supplier->disableAuditing();
+            $supplier->disableAuditing(); // ✅ Prevent audit double insert
 
             $supplier->fill([
                 'supplier_code'  => $supplierCode,
@@ -144,6 +145,7 @@ class SuppliersController extends Controller
             }
         });
 
+        // ✅ AJAX — JSON response lang, walang session flash
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json([
                 'success'  => true,
@@ -152,6 +154,7 @@ class SuppliersController extends Controller
             ]);
         }
 
+        // ✅ Non-AJAX fallback — walang crud_success para hindi mag-double alert
         return redirect()->route('suppliers.index');
     }
 
