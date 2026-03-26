@@ -1,5 +1,5 @@
 <?php
-
+/*
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
@@ -13,23 +13,12 @@ class PasswordController extends Controller
     /**
      * Update the user's password.
      */
+    /*
     public function update(Request $request): RedirectResponse
     {
         $validated = $request->validateWithBag('updatePassword', [
             'current_password' => ['required', 'current_password'],
-            'password' => [
-                'required',
-                'confirmed',
-                'min:8',
-                'regex:/[A-Z]/',
-                'regex:/[a-z]/',
-                'regex:/[0-9]/',
-                'regex:/[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?]/',
-            ],
-        ], [
-            'password.min'      => 'Password must be at least 8 characters.',
-            'password.regex'    => 'Password must contain at least 1 uppercase, 1 lowercase, 1 number, and 1 special character.',
-            'password.confirmed' => 'Passwords do not match.',
+            'password' => ['required', Password::defaults(), 'confirmed'],
         ]);
 
         $request->user()->update([

@@ -96,6 +96,10 @@
                             Current: ₱{{ number_format($currentMonthSales, 2) }} vs
                             Last Month: ₱{{ number_format($lastMonthSales, 2) }}
                         </small>
+                        <small class="d-block mt-1"
+                            style="font-size:1rem; font-weight:700; letter-spacing:0.5px; opacity:0.95;">
+                            TOTAL SALES: ₱{{ number_format($currentMonthSales, 2) }}
+                        </small>
                         @if ($lastMonthSales == 0 && $currentMonthSales > 0)
                             <small class="d-block mt-1" style="opacity: 0.85;">
                                 <i class="fas fa-info-circle"></i>
