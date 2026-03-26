@@ -121,10 +121,14 @@
                             });
                         } else {
                             // ✅ No duplicate — AJAX submit
+                            // ✅ BAGO — may headers na para madetect ng Laravel
                             $.ajax({
                                 url: $('#createSupplierForm').attr('action'),
                                 type: 'POST',
                                 data: $('#createSupplierForm').serialize(),
+                                headers: {
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                },
                                 success: function(response) {
                                     if (response.success) {
                                         Swal.fire({
