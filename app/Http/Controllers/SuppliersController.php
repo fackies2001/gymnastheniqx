@@ -93,7 +93,6 @@ class SuppliersController extends Controller
         $email    = $request->email ? strtolower($request->email) : null;
         $baseName = trim($request->name);
 
-        // ✅ Auto-number kung may same name na (sister company)
         $sameNameCount = Supplier::whereRaw(
             'LOWER(name) LIKE ?',
             [strtolower($baseName) . '%']
@@ -106,6 +105,22 @@ class SuppliersController extends Controller
         $isStudent     = auth()->user()->is_student;
         $source_id     = $isStudent ? 2 : 3;
         $validatedData = $request->all();
+
+        // ✅ DAGDAG DITO — server-side double submission guard
+        $recentDuplicate = Supplier::whereRaw('LOWER(name) = ?', [strtolower($baseName)])
+            ->where('created_at', '>=', now()->subSeconds(10))
+            ->exists();
+
+        if ($recentDuplicate) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Duplicate submission detected.'
+                ], 409);
+            }
+            return redirect()->route('suppliers.index');
+        }
+        // ✅ END GUARD
 
         if (!\DB::table('source')->where('id', $source_id)->exists()) {
             $source_id = 1;
