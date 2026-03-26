@@ -310,16 +310,28 @@
         });
 
         // ✅ BAGO — hindi mag-fire kung galing sa AJAX (may sariling SweetAlert na)
-        @if (session('crud_success') && !request()->ajax())
-            Swal.fire({
-                icon: 'success',
-                title: 'Success!',
-                text: "{{ session('crud_success') }}",
-                confirmButtonColor: '#2d3748',
-                timer: 2500,
-                showConfirmButton: false
-            });
-        @endif
+        // AFTER — one unified block, only one Swal fires
+        (function() {
+            const ajaxMsg = sessionStorage.getItem('swal_success');
+            @if (session('crud_success') && !request()->ajax())
+                const sessionMsg = "{{ session('crud_success') }}";
+            @else
+                const sessionMsg = null;
+            @endif
+
+            const msg = ajaxMsg || sessionMsg; // ajaxMsg takes priority
+            if (msg) {
+                if (ajaxMsg) sessionStorage.removeItem('swal_success'); // clear it
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: msg,
+                    confirmButtonColor: '#2d3748',
+                    timer: 2500,
+                    showConfirmButton: false
+                });
+            }
+        })();
 
         @if (session('error'))
             Swal.fire({

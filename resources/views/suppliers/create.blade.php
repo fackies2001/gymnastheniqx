@@ -129,20 +129,15 @@
                                 headers: {
                                     'X-Requested-With': 'XMLHttpRequest'
                                 },
+                                // AFTER — store message, redirect immediately (no Swal here)
                                 success: function(response) {
                                     if (response.success) {
-                                        Swal.fire({
-                                            icon: 'success',
-                                            title: 'Success!',
-                                            text: response.message,
-                                            confirmButtonColor: '#3085d6',
-                                            confirmButtonText: 'OK'
-                                        }).then(function() {
-                                            window.location.href = response
-                                                .redirect;
-                                        });
+                                        sessionStorage.setItem('swal_success',
+                                            response.message);
+                                        window.location.href = response.redirect;
                                     }
                                 },
+
                                 error: function() {
                                     isSubmitting = false;
                                     $('#createSupplierSubmit').prop('disabled',
