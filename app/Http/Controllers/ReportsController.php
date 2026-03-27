@@ -36,125 +36,6 @@ class ReportsController extends Controller
     //   - Non-consumables → serialized_product table (dating logic)
     //   - Pinagsama ang dalawa para sa final summary cards
     // =========================================================
-    public function dailyIndex(Request $request)
-    {
-        $filterType = $request->get('filter_type', 'today');
-        $customDate = $request->get('custom_date', null);
-
-        $date = null;
-
-        if ($filterType === 'all_time' || !$filterType) {
-            $date = null;
-        } elseif ($filterType === 'today') {
-            $date = Carbon::today()->toDateString();
-        } elseif ($filterType === 'yesterday') {
-            $date = Carbon::yesterday()->toDateString();
-        } elseif ($filterType === 'custom' && $customDate) {
-            $date = $customDate;
-        } else {
-            $date = Carbon::today()->toDateString();
-        }
-
-        // ─────────────────────────────────────────────────────
-        // LOW STOCK COUNT
-        // ─────────────────────────────────────────────────────
-
-        // ✅ FIX 1A: Non-consumables — SRN-based (dating logic)
-        $lowStockNonConsumable = SupplierProduct::where('is_consumable', 0)
-            ->select(
-                'supplier_product.id',
-                DB::raw("(SELECT COUNT(*) FROM serialized_product
-                          WHERE serialized_product.product_id = supplier_product.id
-                          AND serialized_product.status = 1) as available_count")
-            )
-            ->havingRaw('available_count > 0 AND available_count < 20')
-            ->get()
-            ->count();
-
-        // ✅ FIX 1B: Consumables — consumable_stocks-based
-        $warehouseId = auth()->user()->assigned_at;
-        $lowStockConsumable = ConsumableStock::lowStock()
-            ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
-            ->count();
-
-        // ✅ Combined low stock count
-        $lowStockCount = $lowStockNonConsumable + $lowStockConsumable;
-
-        // ─────────────────────────────────────────────────────
-        // DAILY RECEIVED
-        // ─────────────────────────────────────────────────────
-
-        // ✅ FIX 2A: Non-consumables received — SRN-based (dating logic)
-        $receivedNonConsumable = SerializedProduct::whereNotNull('purchase_order_id')
-            ->whereHas('supplierProducts', fn($q) => $q->where('is_consumable', 0))
-            ->when($date, fn($q) => $q->whereDate('created_at', $date))
-            ->count();
-
-        // ✅ FIX 2B: Consumables received — stock_movements IN type
-        $receivedConsumable = StockMovement::where('type', 'in')
-            ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
-            ->when($date, fn($q) => $q->whereDate('created_at', $date))
-            ->sum('quantity');
-
-        // ✅ Combined received count
-        $newArrivals = $receivedNonConsumable + $receivedConsumable;
-
-        // ─────────────────────────────────────────────────────
-        // DAILY OUTFLOW
-        // ─────────────────────────────────────────────────────
-
-        // ✅ FIX 3: Outflow — Retailer Orders lang (unchanged)
-        // Pareho para sa consumables at non-consumables kasi
-        // ang outflow ay naka-track sa retailer_orders table
-        $outflowQuery = RetailerOrder::whereIn('status', ['Approved', 'Completed']);
-        if ($date) {
-            $outflowQuery->whereDate('created_at', $date);
-        }
-        $dailyOutflow = $outflowQuery->sum('quantity');
-
-        // ─────────────────────────────────────────────────────
-        // DAMAGED / LOST
-        // ─────────────────────────────────────────────────────
-
-        // ✅ FIX 4A: Non-consumables — SRN status 4 or 5 (dating logic)
-        $damagedNonConsumable = SerializedProduct::whereIn('status', [4, 5])
-            ->whereHas('supplierProducts', fn($q) => $q->where('is_consumable', 0))
-            ->when($date, fn($q) => $q->whereDate('updated_at', $date))
-            ->count();
-
-        // ✅ FIX 4B: Consumables — stock_movements damage/loss type
-        $damagedConsumable = StockMovement::whereIn('type', ['damage', 'loss'])
-            ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
-            ->when($date, fn($q) => $q->whereDate('created_at', $date))
-            ->sum('quantity');
-
-        // ✅ Combined damaged/lost count
-        $damagedCount = $damagedNonConsumable + $damagedConsumable;
-
-        $products = SupplierProduct::with(['supplier', 'category'])->get();
-
-        return view('reports.daily', compact(
-            'date',
-            'filterType',
-            'lowStockCount',
-            'newArrivals',
-            'dailyOutflow',
-            'damagedCount',
-            'products'
-        ));
-    }
-
-    // =========================================================
-    // ✅ PINALITAN — getDailyData()
-    //
-    // DATI: Lahat ng sections (received, outflow, damage, low_stock)
-    //       ay galing sa serialized_product table lang (SRN-based)
-    //
-    // NGAYON: Bawat section ay dual-source:
-    //   - Consumables data → stock_movements / consumable_stocks
-    //   - Non-consumables data → serialized_product (dating logic)
-    //   - Pinagsama ang results sa iisang $data array
-    // =========================================================
     public function getDailyData(Request $request)
     {
         $filterType = $request->get('filter_type', null);
@@ -164,45 +45,83 @@ class ReportsController extends Controller
         $date      = null;
         $dateQuery = null;
 
+        // ✅ TIMEZONE FIX — gamitin ang Asia/Manila para tama ang "today"
+        $now = now()->timezone('Asia/Manila');
+
         if ($filterType === 'all_time' || !$filterType) {
             $date = null;
         } elseif ($filterType === 'today') {
-            $date = Carbon::today()->toDateString();
+            $date = $now->toDateString();
         } elseif ($filterType === 'yesterday') {
-            $date = Carbon::yesterday()->toDateString();
+            $date = $now->copy()->subDay()->toDateString();
         } elseif ($filterType === 'last_7_days') {
-            $dateQuery = ['start' => Carbon::today()->subDays(7), 'end' => Carbon::today()];
+            $dateQuery = [
+                'start' => $now->copy()->subDays(7)->startOfDay()->utc(),
+                'end'   => $now->copy()->endOfDay()->utc(),
+            ];
         } elseif ($filterType === 'last_30_days') {
-            $dateQuery = ['start' => Carbon::today()->subDays(30), 'end' => Carbon::today()];
+            $dateQuery = [
+                'start' => $now->copy()->subDays(30)->startOfDay()->utc(),
+                'end'   => $now->copy()->endOfDay()->utc(),
+            ];
         } elseif ($filterType === 'this_month') {
-            $dateQuery = ['start' => Carbon::now()->startOfMonth(), 'end' => Carbon::now()->endOfMonth()];
+            $dateQuery = [
+                'start' => $now->copy()->startOfMonth()->utc(),
+                'end'   => $now->copy()->endOfMonth()->utc(),
+            ];
         } elseif ($filterType === 'last_month') {
-            $dateQuery = ['start' => Carbon::now()->subMonth()->startOfMonth(), 'end' => Carbon::now()->subMonth()->endOfMonth()];
+            $dateQuery = [
+                'start' => $now->copy()->subMonth()->startOfMonth()->utc(),
+                'end'   => $now->copy()->subMonth()->endOfMonth()->utc(),
+            ];
         } elseif ($filterType === 'this_year') {
-            $dateQuery = ['start' => Carbon::now()->startOfYear(), 'end' => Carbon::now()->endOfYear()];
+            $dateQuery = [
+                'start' => $now->copy()->startOfYear()->utc(),
+                'end'   => $now->copy()->endOfYear()->utc(),
+            ];
         } elseif ($filterType === 'custom' && $customDate) {
             $date = $customDate;
         } else {
-            $date = Carbon::today()->toDateString();
+            $date = $now->toDateString();
         }
 
         $warehouseId = auth()->user()->assigned_at;
         $data        = [];
 
-        try {
-            \Log::info("=== DAILY REPORT START ===");
+        // ✅ Helper closure para sa timezone-aware whereDate
+        // Ginagamit CONVERT_TZ para ma-convert ang UTC stored values
+        // papunta sa Asia/Manila bago i-compare sa $date
+        $dateFilter = function ($query, $column = 'created_at') use ($date, $dateQuery) {
+            if ($date) {
+                $query->whereRaw(
+                    "DATE(CONVERT_TZ({$column}, '+00:00', '+08:00')) = ?",
+                    [$date]
+                );
+            } elseif ($dateQuery) {
+                $query->whereBetween($column, [
+                    $dateQuery['start'],
+                    $dateQuery['end'],
+                ]);
+            }
+            return $query;
+        };
 
-            // =================================================
+        try {
+            \Log::info("=== DAILY REPORT START ===", [
+                'filter_type' => $filterType,
+                'date'        => $date,
+                'type'        => $type,
+                'warehouse'   => $warehouseId,
+            ]);
+
+            // =====================================================
             // SECTION 1: DAILY RECEIVED
-            // =================================================
+            // =====================================================
             if (!$type || $type === 'received') {
 
-                // ─────────────────────────────────────────────
-                // ✅ SOURCE 1A: Non-consumables (SRN-based)
-                // DATI: Walang filter sa is_consumable kaya
-                //       kasama ang consumables dito → double count
-                // NGAYON: is_consumable = 0 lang ang kinukuha dito
-                // ─────────────────────────────────────────────
+                // ─────────────────────────────────────────────────
+                // SOURCE 1A: Non-consumables (SRN-based)
+                // ─────────────────────────────────────────────────
                 try {
                     $query = SerializedProduct::select(
                         'product_id',
@@ -213,11 +132,8 @@ class ReportsController extends Controller
                         ->whereNotNull('purchase_order_id')
                         ->whereHas('supplierProducts', fn($q) => $q->where('is_consumable', 0));
 
-                    if ($date) {
-                        $query->whereDate('created_at', $date);
-                    } elseif ($dateQuery) {
-                        $query->whereBetween('created_at', [$dateQuery['start'], $dateQuery['end']]);
-                    }
+                    // ✅ TIMEZONE FIX — apply ang helper
+                    $dateFilter($query);
 
                     $groupedProducts = $query
                         ->groupBy('product_id', 'purchase_order_id')
@@ -226,7 +142,7 @@ class ReportsController extends Controller
                     foreach ($groupedProducts as $item) {
                         $supplierProduct = SupplierProduct::with(['supplier', 'category'])
                             ->find($item->product_id);
-                        $purchaseOrder   = PurchaseOrder::find($item->purchase_order_id);
+                        $purchaseOrder = PurchaseOrder::find($item->purchase_order_id);
 
                         $productName   = $supplierProduct->name           ?? 'Unnamed Product';
                         $categoryName  = $supplierProduct->category->name ?? 'General';
@@ -246,46 +162,39 @@ class ReportsController extends Controller
                             'product_name'  => '<strong style="font-size:15px;color:black;">' . e($productName) . '</strong>',
                             'category_name' => '<span class="badge badge-info">' . e($categoryName) . '</span>',
                             'traceability'  => '<small>
-                                <strong>Type:</strong> Scanned from PO (Non-Consumable)<br>
-                                <strong>PO Number:</strong> ' . e($poNumber) . '<br>
-                                <strong>Original Price:</strong> <span class="text-danger font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
-                                <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span>
-                            </small>',
+                            <strong>Type:</strong> Scanned from PO (Non-Consumable)<br>
+                            <strong>PO Number:</strong> ' . e($poNumber) . '<br>
+                            <strong>Original Price:</strong> <span class="text-danger font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
+                            <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span>
+                        </small>',
                             'quantity' => $item->total_qty,
                             'status'   => 'Received',
                         ];
                     }
                 } catch (\Exception $e) {
-                    \Log::error("Received (Non-Consumable) Section Error: " . $e->getMessage());
+                    \Log::error("Received (Non-Consumable) Error: " . $e->getMessage());
                 }
 
-                // ─────────────────────────────────────────────
-                // ✅ SOURCE 1B: Consumables (stock_movements IN)
-                // DATI: Wala — kaya 0 ang Daily Received para
-                //       sa consumables kahit may na-receive na
-                // NGAYON: Kinukuha na sa stock_movements table
-                // ─────────────────────────────────────────────
+                // ─────────────────────────────────────────────────
+                // SOURCE 1B: Consumables (stock_movements IN)
+                // ─────────────────────────────────────────────────
                 try {
-                    $consumableReceivedQuery = StockMovement::with(['product.supplier', 'product.category', 'purchaseOrder'])
+                    $consumableQuery = StockMovement::with(['product.supplier', 'product.category', 'purchaseOrder'])
                         ->where('type', 'in')
                         ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId));
 
-                    if ($date) {
-                        $consumableReceivedQuery->whereDate('created_at', $date);
-                    } elseif ($dateQuery) {
-                        $consumableReceivedQuery->whereBetween('created_at', [$dateQuery['start'], $dateQuery['end']]);
-                    }
+                    // ✅ TIMEZONE FIX
+                    $dateFilter($consumableQuery);
 
-                    $consumableReceived = $consumableReceivedQuery->get();
+                    $consumableReceived = $consumableQuery->get();
 
                     foreach ($consumableReceived as $movement) {
-                        $productName   = $movement->product->name                    ?? 'Unnamed Product';
-                        $categoryName  = $movement->product->category->name          ?? 'Consumables';
-                        $poNumber      = $movement->purchaseOrder->po_number          ?? 'N/A';
-                        $originalPrice = $movement->product->cost_price               ?? 0;
+                        $productName   = $movement->product->name           ?? 'Unnamed Product';
+                        $categoryName  = $movement->product->category->name ?? 'Consumables';
+                        $poNumber      = $movement->purchaseOrder->po_number ?? 'N/A';
+                        $originalPrice = $movement->product->cost_price      ?? 0;
                         $totalAmount   = $movement->quantity * $originalPrice;
 
-                        // ✅ Reason label
                         $reasonLabel = $movement->reason_type === 'defective_on_arrival'
                             ? 'Received from PO (with DOA noted)'
                             : 'Received from Supplier';
@@ -294,35 +203,30 @@ class ReportsController extends Controller
                             'product_name'  => '<strong style="font-size:15px;color:black;">' . e($productName) . '</strong>',
                             'category_name' => '<span class="badge badge-info">Consumables</span>',
                             'traceability'  => '<small>
-                                <strong>Type:</strong> ' . $reasonLabel . '<br>
-                                <strong>PO Number:</strong> ' . e($poNumber) . '<br>
-                                <strong>Original Price:</strong> <span class="text-danger font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
-                                <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span>
-                            </small>',
+                            <strong>Type:</strong> ' . $reasonLabel . '<br>
+                            <strong>PO Number:</strong> ' . e($poNumber) . '<br>
+                            <strong>Original Price:</strong> <span class="text-danger font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
+                            <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span>
+                        </small>',
                             'quantity' => $movement->quantity,
                             'status'   => 'Received',
                         ];
                     }
                 } catch (\Exception $e) {
-                    \Log::error("Received (Consumable) Section Error: " . $e->getMessage());
+                    \Log::error("Received (Consumable) Error: " . $e->getMessage());
                 }
             }
 
-            // =================================================
-            // SECTION 2: OUTFLOW
-            // ✅ HINDI BINAGO — Retailer Orders lang ang source
-            // Pareho para sa consumables at non-consumables
-            // =================================================
+            // =====================================================
+            // SECTION 2: OUTFLOW (Retailer Orders)
+            // =====================================================
             if (!$type || $type === 'outflow') {
                 try {
                     $query = RetailerOrder::with(['product'])
                         ->whereIn('status', ['Approved', 'Completed']);
 
-                    if ($date) {
-                        $query->whereDate('created_at', $date);
-                    } elseif ($dateQuery) {
-                        $query->whereBetween('created_at', [$dateQuery['start'], $dateQuery['end']]);
-                    }
+                    // ✅ TIMEZONE FIX
+                    $dateFilter($query);
 
                     $retailerOrders = $query->get();
 
@@ -345,17 +249,17 @@ class ReportsController extends Controller
 
                         $data[] = [
                             'product_name'  => '<strong style="font-size:15px;color:black;">' . e($productName) . '</strong><br>
-                                <span style="font-size:13px;color:#666;">Retailer: ' . e($retailerName) . '</span>',
+                            <span style="font-size:13px;color:#666;">Retailer: ' . e($retailerName) . '</span>',
                             'category_name' => '<span class="badge badge-success">Outflow</span>',
                             'traceability'  => '<small>
-                                <strong>Type:</strong> Retailer Order<br>
-                                <strong>Order #:</strong> ' . e($order->id) . '<br>
-                                <strong>Retailer:</strong> ' . e($retailerName) . '<br>
-                                <strong>Original Price:</strong> <span class="text-secondary font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
-                                <strong>Selling Price:</strong> <span class="text-success font-weight-bold">₱' . number_format($sellingPrice, 2) . '</span><br>
-                                <strong>Markup:</strong> <span class="text-info font-weight-bold">₱' . number_format($markup, 2) . ' (' . $markupPct . '%)</span><br>
-                                <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span>
-                            </small>',
+                            <strong>Type:</strong> Retailer Order<br>
+                            <strong>Order #:</strong> ' . e($order->id) . '<br>
+                            <strong>Retailer:</strong> ' . e($retailerName) . '<br>
+                            <strong>Original Price:</strong> <span class="text-secondary font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
+                            <strong>Selling Price:</strong> <span class="text-success font-weight-bold">₱' . number_format($sellingPrice, 2) . '</span><br>
+                            <strong>Markup:</strong> <span class="text-info font-weight-bold">₱' . number_format($markup, 2) . ' (' . $markupPct . '%)</span><br>
+                            <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span>
+                        </small>',
                             'quantity' => $order->quantity,
                             'status'   => 'Outflow',
                         ];
@@ -365,27 +269,21 @@ class ReportsController extends Controller
                 }
             }
 
-            // =================================================
+            // =====================================================
             // SECTION 3: DAMAGED / LOST
-            // =================================================
+            // =====================================================
             if (!$type || $type === 'damage') {
 
-                // ─────────────────────────────────────────────
-                // ✅ SOURCE 3A: Non-consumables (SRN status 4/5)
-                // DATI: Walang filter sa is_consumable kaya
-                //       lahat ng damaged ay galing sa SRN lang
-                // NGAYON: is_consumable = 0 lang dito
-                // ─────────────────────────────────────────────
+                // ─────────────────────────────────────────────────
+                // SOURCE 3A: Non-consumables (SRN status 4/5)
+                // ─────────────────────────────────────────────────
                 try {
                     $query = SerializedProduct::with(['supplierProducts.supplier'])
                         ->whereIn('status', [4, 5])
                         ->whereHas('supplierProducts', fn($q) => $q->where('is_consumable', 0));
 
-                    if ($date) {
-                        $query->whereDate('updated_at', $date);
-                    } elseif ($dateQuery) {
-                        $query->whereBetween('updated_at', [$dateQuery['start'], $dateQuery['end']]);
-                    }
+                    // ✅ TIMEZONE FIX — updated_at ang ginagamit dito
+                    $dateFilter($query, 'updated_at');
 
                     $damagedItems = $query->get();
 
@@ -400,34 +298,28 @@ class ReportsController extends Controller
                             'category_name' => '<span class="badge ' . $badgeColor . '">' . $statusName . '</span>',
                             'serial_number' => e($item->serial_number ?? 'N/A'),
                             'traceability'  => '<small>
-                                <strong>Type:</strong> ' . $statusName . ' (Non-Consumable)<br>
-                                <strong>Supplier:</strong> ' . e($supplierName) . '<br>
-                                <strong>Remarks:</strong> ' . e($item->remarks ?? 'No remarks') . '
-                            </small>',
+                            <strong>Type:</strong> ' . $statusName . ' (Non-Consumable)<br>
+                            <strong>Supplier:</strong> ' . e($supplierName) . '<br>
+                            <strong>Remarks:</strong> ' . e($item->remarks ?? 'No remarks') . '
+                        </small>',
                             'quantity' => 1,
                             'status'   => $statusName,
                         ];
                     }
                 } catch (\Exception $e) {
-                    \Log::error("Damaged (Non-Consumable) Section Error: " . $e->getMessage());
+                    \Log::error("Damaged (Non-Consumable) Error: " . $e->getMessage());
                 }
 
-                // ─────────────────────────────────────────────
-                // ✅ SOURCE 3B: Consumables (stock_movements damage/loss)
-                // DATI: Wala — kaya 0 ang Damaged/Lost kahit
-                //       may naka-report na damage sa consumables
-                // NGAYON: Kinukuha na sa stock_movements table
-                // ─────────────────────────────────────────────
+                // ─────────────────────────────────────────────────
+                // SOURCE 3B: Consumables (stock_movements damage/loss)
+                // ─────────────────────────────────────────────────
                 try {
                     $consumableDamagedQuery = StockMovement::with(['product.supplier', 'createdBy'])
                         ->whereIn('type', ['damage', 'loss'])
                         ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId));
 
-                    if ($date) {
-                        $consumableDamagedQuery->whereDate('created_at', $date);
-                    } elseif ($dateQuery) {
-                        $consumableDamagedQuery->whereBetween('created_at', [$dateQuery['start'], $dateQuery['end']]);
-                    }
+                    // ✅ TIMEZONE FIX
+                    $dateFilter($consumableDamagedQuery);
 
                     $consumableDamaged = $consumableDamagedQuery->get();
 
@@ -436,9 +328,7 @@ class ReportsController extends Controller
                         $supplierName = $movement->product->supplier->name ?? 'N/A';
                         $statusName   = $movement->type === 'damage' ? 'Damaged' : 'Lost';
                         $badgeColor   = $movement->type === 'damage' ? 'badge-warning' : 'badge-danger';
-
-                        // ✅ Human-readable reason
-                        $reasonLabel = $movement->reason_type
+                        $reasonLabel  = $movement->reason_type
                             ? ucwords(str_replace('_', ' ', $movement->reason_type))
                             : 'No reason specified';
 
@@ -447,35 +337,33 @@ class ReportsController extends Controller
                             'category_name' => '<span class="badge ' . $badgeColor . '">' . $statusName . ' (Consumable)</span>',
                             'serial_number' => 'N/A — Consumable',
                             'traceability'  => '<small>
-                                <strong>Type:</strong> ' . $statusName . ' (Consumable)<br>
-                                <strong>Reason:</strong> ' . e($reasonLabel) . '<br>
-                                <strong>Supplier:</strong> ' . e($supplierName) . '<br>
-                                <strong>Recorded By:</strong> ' . e($movement->createdBy->full_name ?? 'N/A') . '<br>
-                                <strong>Remarks:</strong> ' . e($movement->remarks ?? 'No remarks') . '
-                            </small>',
+                            <strong>Type:</strong> ' . $statusName . ' (Consumable)<br>
+                            <strong>Reason:</strong> ' . e($reasonLabel) . '<br>
+                            <strong>Supplier:</strong> ' . e($supplierName) . '<br>
+                            <strong>Recorded By:</strong> ' . e($movement->createdBy->full_name ?? 'N/A') . '<br>
+                            <strong>Remarks:</strong> ' . e($movement->remarks ?? 'No remarks') . '
+                        </small>',
                             'quantity' => $movement->quantity,
                             'status'   => $statusName,
                         ];
                     }
                 } catch (\Exception $e) {
-                    \Log::error("Damaged (Consumable) Section Error: " . $e->getMessage());
+                    \Log::error("Damaged (Consumable) Error: " . $e->getMessage());
                 }
             }
 
-            // =================================================
+            // =====================================================
             // SECTION 4: LOW STOCK
-            // =================================================
+            // =====================================================
             if (!$type || $type === 'low_stock') {
 
-                // ─────────────────────────────────────────────
-                // ✅ SOURCE 4A: Non-consumables (SRN-based)
-                // DATI: Lahat ng products kasama kahit consumable
-                // NGAYON: is_consumable = 0 lang dito
-                // ─────────────────────────────────────────────
+                // ─────────────────────────────────────────────────
+                // SOURCE 4A: Non-consumables (SRN available count)
+                // ─────────────────────────────────────────────────
                 try {
                     $subquery = 'SELECT COUNT(*) FROM serialized_product
-                                 WHERE serialized_product.product_id = supplier_product.id
-                                 AND serialized_product.status = 1';
+                             WHERE serialized_product.product_id = supplier_product.id
+                             AND serialized_product.status = 1';
 
                     $lowStockNonConsumables = SupplierProduct::select(
                         'supplier_product.id',
@@ -498,33 +386,30 @@ class ReportsController extends Controller
                             ->latest('created_at')
                             ->value('created_at');
                         $lastReceivedFormatted = $lastReceived
-                            ? Carbon::parse($lastReceived)->format('M d, Y')
+                            ? Carbon::parse($lastReceived)->timezone('Asia/Manila')->format('M d, Y')
                             : 'No record';
                         $reorderQty = max(0, 20 - $qty);
 
                         $data[] = [
                             'product_name'  => '<strong style="font-size:15px;color:black;">' . e($product->name) . '</strong><br>
-                                <span style="font-size:12px;color:#999;">SKU: ' . e($product->system_sku ?? 'N/A') . '</span>',
+                            <span style="font-size:12px;color:#999;">SKU: ' . e($product->system_sku ?? 'N/A') . '</span>',
                             'category_name' => '<span class="badge badge-warning">Low Stock</span>',
                             'traceability'  => '<small>
-                                <strong>Supplier:</strong> ' . e($supplierName) . '<br>
-                                <strong>Last Received:</strong> ' . $lastReceivedFormatted . '<br>
-                                <strong>Reorder Needed:</strong> <span class="text-danger font-weight-bold">' . $reorderQty . ' pcs</span>
-                            </small>',
+                            <strong>Supplier:</strong> ' . e($supplierName) . '<br>
+                            <strong>Last Received:</strong> ' . $lastReceivedFormatted . '<br>
+                            <strong>Reorder Needed:</strong> <span class="text-danger font-weight-bold">' . $reorderQty . ' pcs</span>
+                        </small>',
                             'quantity' => $qty,
                             'status'   => 'Low Stock',
                         ];
                     }
                 } catch (\Exception $e) {
-                    \Log::error("Low Stock (Non-Consumable) Section Error: " . $e->getMessage());
+                    \Log::error("Low Stock (Non-Consumable) Error: " . $e->getMessage());
                 }
 
-                // ─────────────────────────────────────────────
-                // ✅ SOURCE 4B: Consumables (consumable_stocks-based)
-                // DATI: Wala — consumables hindi lumalabas
-                //       sa low stock kahit 0 na ang stock nila
-                // NGAYON: Kinukuha na sa consumable_stocks table
-                // ─────────────────────────────────────────────
+                // ─────────────────────────────────────────────────
+                // SOURCE 4B: Consumables (consumable_stocks)
+                // ─────────────────────────────────────────────────
                 try {
                     $lowConsumables = ConsumableStock::with(['product.supplier'])
                         ->whereColumn('current_qty', '<=', 'min_stock_level')
@@ -542,25 +427,25 @@ class ReportsController extends Controller
                             ->latest()
                             ->value('created_at');
                         $lastReceivedFormatted = $lastReceived
-                            ? Carbon::parse($lastReceived)->format('M d, Y')
+                            ? Carbon::parse($lastReceived)->timezone('Asia/Manila')->format('M d, Y')
                             : 'No record';
 
                         $data[] = [
                             'product_name'  => '<strong style="font-size:15px;color:black;">' . e($productName) . '</strong><br>
-                                <span style="font-size:12px;color:#999;">SKU: ' . e($stock->product->system_sku ?? 'N/A') . '</span>',
+                            <span style="font-size:12px;color:#999;">SKU: ' . e($stock->product->system_sku ?? 'N/A') . '</span>',
                             'category_name' => '<span class="badge badge-warning">Low Stock (Consumable)</span>',
                             'traceability'  => '<small>
-                                <strong>Supplier:</strong> ' . e($supplierName) . '<br>
-                                <strong>Last Received:</strong> ' . $lastReceivedFormatted . '<br>
-                                <strong>Min Level:</strong> ' . $stock->min_stock_level . ' pcs<br>
-                                <strong>Reorder Needed:</strong> <span class="text-danger font-weight-bold">' . $reorderQty . ' pcs</span>
-                            </small>',
+                            <strong>Supplier:</strong> ' . e($supplierName) . '<br>
+                            <strong>Last Received:</strong> ' . $lastReceivedFormatted . '<br>
+                            <strong>Min Level:</strong> ' . $stock->min_stock_level . ' pcs<br>
+                            <strong>Reorder Needed:</strong> <span class="text-danger font-weight-bold">' . $reorderQty . ' pcs</span>
+                        </small>',
                             'quantity' => $qty,
                             'status'   => 'Low Stock',
                         ];
                     }
                 } catch (\Exception $e) {
-                    \Log::error("Low Stock (Consumable) Section Error: " . $e->getMessage());
+                    \Log::error("Low Stock (Consumable) Error: " . $e->getMessage());
                 }
             }
 
