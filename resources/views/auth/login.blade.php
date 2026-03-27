@@ -24,7 +24,7 @@
             --text-mid: #4a4a6a;
             --text-light: #9a9ab0;
             --accent: #1a1a2e;
-            --accent-lime: #b8e000;
+            --accent-lime: #764ba2;
             --accent-hover: #262640;
             --danger: #e53e3e;
             --input-bg: #ffffff;
@@ -87,7 +87,7 @@
             width: 320px;
             height: 320px;
             border-radius: 50%;
-            background: rgba(184, 224, 0, 0.08);
+            background: rgba(118, 75, 162, 0.08);
         }
 
         /* Geometric grid lines */
@@ -121,7 +121,7 @@
             font-family: 'Bebas Neue', sans-serif;
             font-size: 20px;
             color: var(--accent);
-            box-shadow: 0 0 20px rgba(184, 224, 0, 0.4);
+            background: rgba(118, 75, 162, 0.08);
         }
 
         .brand-name-text {
@@ -141,8 +141,8 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: rgba(184, 224, 0, 0.15);
-            border: 1px solid rgba(184, 224, 0, 0.3);
+            background: rgba(118, 75, 162, 0.15);
+            border: 1px solid rgba(118, 75, 162, 0.3);
             border-radius: 100px;
             padding: 6px 14px;
             font-size: 11px;
