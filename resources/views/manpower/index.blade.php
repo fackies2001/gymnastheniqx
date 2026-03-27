@@ -231,7 +231,7 @@
                             });
                             Swal.fire('Validation Error', errorMsg, 'error');
                         } else {
-                            Swal.fire('Error', 'May mali sa pag-save ng data.', 'error');
+                            Swal.fire('Error', 'There was an error saving data..', 'error');
                         }
                     }
                 });
@@ -269,11 +269,11 @@
                 let deleteUrl = "{{ route('manpower.delete', ':id') }}".replace(':id', id);
 
                 Swal.fire({
-                    title: 'Sigurado ka ba?',
-                    text: "Hindi mo na ito mababawi!",
+                    title: 'Are you sure?',
+                    text: "You cannot undone!",
                     icon: 'warning',
                     showCancelButton: true,
-                    confirmButtonText: 'Oo, burahin!'
+                    confirmButtonText: 'Delete!'
                 }).then((result) => {
                     if (result.isConfirmed) {
                         $.ajax({

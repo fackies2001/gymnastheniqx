@@ -350,13 +350,13 @@
                     let id = $(this).data('id');
                     let name = $(this).data('name');
                     Swal.fire({
-                        title: 'Sigurado ka ba?',
-                        text: 'Mabubura ang account ni ' + name + '. Hindi mo na ito maibabalik!',
+                        title: 'Are you sure?',
+                        text: 'Account will be deleted permanently ' + name + '. Cannot be undone!',
                         icon: 'warning',
                         showCancelButton: true,
                         confirmButtonColor: '#d33',
                         cancelButtonColor: '#3085d6',
-                        confirmButtonText: 'Oo, Burahin na!',
+                        confirmButtonText: 'Account Successfully Deleted!',
                         cancelButtonText: 'Cancel'
                     }).then((result) => {
                         if (result.isConfirmed) {
@@ -371,7 +371,7 @@
                                 },
                                 error: function(xhr) {
                                     Swal.fire('Error!', xhr.responseJSON?.message ||
-                                        'Hindi mabura ang user.', 'error');
+                                        'Cannot delete this user.', 'error');
                                 }
                             });
                         }
@@ -387,8 +387,8 @@
 
                 Swal.fire({
                     title: 'Reset Password?',
-                    html: 'Password ni <b>' + name +
-                        '</b> ay ire-reset pabalik sa default na <b>password123</b>.',
+                    html: 'This user <b>' + name +
+                        '</b> will be reset default <b>password123</b>.',
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#17a2b8',
