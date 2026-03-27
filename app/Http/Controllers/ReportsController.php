@@ -49,7 +49,9 @@ class ReportsController extends Controller
             $date = $now->toDateString();
         }
 
-        $warehouseId = auth()->user()->assigned_at ?? auth()->user()->warehouse_id ?? null;
+        $warehouseId = auth()->user()->assigned_at
+            ?? auth()->user()->warehouse_id
+            ?? null;
 
         $dateFilter = function ($query, $column = 'created_at') use ($date) {
             if ($date) {
@@ -67,8 +69,8 @@ class ReportsController extends Controller
             ->count();
 
         // ─── RECEIVED ────────────────────────────────────────
-        $receivedQ = StockMovement::where('type', 'in')
-            ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId));
+        $receivedQ = StockMovement::where('type', 'in');
+        // ->when($warehouseId, ...) ← wag muna
         $dateFilter($receivedQ);
         $newArrivals = $receivedQ->count();
 
@@ -163,7 +165,9 @@ class ReportsController extends Controller
         }
 
         // ✅ FIX: Same fallback logic para in-sync sa dailyIndex()
-        $warehouseId = auth()->user()->assigned_at ?? auth()->user()->warehouse_id ?? null;
+        $warehouseId = auth()->user()->assigned_at
+            ?? auth()->user()->warehouse_id
+            ?? null;
         $data        = [];
 
         $dateFilter = function ($query, $column = 'created_at') use ($date, $dateQuery) {

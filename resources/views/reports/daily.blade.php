@@ -11,7 +11,7 @@
             <div class="col-lg-3 col-6" onclick="filterByStatus('low_stock')" style="cursor: pointer;">
                 <div class="small-box bg-warning">
                     <div class="inner">
-                        <h3>{{ $lowStockCount }}</h3>
+                        <h3 id="cardLowStock">{{ $lowStockCount }}</h3>
                         <p>Low Stock Items</p>
                     </div>
                     <div class="icon"><i class="fas fa-exclamation-triangle"></i></div>
@@ -22,7 +22,7 @@
             <div class="col-lg-3 col-6" onclick="filterByStatus('received')" style="cursor: pointer;">
                 <div class="small-box bg-info">
                     <div class="inner">
-                        <h3>{{ $newArrivals }}</h3>
+                        <h3 id="cardReceived">{{ $newArrivals }}</h3>
                         <p>Daily Received</p>
                     </div>
                     <div class="icon"><i class="fas fa-download"></i></div>
@@ -33,8 +33,8 @@
             <div class="col-lg-3 col-6" onclick="filterByStatus('outflow')" style="cursor: pointer;">
                 <div class="small-box bg-success">
                     <div class="inner">
-                        <h3>{{ $dailyOutflow }}</h3>
-                        <p>Daily Outflow</p>
+                        <h3 id="cardDamaged">{{ $damagedCount ?? 0 }}</h3>
+                        <p>Damaged/Lost</p>
                     </div>
                     <div class="icon"><i class="fas fa-upload"></i></div>
                     <a href="#" class="small-box-footer">View Details <i class="fas fa-arrow-circle-right"></i></a>
@@ -281,6 +281,31 @@
                     renderTable(currentData);
                     $('#loadingSpinner').hide();
                     $('#recordCount').text(currentData.length + ' records');
+
+                    // ✅ FIX: I-recount ang cards based sa CURRENT data
+                    // Para in-sync ang cards sa table filter
+                    let receivedCount = 0,
+                        outflowCount = 0,
+                        damagedCount = 0,
+                        lowStockCount = 0;
+
+                    currentData.forEach(function(item) {
+                        const status = (item.status || '').toLowerCase();
+                        if (status === 'received') receivedCount++;
+                        else if (status === 'outflow') outflowCount++;
+                        else if (status === 'damaged' || status === 'lost') damagedCount++;
+                        else if (status === 'low stock') lowStockCount++;
+                    });
+
+                    // ✅ Only update cards if NOT filtering by specific type
+                    // (para kung naka-click ka ng specific card, hindi mabago ang ibang cards)
+                    if (activeFilter === 'all') {
+                        $('#cardReceived').text(receivedCount);
+                        $('#cardOutflow').text(outflowCount);
+                        $('#cardDamaged').text(damagedCount);
+                        $('#cardLowStock').text(lowStockCount);
+                    }
+
                 },
                 error: function(xhr, status, error) {
                     $('#dailyReportTable tbody').html(
@@ -289,6 +314,7 @@
                     $('#loadingSpinner').hide();
                 }
             });
+
         }
 
         function renderTable(data) {
