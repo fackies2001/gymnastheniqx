@@ -35,8 +35,15 @@ class UserManagementController extends Controller
     {
         $validated = $request->validate([
             'full_name'      => 'required|string|max:255',
-            'email'          => 'required|email|unique:employee,email',
-            // ✅ FIX: Removed username validation — username no longer required
+
+            // ✅ FIX 2: Gmail only
+            'email'          => [
+                'required',
+                'email',
+                'unique:employee,email',
+                'regex:/^[a-zA-Z0-9._%+\-]+@gmail\.com$/'
+            ],
+
             'role_id'        => 'required|exists:role,id',
             'department_id'  => 'nullable|exists:department,id',
             'assigned_at'    => 'nullable|exists:warehouse,id',
@@ -45,12 +52,19 @@ class UserManagementController extends Controller
             'date_hired'     => 'nullable|date',
             'status'         => 'required|in:Active,Inactive,active,inactive',
             'profile_photo'  => 'nullable|image|max:2048',
+        ], [
+            // ✅ Custom error message para mas clear sa user
+            'email.regex' => 'Only Gmail addresses are allowed (e.g. example@gmail.com).',
         ]);
 
         if ($request->hasFile('profile_photo')) {
             $validated['profile_photo'] = $request->file('profile_photo')
                 ->store('profile_photos', 'public');
         }
+
+        // ✅ FIX 1: Auto-generate username para hindi mag-SQL error
+        $validated['username'] = strtolower(str_replace(' ', '.', $request->full_name))
+            . rand(100, 999);
 
         $validated['password'] = Hash::make('password123');
         $validated['status']   = ucfirst(strtolower($validated['status']));
@@ -62,7 +76,6 @@ class UserManagementController extends Controller
             'message' => 'Employee created successfully!',
         ]);
     }
-
     /**
      * ✅ Update Existing Employee
      */
@@ -73,8 +86,15 @@ class UserManagementController extends Controller
 
         $validated = $request->validate([
             'full_name'      => 'required|string|max:255',
-            'email'          => 'required|email|unique:employee,email,' . $id,
-            // ✅ FIX: Removed username validation — username no longer required
+
+            // ✅ FIX 2: Gmail only sa update din
+            'email'          => [
+                'required',
+                'email',
+                'unique:employee,email,' . $id,
+                'regex:/^[a-zA-Z0-9._%+\-]+@gmail\.com$/'
+            ],
+
             'role_id'        => 'required|exists:role,id',
             'department_id'  => 'nullable|exists:department,id',
             'assigned_at'    => 'nullable|exists:warehouse,id',
@@ -83,6 +103,8 @@ class UserManagementController extends Controller
             'date_hired'     => 'nullable|date',
             'status'         => 'required|in:active,inactive',
             'profile_photo'  => 'nullable|image|max:2048',
+        ], [
+            'email.regex' => 'Only Gmail addresses are allowed (e.g. example@gmail.com).',
         ]);
 
         if ($request->hasFile('profile_photo')) {
@@ -221,7 +243,7 @@ class UserManagementController extends Controller
     /**
      * ✅ Admin Reset Password — i-reset pabalik sa 'password123'
      */
-    
+
     public function resetPassword(Request $request)
     {
         $request->validate([
