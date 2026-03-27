@@ -207,7 +207,7 @@ class ConsumableController extends Controller
         ]);
 
         // ✅ FIX — bawasan ang current_qty
-        $stock->decrement('current_qty', $request->quantity);
+        // $stock->decrement('current_qty', $request->quantity);
 
         return response()->json([
             'success' => true,

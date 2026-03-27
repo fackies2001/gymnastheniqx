@@ -107,8 +107,8 @@
                             <div class="form-group">
                                 <label>Incident Type</label>
                                 <select name="type" class="form-control" required>
-                                    <option value="damage">❌ Damage (Nasira)</option>
-                                    <option value="loss">⚠️ Loss (Nawala)</option>
+                                    <option value="damage">❌ Damage</option>
+                                    <option value="loss">⚠️ Loss</option>
                                 </select>
                             </div>
                             <div class="form-group">
