@@ -49,7 +49,7 @@ class ReportsController extends Controller
             $date = $now->toDateString();
         }
 
-        $warehouseId = auth()->user()->assigned_at;
+        $warehouseId = auth()->user()->assigned_at ?? auth()->user()->warehouse_id ?? null;
 
         $dateFilter = function ($query, $column = 'created_at') use ($date) {
             if ($date) {
@@ -73,6 +73,8 @@ class ReportsController extends Controller
         $newArrivals = $receivedQ->count();
 
         // ─── OUTFLOW ─────────────────────────────────────────
+        // ✅ FIX: Bawat ROW sa RetailerOrder = 1 product line
+        // Kaya count() = bilang ng product lines, hindi bilang ng orders
         $outflowQ = RetailerOrder::whereIn('status', ['Approved', 'Completed']);
         $dateFilter($outflowQ);
         $dailyOutflow = $outflowQ->count();
@@ -85,6 +87,17 @@ class ReportsController extends Controller
 
         $products = SupplierProduct::with(['supplier', 'category'])->get();
 
+        // ✅ FIX: I-log para ma-debug mo kung may zero pa rin
+        \Log::info('=== DAILY INDEX CARD COUNTS ===', [
+            'date'          => $date,
+            'filter_type'   => $filterType,
+            'warehouse_id'  => $warehouseId,
+            'newArrivals'   => $newArrivals,
+            'dailyOutflow'  => $dailyOutflow,
+            'damagedCount'  => $damagedCount,
+            'lowStockCount' => $lowStockCount,
+        ]);
+
         return view('reports.daily', compact(
             'date',
             'filterType',
@@ -96,15 +109,13 @@ class ReportsController extends Controller
         ));
     }
 
-
     // =========================================================
     // ✅ FUNCTION 2: getDailyData()
     // CONSUMABLES ONLY — tinanggal na ang non-consumable branches
     // =========================================================
-
     public function getDailyData(Request $request)
     {
-        $filterType = $request->get('filter_type', null);
+        $filterType = $request->get('filter_type', 'today'); // ✅ FIX: 'today' na ang default, hindi null
         $customDate = $request->get('custom_date', null);
         $type       = $request->get('type', null);
 
@@ -113,7 +124,7 @@ class ReportsController extends Controller
 
         $now = now()->timezone('Asia/Manila');
 
-        if ($filterType === 'all_time' || !$filterType) {
+        if ($filterType === 'all_time') {
             $date = null;
         } elseif ($filterType === 'today') {
             $date = $now->toDateString();
@@ -147,10 +158,12 @@ class ReportsController extends Controller
         } elseif ($filterType === 'custom' && $customDate) {
             $date = $customDate;
         } else {
+            // ✅ FIX: fallback = today palagi, hindi null/all_time
             $date = $now->toDateString();
         }
 
-        $warehouseId = auth()->user()->assigned_at;
+        // ✅ FIX: Same fallback logic para in-sync sa dailyIndex()
+        $warehouseId = auth()->user()->assigned_at ?? auth()->user()->warehouse_id ?? null;
         $data        = [];
 
         $dateFilter = function ($query, $column = 'created_at') use ($date, $dateQuery) {
@@ -169,7 +182,7 @@ class ReportsController extends Controller
         };
 
         try {
-            \Log::info("=== DAILY REPORT START ===", [
+            \Log::info("=== DAILY REPORT GET DATA ===", [
                 'filter_type' => $filterType,
                 'date'        => $date,
                 'type'        => $type,
@@ -178,7 +191,6 @@ class ReportsController extends Controller
 
             // =====================================================
             // SECTION 1: DAILY RECEIVED
-            // Consumables only — stock_movements type = 'in'
             // =====================================================
             if (!$type || $type === 'received') {
                 try {
@@ -203,11 +215,11 @@ class ReportsController extends Controller
                             'product_name'  => '<strong style="font-size:15px;color:black;">' . e($productName) . '</strong>',
                             'category_name' => '<span class="badge badge-info">' . e($categoryName) . '</span>',
                             'traceability'  => '<small>
-                            <strong>Type:</strong> ' . $reasonLabel . '<br>
-                            <strong>PO Number:</strong> ' . e($poNumber) . '<br>
-                            <strong>Original Price:</strong> <span class="text-danger font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
-                            <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span>
-                        </small>',
+                        <strong>Type:</strong> ' . $reasonLabel . '<br>
+                        <strong>PO Number:</strong> ' . e($poNumber) . '<br>
+                        <strong>Original Price:</strong> <span class="text-danger font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
+                        <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span>
+                    </small>',
                             'quantity' => $movement->quantity,
                             'status'   => 'Received',
                         ];
@@ -219,7 +231,6 @@ class ReportsController extends Controller
 
             // =====================================================
             // SECTION 2: OUTFLOW
-            // RetailerOrders — Approved / Completed
             // =====================================================
             if (!$type || $type === 'outflow') {
                 try {
@@ -247,17 +258,17 @@ class ReportsController extends Controller
 
                         $data[] = [
                             'product_name'  => '<strong style="font-size:15px;color:black;">' . e($productName) . '</strong><br>
-                            <span style="font-size:13px;color:#666;">Retailer: ' . e($retailerName) . '</span>',
+                        <span style="font-size:13px;color:#666;">Retailer: ' . e($retailerName) . '</span>',
                             'category_name' => '<span class="badge badge-success">Outflow</span>',
                             'traceability'  => '<small>
-                            <strong>Type:</strong> Retailer Order<br>
-                            <strong>Order #:</strong> ' . e($order->id) . '<br>
-                            <strong>Retailer:</strong> ' . e($retailerName) . '<br>
-                            <strong>Original Price:</strong> <span class="text-secondary font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
-                            <strong>Selling Price:</strong> <span class="text-success font-weight-bold">₱' . number_format($sellingPrice, 2) . '</span><br>
-                            <strong>Markup:</strong> <span class="text-info font-weight-bold">₱' . number_format($markup, 2) . ' (' . $markupPct . '%)</span><br>
-                            <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span>
-                        </small>',
+                        <strong>Type:</strong> Retailer Order<br>
+                        <strong>Order #:</strong> ' . e($order->id) . '<br>
+                        <strong>Retailer:</strong> ' . e($retailerName) . '<br>
+                        <strong>Original Price:</strong> <span class="text-secondary font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
+                        <strong>Selling Price:</strong> <span class="text-success font-weight-bold">₱' . number_format($sellingPrice, 2) . '</span><br>
+                        <strong>Markup:</strong> <span class="text-info font-weight-bold">₱' . number_format($markup, 2) . ' (' . $markupPct . '%)</span><br>
+                        <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span>
+                    </small>',
                             'quantity' => $order->quantity,
                             'status'   => 'Outflow',
                         ];
@@ -269,7 +280,6 @@ class ReportsController extends Controller
 
             // =====================================================
             // SECTION 3: DAMAGED / LOST
-            // Consumables only — stock_movements type = 'damage'/'loss'
             // =====================================================
             if (!$type || $type === 'damage') {
                 try {
@@ -293,12 +303,12 @@ class ReportsController extends Controller
                             'category_name' => '<span class="badge ' . $badgeColor . '">' . $statusName . '</span>',
                             'serial_number' => 'N/A',
                             'traceability'  => '<small>
-                            <strong>Type:</strong> ' . $statusName . '<br>
-                            <strong>Reason:</strong> ' . e($reasonLabel) . '<br>
-                            <strong>Supplier:</strong> ' . e($supplierName) . '<br>
-                            <strong>Recorded By:</strong> ' . e($movement->createdBy->full_name ?? 'N/A') . '<br>
-                            <strong>Remarks:</strong> ' . e($movement->remarks ?? 'No remarks') . '
-                        </small>',
+                        <strong>Type:</strong> ' . $statusName . '<br>
+                        <strong>Reason:</strong> ' . e($reasonLabel) . '<br>
+                        <strong>Supplier:</strong> ' . e($supplierName) . '<br>
+                        <strong>Recorded By:</strong> ' . e($movement->createdBy->full_name ?? 'N/A') . '<br>
+                        <strong>Remarks:</strong> ' . e($movement->remarks ?? 'No remarks') . '
+                    </small>',
                             'quantity' => $movement->quantity,
                             'status'   => $statusName,
                         ];
@@ -310,7 +320,6 @@ class ReportsController extends Controller
 
             // =====================================================
             // SECTION 4: LOW STOCK
-            // Consumables only — consumable_stocks table
             // =====================================================
             if (!$type || $type === 'low_stock') {
                 try {
@@ -335,14 +344,14 @@ class ReportsController extends Controller
 
                         $data[] = [
                             'product_name'  => '<strong style="font-size:15px;color:black;">' . e($productName) . '</strong><br>
-                            <span style="font-size:12px;color:#999;">SKU: ' . e($stock->product->system_sku ?? 'N/A') . '</span>',
+                        <span style="font-size:12px;color:#999;">SKU: ' . e($stock->product->system_sku ?? 'N/A') . '</span>',
                             'category_name' => '<span class="badge badge-warning">Low Stock</span>',
                             'traceability'  => '<small>
-                            <strong>Supplier:</strong> ' . e($supplierName) . '<br>
-                            <strong>Last Received:</strong> ' . $lastReceivedFormatted . '<br>
-                            <strong>Min Level:</strong> ' . $stock->min_stock_level . ' pcs<br>
-                            <strong>Reorder Needed:</strong> <span class="text-danger font-weight-bold">' . $reorderQty . ' pcs</span>
-                        </small>',
+                        <strong>Supplier:</strong> ' . e($supplierName) . '<br>
+                        <strong>Last Received:</strong> ' . $lastReceivedFormatted . '<br>
+                        <strong>Min Level:</strong> ' . $stock->min_stock_level . ' pcs<br>
+                        <strong>Reorder Needed:</strong> <span class="text-danger font-weight-bold">' . $reorderQty . ' pcs</span>
+                    </small>',
                             'quantity' => $qty,
                             'status'   => 'Low Stock',
                         ];
@@ -367,61 +376,6 @@ class ReportsController extends Controller
                 'data'            => [],
                 'error'           => $e->getMessage(),
             ], 500);
-        }
-    }
-
-
-    // =========================================================
-    // ✅ HINDI BINAGO — exportDaily()
-    // =========================================================
-    public function exportDaily(Request $request)
-    {
-        try {
-            $date = $request->get('date', Carbon::today()->toDateString());
-            return Excel::download(new DailyInventoryExport($date), "GYMNASTHENIQX_Daily_Report_{$date}.xlsx");
-        } catch (\Exception $e) {
-            return back()->with('error', 'Export error: ' . $e->getMessage());
-        }
-    }
-
-    // =========================================================
-    // ✅ HINDI BINAGO — approve() / reject()
-    // =========================================================
-    public function approve(Request $request, $id, $type)
-    {
-        try {
-            if ($type === 'pr') {
-                $pr = PurchaseRequest::findOrFail($id);
-                $pr->update(['status_id' => 2]);
-                return response()->json(['success' => true, 'message' => 'Purchase Request approved successfully!']);
-            } elseif ($type === 'po') {
-                $po = PurchaseOrder::findOrFail($id);
-                if ($po->purchaseRequest) {
-                    $po->purchaseRequest->update(['status_id' => 5]);
-                }
-                return response()->json(['success' => true, 'message' => 'Purchase Order approved successfully!']);
-            }
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
-        }
-    }
-
-    public function reject(Request $request, $id, $type)
-    {
-        try {
-            if ($type === 'pr') {
-                $pr = PurchaseRequest::findOrFail($id);
-                $pr->update(['status_id' => 3]);
-                return response()->json(['success' => true, 'message' => 'Purchase Request rejected!']);
-            } elseif ($type === 'po') {
-                $po = PurchaseOrder::findOrFail($id);
-                if ($po->purchaseRequest) {
-                    $po->purchaseRequest->update(['status_id' => 8]);
-                }
-                return response()->json(['success' => true, 'message' => 'Purchase Order rejected!']);
-            }
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
         }
     }
 
