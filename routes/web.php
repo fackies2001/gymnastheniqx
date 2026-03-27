@@ -101,6 +101,14 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session'])->group(funct
         ]);
     });
 
+    // ✅ TEMPORARY FIX ROUTE — tanggalin pagkatapos gamitin!
+    Route::get('/fix-stock-temp', function () {
+        \App\Models\ConsumableStock::where('product_id', 21)
+            ->update(['current_qty' => 9]);
+
+        return 'Fixed! current_qty is now 9. DELETE THIS ROUTE NOW!';
+    });
+
     Route::get('/test-user-methods', function () {
         $user = Auth::user();
         return response()->json([

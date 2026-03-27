@@ -296,18 +296,16 @@
                     url: "{{ route('consumables.report-incident') }}",
                     method: 'POST',
                     data: $('#reportIncidentForm').serialize(),
-                    success: function(res) {
-                        if (res.success) {
-                            toastr.success(res.message);
-                            $('#reportIncidentModal').modal('hide');
-                            $('#movement_table').DataTable().ajax.reload();
-                            // ✅ Reload page para ma-update ang stock count sa left card
-                            setTimeout(() => location.reload(), 1500);
+                    success: function(response) {
+                        if (response.success) {
+                            Swal.fire('Success!', response.message, 'success')
+                                .then(() => location
+                            .reload()); // ← reload para makita ang updated qty
                         }
                     },
                     error: function(xhr) {
-                        toastr.error(xhr.responseJSON?.message ?? 'May error na nangyari.');
-                    },
+                        Swal.fire('Error!', 'Something went wrong.', 'error');
+                    }
                     complete: function() {
                         $('#submitIncident').prop('disabled', false)
                             .html('<i class="fas fa-save"></i> Submit Report');
