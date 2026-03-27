@@ -300,12 +300,12 @@
                         if (response.success) {
                             Swal.fire('Success!', response.message, 'success')
                                 .then(() => location
-                            .reload()); // ← reload para makita ang updated qty
+                                    .reload()); // ← reload para makita ang updated qty
                         }
                     },
                     error: function(xhr) {
                         Swal.fire('Error!', 'Something went wrong.', 'error');
-                    }
+                    }, // ← COMMA!
                     complete: function() {
                         $('#submitIncident').prop('disabled', false)
                             .html('<i class="fas fa-save"></i> Submit Report');
@@ -323,13 +323,13 @@
                     data: $('#adjustForm').serialize(),
                     success: function(res) {
                         if (res.success) {
-                            toastr.success(res.message);
-                            $('#adjustModal').modal('hide');
-                            setTimeout(() => location.reload(), 1500);
+                            Swal.fire('Success!', res.message, 'success')
+                                .then(() => location.reload());
                         }
                     },
                     error: function(xhr) {
-                        toastr.error(xhr.responseJSON?.message ?? 'May error na nangyari.');
+                        Swal.fire('Error!', xhr.responseJSON?.message ??
+                            'May error na nangyari.', 'error');
                     },
                     complete: function() {
                         $('#submitAdjust').prop('disabled', false)

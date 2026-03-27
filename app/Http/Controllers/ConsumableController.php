@@ -97,19 +97,19 @@ class ConsumableController extends Controller
                 'created_by'        => auth()->id(),
             ]);
 
-            // ✅ If may defective on arrival
-            StockMovement::record([
-                'product_id'   => $request->product_id,
-                'warehouse_id' => $warehouseId,
-                'type'         => StockMovement::TYPE_ADJUSTMENT,
-                'quantity'     => $difference,
-                'reason_type'  => StockMovement::REASON_CORRECTION,
-                'remarks'      => $request->remarks . " (System: {$stock->current_qty}, Actual: {$request->actual_qty})",
-                'created_by'   => auth()->id(),
-            ]);
-
-            // ✅ DAGDAG — i-update ang actual current_qty
-            $stock->update(['current_qty' => $request->actual_qty]);
+            // ✅ If may defective on arrival — i-record agad as DAMAGE
+            if ($defectiveQty > 0) {
+                StockMovement::record([
+                    'product_id'        => $request->product_id,
+                    'warehouse_id'      => $warehouseId,
+                    'type'              => StockMovement::TYPE_DAMAGE,
+                    'quantity'          => $defectiveQty,
+                    'reason_type'       => StockMovement::REASON_DOA,
+                    'remarks'           => 'Defective on arrival — PO#' . $request->purchase_order_id,
+                    'purchase_order_id' => $request->purchase_order_id,
+                    'created_by'        => auth()->id(),
+                ]);
+            }
 
             return response()->json([
                 'success'      => true,
@@ -119,7 +119,7 @@ class ConsumableController extends Controller
                 'doa_recorded' => $defectiveQty,
             ]);
         });
-    }
+    }   
 
     // ─────────────────────────────────────────────────────────
     // STOCK OUT — Ibinenta sa retailer
@@ -193,12 +193,13 @@ class ConsumableController extends Controller
         // ✅ AYOS — huwag i-block ang damage/loss report kahit kulang ang stock
         // Pwedeng mag-report ng nasira kahit 0 na ang stock
         // (example: binilang mo na sira bago pa ma-receive ng system)
+        $actualQty = \App\Models\SerializedProduct::where('product_id', $request->product_id)
+            ->where('status', 1)
+            ->count();
+
         $stock = ConsumableStock::firstOrCreate(
-            [
-                'product_id'   => $request->product_id,
-                'warehouse_id' => $warehouseId,
-            ],
-            ['current_qty' => 0, 'min_stock_level' => 20]
+            ['product_id' => $request->product_id, 'warehouse_id' => $warehouseId],
+            ['current_qty' => $actualQty, 'min_stock_level' => 20]
         );
 
         StockMovement::record([

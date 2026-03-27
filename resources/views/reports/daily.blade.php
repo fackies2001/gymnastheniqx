@@ -299,7 +299,7 @@
                         if (status === 'received') receivedCount += qty;
                         else if (status === 'outflow') outflowCount += qty;
                         else if (status === 'damaged' || status === 'lost') damagedCount += qty;
-                        else if (status === 'low stock') lowStockCount += qty;
+                        else if (status === 'low stock') lowStockCount++;
                     });
 
                     // ✅ Only update cards if NOT filtering by specific type
