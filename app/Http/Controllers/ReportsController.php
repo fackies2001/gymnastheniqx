@@ -335,7 +335,7 @@ class ReportsController extends Controller
                     foreach ($lowConsumables as $stock) {
                         $productName  = $stock->product->name           ?? 'Unnamed Product';
                         $supplierName = $stock->product->supplier->name ?? 'N/A';
-                        $qty          = $stock->current_qty;
+                        $qty = max(0, $stock->current_qty);
                         $reorderQty   = max(0, $stock->min_stock_level - $qty);
 
                         $lastReceived = StockMovement::where('product_id', $stock->product_id)

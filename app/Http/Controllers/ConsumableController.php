@@ -98,18 +98,18 @@ class ConsumableController extends Controller
             ]);
 
             // ✅ If may defective on arrival
-            if ($defectiveQty > 0) {
-                StockMovement::record([
-                    'product_id'        => $request->product_id,
-                    'warehouse_id'      => $warehouseId,
-                    'type'              => StockMovement::TYPE_DAMAGE,
-                    'quantity'          => $defectiveQty,
-                    'reason_type'       => StockMovement::REASON_DOA,
-                    'remarks'           => 'Defective on arrival — PO#' . $request->purchase_order_id,
-                    'purchase_order_id' => $request->purchase_order_id,
-                    'created_by'        => auth()->id(),
-                ]);
-            }
+            StockMovement::record([
+                'product_id'   => $request->product_id,
+                'warehouse_id' => $warehouseId,
+                'type'         => StockMovement::TYPE_ADJUSTMENT,
+                'quantity'     => $difference,
+                'reason_type'  => StockMovement::REASON_CORRECTION,
+                'remarks'      => $request->remarks . " (System: {$stock->current_qty}, Actual: {$request->actual_qty})",
+                'created_by'   => auth()->id(),
+            ]);
+
+            // ✅ DAGDAG — i-update ang actual current_qty
+            $stock->update(['current_qty' => $request->actual_qty]);
 
             return response()->json([
                 'success'      => true,
