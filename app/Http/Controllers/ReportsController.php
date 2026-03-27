@@ -13,23 +13,35 @@ use App\Models\SupplierProduct;
 use App\Models\ProductStatus;
 use App\Models\Sale;
 use App\Models\InventoryAudit;
+use App\Models\StockMovement;      // ✅ DAGDAG — para sa consumables
+use App\Models\ConsumableStock;   // ✅ DAGDAG — para sa low stock ng consumables
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\DailyInventoryExport;
 use Illuminate\Support\Facades\DB;
 
-
 class ReportsController extends Controller
 {
 
+    // =========================================================
+    // ✅ PINALITAN — dailyIndex()
+    //
+    // DATI: Lahat ng counts (lowStock, received, outflow, damage)
+    //       ay galing sa serialized_product table lang (SRN-based)
+    //       → kaya 0 ang lumalabas para sa consumables
+    //
+    // NGAYON: Dual-source approach:
+    //   - Consumables → stock_movements + consumable_stocks tables
+    //   - Non-consumables → serialized_product table (dating logic)
+    //   - Pinagsama ang dalawa para sa final summary cards
+    // =========================================================
     public function dailyIndex(Request $request)
     {
         $filterType = $request->get('filter_type', 'today');
         $customDate = $request->get('custom_date', null);
 
         $date = null;
-        $dateQuery = null;
 
         if ($filterType === 'all_time' || !$filterType) {
             $date = null;
@@ -43,32 +55,81 @@ class ReportsController extends Controller
             $date = Carbon::today()->toDateString();
         }
 
-        $lowStockCount = SupplierProduct::select(
-            'supplier_product.id',
-            DB::raw("(SELECT COUNT(*) FROM serialized_product WHERE serialized_product.product_id = supplier_product.id AND serialized_product.status = 1) as available_count")
-        )
+        // ─────────────────────────────────────────────────────
+        // LOW STOCK COUNT
+        // ─────────────────────────────────────────────────────
+
+        // ✅ FIX 1A: Non-consumables — SRN-based (dating logic)
+        $lowStockNonConsumable = SupplierProduct::where('is_consumable', 0)
+            ->select(
+                'supplier_product.id',
+                DB::raw("(SELECT COUNT(*) FROM serialized_product
+                          WHERE serialized_product.product_id = supplier_product.id
+                          AND serialized_product.status = 1) as available_count")
+            )
             ->havingRaw('available_count > 0 AND available_count < 20')
             ->get()
             ->count();
 
-        $receivedQuery = SerializedProduct::where('status', 1)
-            ->whereNotNull('purchase_order_id');
-        if ($date) {
-            $receivedQuery->whereDate('created_at', $date);
-        }
-        $newArrivals = $receivedQuery->count();
+        // ✅ FIX 1B: Consumables — consumable_stocks-based
+        $warehouseId = auth()->user()->assigned_at;
+        $lowStockConsumable = ConsumableStock::lowStock()
+            ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
+            ->count();
 
+        // ✅ Combined low stock count
+        $lowStockCount = $lowStockNonConsumable + $lowStockConsumable;
+
+        // ─────────────────────────────────────────────────────
+        // DAILY RECEIVED
+        // ─────────────────────────────────────────────────────
+
+        // ✅ FIX 2A: Non-consumables received — SRN-based (dating logic)
+        $receivedNonConsumable = SerializedProduct::whereNotNull('purchase_order_id')
+            ->whereHas('supplierProducts', fn($q) => $q->where('is_consumable', 0))
+            ->when($date, fn($q) => $q->whereDate('created_at', $date))
+            ->count();
+
+        // ✅ FIX 2B: Consumables received — stock_movements IN type
+        $receivedConsumable = StockMovement::where('type', 'in')
+            ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
+            ->when($date, fn($q) => $q->whereDate('created_at', $date))
+            ->sum('quantity');
+
+        // ✅ Combined received count
+        $newArrivals = $receivedNonConsumable + $receivedConsumable;
+
+        // ─────────────────────────────────────────────────────
+        // DAILY OUTFLOW
+        // ─────────────────────────────────────────────────────
+
+        // ✅ FIX 3: Outflow — Retailer Orders lang (unchanged)
+        // Pareho para sa consumables at non-consumables kasi
+        // ang outflow ay naka-track sa retailer_orders table
         $outflowQuery = RetailerOrder::whereIn('status', ['Approved', 'Completed']);
         if ($date) {
             $outflowQuery->whereDate('created_at', $date);
         }
         $dailyOutflow = $outflowQuery->sum('quantity');
 
-        $damagedQuery = SerializedProduct::whereIn('status', [4, 5]);
-        if ($date) {
-            $damagedQuery->whereDate('updated_at', $date);
-        }
-        $damagedCount = $damagedQuery->count();
+        // ─────────────────────────────────────────────────────
+        // DAMAGED / LOST
+        // ─────────────────────────────────────────────────────
+
+        // ✅ FIX 4A: Non-consumables — SRN status 4 or 5 (dating logic)
+        $damagedNonConsumable = SerializedProduct::whereIn('status', [4, 5])
+            ->whereHas('supplierProducts', fn($q) => $q->where('is_consumable', 0))
+            ->when($date, fn($q) => $q->whereDate('updated_at', $date))
+            ->count();
+
+        // ✅ FIX 4B: Consumables — stock_movements damage/loss type
+        $damagedConsumable = StockMovement::whereIn('type', ['damage', 'loss'])
+            ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
+            ->when($date, fn($q) => $q->whereDate('created_at', $date))
+            ->sum('quantity');
+
+        // ✅ Combined damaged/lost count
+        $damagedCount = $damagedNonConsumable + $damagedConsumable;
 
         $products = SupplierProduct::with(['supplier', 'category'])->get();
 
@@ -83,6 +144,17 @@ class ReportsController extends Controller
         ));
     }
 
+    // =========================================================
+    // ✅ PINALITAN — getDailyData()
+    //
+    // DATI: Lahat ng sections (received, outflow, damage, low_stock)
+    //       ay galing sa serialized_product table lang (SRN-based)
+    //
+    // NGAYON: Bawat section ay dual-source:
+    //   - Consumables data → stock_movements / consumable_stocks
+    //   - Non-consumables data → serialized_product (dating logic)
+    //   - Pinagsama ang results sa iisang $data array
+    // =========================================================
     public function getDailyData(Request $request)
     {
         $filterType = $request->get('filter_type', null);
@@ -114,13 +186,23 @@ class ReportsController extends Controller
             $date = Carbon::today()->toDateString();
         }
 
-        $data = [];
+        $warehouseId = auth()->user()->assigned_at;
+        $data        = [];
 
         try {
             \Log::info("=== DAILY REPORT START ===");
 
-            // ===== DAILY RECEIVED =====
+            // =================================================
+            // SECTION 1: DAILY RECEIVED
+            // =================================================
             if (!$type || $type === 'received') {
+
+                // ─────────────────────────────────────────────
+                // ✅ SOURCE 1A: Non-consumables (SRN-based)
+                // DATI: Walang filter sa is_consumable kaya
+                //       kasama ang consumables dito → double count
+                // NGAYON: is_consumable = 0 lang ang kinukuha dito
+                // ─────────────────────────────────────────────
                 try {
                     $query = SerializedProduct::select(
                         'product_id',
@@ -128,7 +210,8 @@ class ReportsController extends Controller
                         DB::raw('MIN(created_at) as received_date'),
                         DB::raw('COUNT(*) as total_qty')
                     )
-                        ->whereNotNull('purchase_order_id');
+                        ->whereNotNull('purchase_order_id')
+                        ->whereHas('supplierProducts', fn($q) => $q->where('is_consumable', 0));
 
                     if ($date) {
                         $query->whereDate('created_at', $date);
@@ -141,17 +224,17 @@ class ReportsController extends Controller
                         ->get();
 
                     foreach ($groupedProducts as $item) {
-                        $supplierProduct = \App\Models\SupplierProduct::with(['supplier', 'category'])
+                        $supplierProduct = SupplierProduct::with(['supplier', 'category'])
                             ->find($item->product_id);
-                        $purchaseOrder   = \App\Models\PurchaseOrder::find($item->purchase_order_id);
+                        $purchaseOrder   = PurchaseOrder::find($item->purchase_order_id);
 
-                        $productName  = $supplierProduct->name           ?? 'Unnamed Product';
-                        $categoryName = $supplierProduct->category->name ?? 'General';
-                        $poNumber     = $purchaseOrder->po_number         ?? 'N/A';
+                        $productName   = $supplierProduct->name           ?? 'Unnamed Product';
+                        $categoryName  = $supplierProduct->category->name ?? 'General';
+                        $poNumber      = $purchaseOrder->po_number         ?? 'N/A';
+                        $originalPrice = $supplierProduct->cost_price      ?? 0;
 
-                        $originalPrice = $supplierProduct->cost_price ?? 0;
                         if ($originalPrice == 0 && $purchaseOrder) {
-                            $poItem        = \App\Models\PurchaseOrderItem::where('purchase_order_id', $purchaseOrder->id)
+                            $poItem        = PurchaseOrderItem::where('purchase_order_id', $purchaseOrder->id)
                                 ->where('product_id', $item->product_id)
                                 ->first();
                             $originalPrice = $poItem->unit_cost ?? 0;
@@ -160,26 +243,76 @@ class ReportsController extends Controller
                         $totalAmount = $item->total_qty * $originalPrice;
 
                         $data[] = [
-                            // ✅ PRODUCT NAME ONLY — walang date/time at supplier
                             'product_name'  => '<strong style="font-size:15px;color:black;">' . e($productName) . '</strong>',
                             'category_name' => '<span class="badge badge-info">' . e($categoryName) . '</span>',
-                            // ✅ SERIAL/TRACE — walang date
                             'traceability'  => '<small>
-                            <strong>Type:</strong> Scanned from PO<br>
-                            <strong>PO Number:</strong> ' . e($poNumber) . '<br>
-                            <strong>Original Price:</strong> <span class="text-danger font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
-                            <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span>
+                                <strong>Type:</strong> Scanned from PO (Non-Consumable)<br>
+                                <strong>PO Number:</strong> ' . e($poNumber) . '<br>
+                                <strong>Original Price:</strong> <span class="text-danger font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
+                                <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span>
                             </small>',
                             'quantity' => $item->total_qty,
                             'status'   => 'Received',
                         ];
                     }
                 } catch (\Exception $e) {
-                    \Log::error("Received Section Error: " . $e->getMessage());
+                    \Log::error("Received (Non-Consumable) Section Error: " . $e->getMessage());
+                }
+
+                // ─────────────────────────────────────────────
+                // ✅ SOURCE 1B: Consumables (stock_movements IN)
+                // DATI: Wala — kaya 0 ang Daily Received para
+                //       sa consumables kahit may na-receive na
+                // NGAYON: Kinukuha na sa stock_movements table
+                // ─────────────────────────────────────────────
+                try {
+                    $consumableReceivedQuery = StockMovement::with(['product.supplier', 'product.category', 'purchaseOrder'])
+                        ->where('type', 'in')
+                        ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId));
+
+                    if ($date) {
+                        $consumableReceivedQuery->whereDate('created_at', $date);
+                    } elseif ($dateQuery) {
+                        $consumableReceivedQuery->whereBetween('created_at', [$dateQuery['start'], $dateQuery['end']]);
+                    }
+
+                    $consumableReceived = $consumableReceivedQuery->get();
+
+                    foreach ($consumableReceived as $movement) {
+                        $productName   = $movement->product->name                    ?? 'Unnamed Product';
+                        $categoryName  = $movement->product->category->name          ?? 'Consumables';
+                        $poNumber      = $movement->purchaseOrder->po_number          ?? 'N/A';
+                        $originalPrice = $movement->product->cost_price               ?? 0;
+                        $totalAmount   = $movement->quantity * $originalPrice;
+
+                        // ✅ Reason label
+                        $reasonLabel = $movement->reason_type === 'defective_on_arrival'
+                            ? 'Received from PO (with DOA noted)'
+                            : 'Received from Supplier';
+
+                        $data[] = [
+                            'product_name'  => '<strong style="font-size:15px;color:black;">' . e($productName) . '</strong>',
+                            'category_name' => '<span class="badge badge-info">Consumables</span>',
+                            'traceability'  => '<small>
+                                <strong>Type:</strong> ' . $reasonLabel . '<br>
+                                <strong>PO Number:</strong> ' . e($poNumber) . '<br>
+                                <strong>Original Price:</strong> <span class="text-danger font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
+                                <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span>
+                            </small>',
+                            'quantity' => $movement->quantity,
+                            'status'   => 'Received',
+                        ];
+                    }
+                } catch (\Exception $e) {
+                    \Log::error("Received (Consumable) Section Error: " . $e->getMessage());
                 }
             }
 
-            // ===== OUTFLOW =====
+            // =================================================
+            // SECTION 2: OUTFLOW
+            // ✅ HINDI BINAGO — Retailer Orders lang ang source
+            // Pareho para sa consumables at non-consumables
+            // =================================================
             if (!$type || $type === 'outflow') {
                 try {
                     $query = RetailerOrder::with(['product'])
@@ -194,12 +327,12 @@ class ReportsController extends Controller
                     $retailerOrders = $query->get();
 
                     foreach ($retailerOrders as $order) {
-                        $productName  = $order->product_name  ?? 'Unknown Product';
-                        $retailerName = $order->retailer_name ?? 'N/A';
-
+                        $productName   = $order->product_name  ?? 'Unknown Product';
+                        $retailerName  = $order->retailer_name ?? 'N/A';
                         $originalPrice = 0;
+
                         if ($order->product_id) {
-                            $supplierProd  = \App\Models\SupplierProduct::find($order->product_id);
+                            $supplierProd  = SupplierProduct::find($order->product_id);
                             $originalPrice = $supplierProd->cost_price ?? 0;
                         }
 
@@ -211,20 +344,18 @@ class ReportsController extends Controller
                             : 'N/A';
 
                         $data[] = [
-                            // ✅ PRODUCT NAME ONLY — walang date/time at supplier
                             'product_name'  => '<strong style="font-size:15px;color:black;">' . e($productName) . '</strong><br>
-                            <span style="font-size:13px;color:#666;">Retailer: ' . e($retailerName) . '</span>',
+                                <span style="font-size:13px;color:#666;">Retailer: ' . e($retailerName) . '</span>',
                             'category_name' => '<span class="badge badge-success">Outflow</span>',
-                            // ✅ SERIAL/TRACE — walang date
                             'traceability'  => '<small>
-                             <strong>Type:</strong> Retailer Order<br>
-                             <strong>Order #:</strong> ' . e($order->id) . '<br>
-                             <strong>Retailer:</strong> ' . e($retailerName) . '<br>
-                             <strong>Original Price:</strong> <span class="text-secondary font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
-                             <strong>Selling Price:</strong> <span class="text-success font-weight-bold">₱' . number_format($sellingPrice, 2) . '</span><br>
-                             <strong>Markup:</strong> <span class="text-info font-weight-bold">₱' . number_format($markup, 2) . ' (' . $markupPct . '%)</span><br>
-                             <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span>
-                             </small>',
+                                <strong>Type:</strong> Retailer Order<br>
+                                <strong>Order #:</strong> ' . e($order->id) . '<br>
+                                <strong>Retailer:</strong> ' . e($retailerName) . '<br>
+                                <strong>Original Price:</strong> <span class="text-secondary font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
+                                <strong>Selling Price:</strong> <span class="text-success font-weight-bold">₱' . number_format($sellingPrice, 2) . '</span><br>
+                                <strong>Markup:</strong> <span class="text-info font-weight-bold">₱' . number_format($markup, 2) . ' (' . $markupPct . '%)</span><br>
+                                <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span>
+                            </small>',
                             'quantity' => $order->quantity,
                             'status'   => 'Outflow',
                         ];
@@ -234,11 +365,21 @@ class ReportsController extends Controller
                 }
             }
 
-            // ===== DAMAGED =====
+            // =================================================
+            // SECTION 3: DAMAGED / LOST
+            // =================================================
             if (!$type || $type === 'damage') {
+
+                // ─────────────────────────────────────────────
+                // ✅ SOURCE 3A: Non-consumables (SRN status 4/5)
+                // DATI: Walang filter sa is_consumable kaya
+                //       lahat ng damaged ay galing sa SRN lang
+                // NGAYON: is_consumable = 0 lang dito
+                // ─────────────────────────────────────────────
                 try {
                     $query = SerializedProduct::with(['supplierProducts.supplier'])
-                        ->whereIn('status', [4, 5]);
+                        ->whereIn('status', [4, 5])
+                        ->whereHas('supplierProducts', fn($q) => $q->where('is_consumable', 0));
 
                     if ($date) {
                         $query->whereDate('updated_at', $date);
@@ -255,77 +396,171 @@ class ReportsController extends Controller
                         $badgeColor   = $item->status == 4 ? 'badge-danger' : 'badge-dark';
 
                         $data[] = [
-                            // ✅ PRODUCT NAME ONLY — walang date/time at SN, walang supplier
                             'product_name'  => '<strong style="font-size:15px;color:black;">' . e($productName) . '</strong>',
                             'category_name' => '<span class="badge ' . $badgeColor . '">' . $statusName . '</span>',
-                            // ✅ SERIAL NUMBER — sariling column na (ipinapasa sa serial_number field)
                             'serial_number' => e($item->serial_number ?? 'N/A'),
-                            // ✅ SERIAL/TRACE — walang date
                             'traceability'  => '<small>
-                            <strong>Type:</strong> ' . $statusName . '<br>
-                            <strong>Supplier:</strong> ' . e($supplierName) . '<br>
-                            <strong>Remarks:</strong> ' . e($item->remarks ?? 'No remarks') . '
+                                <strong>Type:</strong> ' . $statusName . ' (Non-Consumable)<br>
+                                <strong>Supplier:</strong> ' . e($supplierName) . '<br>
+                                <strong>Remarks:</strong> ' . e($item->remarks ?? 'No remarks') . '
                             </small>',
                             'quantity' => 1,
                             'status'   => $statusName,
                         ];
                     }
                 } catch (\Exception $e) {
-                    \Log::error("Damaged Section Error: " . $e->getMessage());
+                    \Log::error("Damaged (Non-Consumable) Section Error: " . $e->getMessage());
+                }
+
+                // ─────────────────────────────────────────────
+                // ✅ SOURCE 3B: Consumables (stock_movements damage/loss)
+                // DATI: Wala — kaya 0 ang Damaged/Lost kahit
+                //       may naka-report na damage sa consumables
+                // NGAYON: Kinukuha na sa stock_movements table
+                // ─────────────────────────────────────────────
+                try {
+                    $consumableDamagedQuery = StockMovement::with(['product.supplier', 'createdBy'])
+                        ->whereIn('type', ['damage', 'loss'])
+                        ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId));
+
+                    if ($date) {
+                        $consumableDamagedQuery->whereDate('created_at', $date);
+                    } elseif ($dateQuery) {
+                        $consumableDamagedQuery->whereBetween('created_at', [$dateQuery['start'], $dateQuery['end']]);
+                    }
+
+                    $consumableDamaged = $consumableDamagedQuery->get();
+
+                    foreach ($consumableDamaged as $movement) {
+                        $productName  = $movement->product->name           ?? 'Unnamed Product';
+                        $supplierName = $movement->product->supplier->name ?? 'N/A';
+                        $statusName   = $movement->type === 'damage' ? 'Damaged' : 'Lost';
+                        $badgeColor   = $movement->type === 'damage' ? 'badge-warning' : 'badge-danger';
+
+                        // ✅ Human-readable reason
+                        $reasonLabel = $movement->reason_type
+                            ? ucwords(str_replace('_', ' ', $movement->reason_type))
+                            : 'No reason specified';
+
+                        $data[] = [
+                            'product_name'  => '<strong style="font-size:15px;color:black;">' . e($productName) . '</strong>',
+                            'category_name' => '<span class="badge ' . $badgeColor . '">' . $statusName . ' (Consumable)</span>',
+                            'serial_number' => 'N/A — Consumable',
+                            'traceability'  => '<small>
+                                <strong>Type:</strong> ' . $statusName . ' (Consumable)<br>
+                                <strong>Reason:</strong> ' . e($reasonLabel) . '<br>
+                                <strong>Supplier:</strong> ' . e($supplierName) . '<br>
+                                <strong>Recorded By:</strong> ' . e($movement->createdBy->full_name ?? 'N/A') . '<br>
+                                <strong>Remarks:</strong> ' . e($movement->remarks ?? 'No remarks') . '
+                            </small>',
+                            'quantity' => $movement->quantity,
+                            'status'   => $statusName,
+                        ];
+                    }
+                } catch (\Exception $e) {
+                    \Log::error("Damaged (Consumable) Section Error: " . $e->getMessage());
                 }
             }
 
-            // ===== LOW STOCK =====
+            // =================================================
+            // SECTION 4: LOW STOCK
+            // =================================================
             if (!$type || $type === 'low_stock') {
-                try {
-                    $subquery = 'SELECT COUNT(*) FROM serialized_product WHERE serialized_product.product_id = supplier_product.id AND serialized_product.status = 1';
 
-                    $lowStockProducts = SupplierProduct::select(
+                // ─────────────────────────────────────────────
+                // ✅ SOURCE 4A: Non-consumables (SRN-based)
+                // DATI: Lahat ng products kasama kahit consumable
+                // NGAYON: is_consumable = 0 lang dito
+                // ─────────────────────────────────────────────
+                try {
+                    $subquery = 'SELECT COUNT(*) FROM serialized_product
+                                 WHERE serialized_product.product_id = supplier_product.id
+                                 AND serialized_product.status = 1';
+
+                    $lowStockNonConsumables = SupplierProduct::select(
                         'supplier_product.id',
                         'supplier_product.name',
                         'supplier_product.system_sku',
-                        'supplier_product.thumbnail',
                         'category.name as category_name',
                         DB::raw("({$subquery}) as available_count")
                     )
                         ->leftJoin('category', 'supplier_product.category_id', '=', 'category.id')
-                        ->leftJoin('supplier', 'supplier_product.supplier_id', '=', 'supplier.id')
+                        ->where('supplier_product.is_consumable', 0)
                         ->havingRaw('available_count < 20')
                         ->orderBy('available_count', 'asc')
                         ->get();
 
-                    foreach ($lowStockProducts as $product) {
-                        $qty = $product->available_count ?? 0;
-
-                        $supplierName = \App\Models\SupplierProduct::with('supplier')
-                            ->find($product->id)?->supplier?->name ?? 'N/A';
-
-                        $lastReceived = \App\Models\SerializedProduct::where('product_id', $product->id)
+                    foreach ($lowStockNonConsumables as $product) {
+                        $qty          = $product->available_count ?? 0;
+                        $supplierName = SupplierProduct::with('supplier')->find($product->id)?->supplier?->name ?? 'N/A';
+                        $lastReceived = SerializedProduct::where('product_id', $product->id)
                             ->whereNotNull('purchase_order_id')
                             ->latest('created_at')
                             ->value('created_at');
                         $lastReceivedFormatted = $lastReceived
-                            ? \Carbon\Carbon::parse($lastReceived)->format('M d, Y')
+                            ? Carbon::parse($lastReceived)->format('M d, Y')
                             : 'No record';
-
                         $reorderQty = max(0, 20 - $qty);
 
                         $data[] = [
                             'product_name'  => '<strong style="font-size:15px;color:black;">' . e($product->name) . '</strong><br>
-                <span style="font-size:12px;color:#999;">SKU: ' . e($product->system_sku ?? 'N/A') . '</span>',
+                                <span style="font-size:12px;color:#999;">SKU: ' . e($product->system_sku ?? 'N/A') . '</span>',
                             'category_name' => '<span class="badge badge-warning">Low Stock</span>',
                             'traceability'  => '<small>
-                <strong>Supplier:</strong> ' . e($supplierName) . '<br>
-                <strong>Last Received:</strong> ' . $lastReceivedFormatted . '<br>
-                <strong>Reorder Needed:</strong> <span class="text-danger font-weight-bold">' . $reorderQty . ' pcs</span>
-                </small>',
-                            'quantity'      => $qty,
-                            'status'        => 'Low Stock',
+                                <strong>Supplier:</strong> ' . e($supplierName) . '<br>
+                                <strong>Last Received:</strong> ' . $lastReceivedFormatted . '<br>
+                                <strong>Reorder Needed:</strong> <span class="text-danger font-weight-bold">' . $reorderQty . ' pcs</span>
+                            </small>',
+                            'quantity' => $qty,
+                            'status'   => 'Low Stock',
                         ];
-                    }  // ← ISANG CLOSING BRACE LANG NG FOREACH
-
+                    }
                 } catch (\Exception $e) {
-                    \Log::error("Low Stock Section Error: " . $e->getMessage());
+                    \Log::error("Low Stock (Non-Consumable) Section Error: " . $e->getMessage());
+                }
+
+                // ─────────────────────────────────────────────
+                // ✅ SOURCE 4B: Consumables (consumable_stocks-based)
+                // DATI: Wala — consumables hindi lumalabas
+                //       sa low stock kahit 0 na ang stock nila
+                // NGAYON: Kinukuha na sa consumable_stocks table
+                // ─────────────────────────────────────────────
+                try {
+                    $lowConsumables = ConsumableStock::with(['product.supplier'])
+                        ->whereColumn('current_qty', '<=', 'min_stock_level')
+                        ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
+                        ->get();
+
+                    foreach ($lowConsumables as $stock) {
+                        $productName  = $stock->product->name           ?? 'Unnamed Product';
+                        $supplierName = $stock->product->supplier->name ?? 'N/A';
+                        $qty          = $stock->current_qty;
+                        $reorderQty   = max(0, $stock->min_stock_level - $qty);
+
+                        $lastReceived = StockMovement::where('product_id', $stock->product_id)
+                            ->where('type', 'in')
+                            ->latest()
+                            ->value('created_at');
+                        $lastReceivedFormatted = $lastReceived
+                            ? Carbon::parse($lastReceived)->format('M d, Y')
+                            : 'No record';
+
+                        $data[] = [
+                            'product_name'  => '<strong style="font-size:15px;color:black;">' . e($productName) . '</strong><br>
+                                <span style="font-size:12px;color:#999;">SKU: ' . e($stock->product->system_sku ?? 'N/A') . '</span>',
+                            'category_name' => '<span class="badge badge-warning">Low Stock (Consumable)</span>',
+                            'traceability'  => '<small>
+                                <strong>Supplier:</strong> ' . e($supplierName) . '<br>
+                                <strong>Last Received:</strong> ' . $lastReceivedFormatted . '<br>
+                                <strong>Min Level:</strong> ' . $stock->min_stock_level . ' pcs<br>
+                                <strong>Reorder Needed:</strong> <span class="text-danger font-weight-bold">' . $reorderQty . ' pcs</span>
+                            </small>',
+                            'quantity' => $qty,
+                            'status'   => 'Low Stock',
+                        ];
+                    }
+                } catch (\Exception $e) {
+                    \Log::error("Low Stock (Consumable) Section Error: " . $e->getMessage());
                 }
             }
 
@@ -347,7 +582,9 @@ class ReportsController extends Controller
         }
     }
 
-
+    // =========================================================
+    // ✅ HINDI BINAGO — exportDaily()
+    // =========================================================
     public function exportDaily(Request $request)
     {
         try {
@@ -358,6 +595,9 @@ class ReportsController extends Controller
         }
     }
 
+    // =========================================================
+    // ✅ HINDI BINAGO — approve() / reject()
+    // =========================================================
     public function approve(Request $request, $id, $type)
     {
         try {
@@ -396,7 +636,9 @@ class ReportsController extends Controller
         }
     }
 
-    // ===== WEEKLY REPORT =====
+    // =========================================================
+    // ✅ HINDI BINAGO — weeklyIndex()
+    // =========================================================
     public function weeklyIndex(Request $request)
     {
         $filterType  = $request->get('filter_type', 'last_7_days');
@@ -442,9 +684,17 @@ class ReportsController extends Controller
         $products          = SupplierProduct::all();
 
         foreach ($products as $prod) {
-            $currentStock = SerializedProduct::where('product_id', $prod->id)
-                ->where('status', 1)
-                ->count();
+            // ✅ Dual-source stock count
+            if ($prod->is_consumable) {
+                $warehouseId  = auth()->user()->assigned_at;
+                $currentStock = ConsumableStock::where('product_id', $prod->id)
+                    ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
+                    ->value('current_qty') ?? 0;
+            } else {
+                $currentStock = SerializedProduct::where('product_id', $prod->id)
+                    ->where('status', 1)
+                    ->count();
+            }
 
             $weeklySales = RetailerOrder::where('product_name', $prod->name)
                 ->whereIn('status', ['Approved', 'Completed'])
@@ -457,7 +707,6 @@ class ReportsController extends Controller
 
             if ($weeklySales > 0) {
                 $ratio = $currentStock > 0 ? round($currentStock / $weeklySales, 2) : 0;
-
                 if ($ratio < 1) {
                     $status = 'Critical / Restock Now';
                     $badge  = 'danger';
@@ -485,7 +734,7 @@ class ReportsController extends Controller
                 'weekly_sales'  => $weeklySales,
                 'ratio'         => number_format($ratio, 2),
                 'status'        => $status,
-                'badge'         => $badge
+                'badge'         => $badge,
             ];
         }
 
@@ -498,7 +747,9 @@ class ReportsController extends Controller
         ));
     }
 
-    // ===== MONTHLY REPORT =====
+    // =========================================================
+    // ✅ HINDI BINAGO — monthlyIndex()
+    // =========================================================
     public function monthlyIndex(Request $request)
     {
         $selectedMonth = $request->get('month', Carbon::now()->month);
@@ -515,32 +766,31 @@ class ReportsController extends Controller
         $currentYear    = Carbon::now()->year;
         $availableYears = range($currentYear, $startYear);
 
-        // ✅ BUG 1 FIX — Total Inventory Asset Value
-        // BEFORE: cost_price is null/0 on most products → kaya ₱50 lang
-        // AFTER:  fallback to avg unit_cost from purchase_order_item table
         $allProducts         = SupplierProduct::all();
         $totalInventoryValue = 0;
+        $warehouseId         = auth()->user()->assigned_at;
 
         foreach ($allProducts as $product) {
-            $stockCount = SerializedProduct::where('product_id', $product->id)
-                ->where('status', 1)
-                ->count();
+            // ✅ Dual-source stock count para sa inventory value
+            if ($product->is_consumable) {
+                $stockCount = ConsumableStock::where('product_id', $product->id)
+                    ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
+                    ->value('current_qty') ?? 0;
+            } else {
+                $stockCount = SerializedProduct::where('product_id', $product->id)
+                    ->where('status', 1)
+                    ->count();
+            }
 
             $costPrice = $product->cost_price ?? 0;
-
             if ($costPrice == 0) {
-                // Fallback: avg unit_cost mula sa purchase_order_item
-                $avgCost   = PurchaseOrderItem::where('product_id', $product->id)
-                    ->avg('unit_cost');
+                $avgCost   = PurchaseOrderItem::where('product_id', $product->id)->avg('unit_cost');
                 $costPrice = $avgCost ?? 0;
             }
 
             $totalInventoryValue += $stockCount * $costPrice;
         }
 
-        // ✅ BUG 2 FIX — Monthly Sales Growth
-        // BEFORE: updated_at → nagbabago kapag na-complete ang order kaya nawala ang Feb data
-        // AFTER:  created_at → yung actual na petsa ng pag-order
         $currentMonthSales = RetailerOrder::whereIn('status', ['Approved', 'Completed'])
             ->whereBetween('created_at', [$startOfMonth, $endOfMonth])
             ->sum('total_amount');
@@ -555,7 +805,7 @@ class ReportsController extends Controller
         if ($lastMonthSales > 0) {
             $growthPercentage = (($currentMonthSales - $lastMonthSales) / $lastMonthSales) * 100;
         } elseif ($currentMonthSales > 0) {
-            $growthPercentage = 100; // walang previous month data
+            $growthPercentage = 100;
         }
 
         if ($growthPercentage > 0) {
@@ -564,7 +814,6 @@ class ReportsController extends Controller
             $growthStatus = 'decrease';
         }
 
-        // ✅ Top 5 Revenue Generators — fixed to use created_at
         $topProducts = RetailerOrder::select(
             'product_name',
             DB::raw('SUM(quantity) as total_sold'),
@@ -597,7 +846,9 @@ class ReportsController extends Controller
         ));
     }
 
-    // ===== STRATEGIC REPORT =====
+    // =========================================================
+    // ✅ HINDI BINAGO — strategicIndex()
+    // =========================================================
     public function strategicIndex(Request $request)
     {
         $selectedYear = $request->get('year', Carbon::now()->year);
@@ -610,6 +861,7 @@ class ReportsController extends Controller
         $monthlyRevenue = [];
         $monthlyCost    = [];
         $months         = [];
+        $warehouseId    = auth()->user()->assigned_at;
 
         $quarterlyData = [
             1 => ['revenue' => 0, 'cost' => 0],
@@ -622,10 +874,8 @@ class ReportsController extends Controller
         $totalYearlyCost    = 0;
 
         for ($m = 1; $m <= 12; $m++) {
-            $monthName = Carbon::create()->month($m)->format('M');
-            $months[]  = $monthName;
+            $months[] = Carbon::create()->month($m)->format('M');
 
-            // ✅ Use created_at (consistent with monthly report fix)
             $revenue = RetailerOrder::whereIn('status', ['Approved', 'Completed'])
                 ->whereYear('created_at', $selectedYear)
                 ->whereMonth('created_at', $m)
@@ -651,9 +901,16 @@ class ReportsController extends Controller
         $deadStocks   = [];
 
         foreach ($allProducts as $prod) {
-            $stockCount = SerializedProduct::where('product_id', $prod->id)
-                ->where('status', 1)
-                ->count();
+            // ✅ Dual-source stock count para sa dead stocks
+            if ($prod->is_consumable) {
+                $stockCount = ConsumableStock::where('product_id', $prod->id)
+                    ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
+                    ->value('current_qty') ?? 0;
+            } else {
+                $stockCount = SerializedProduct::where('product_id', $prod->id)
+                    ->where('status', 1)
+                    ->count();
+            }
 
             $lastSale = RetailerOrder::where('product_name', $prod->name)
                 ->whereIn('status', ['Approved', 'Completed'])
@@ -666,7 +923,7 @@ class ReportsController extends Controller
                         'name'      => $prod->name,
                         'stock'     => $stockCount,
                         'value'     => $stockCount * ($prod->cost_price ?? 0),
-                        'last_sold' => $lastSale ? $lastSale->updated_at->format('M d, Y') : 'Never Sold'
+                        'last_sold' => $lastSale ? $lastSale->updated_at->format('M d, Y') : 'Never Sold',
                     ];
                 }
             }
@@ -684,19 +941,24 @@ class ReportsController extends Controller
         foreach ($topItems as $item) {
             $prodDetails  = SupplierProduct::where('name', $item->product_name)->first();
             $currentStock = 0;
-            if ($prodDetails) {
-                $currentStock = SerializedProduct::where('product_id', $prodDetails->id)
-                    ->where('status', 1)
-                    ->count();
-            }
 
-            $forecast = ceil($item->total_qty * 1.10);
+            if ($prodDetails) {
+                if ($prodDetails->is_consumable) {
+                    $currentStock = ConsumableStock::where('product_id', $prodDetails->id)
+                        ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
+                        ->value('current_qty') ?? 0;
+                } else {
+                    $currentStock = SerializedProduct::where('product_id', $prodDetails->id)
+                        ->where('status', 1)
+                        ->count();
+                }
+            }
 
             $projectedStocks[] = [
                 'product'  => $item->product_name,
                 'sold'     => $item->total_qty,
-                'forecast' => $forecast,
-                'current'  => $currentStock
+                'forecast' => ceil($item->total_qty * 1.10),
+                'current'  => $currentStock,
             ];
         }
 
@@ -714,6 +976,9 @@ class ReportsController extends Controller
         ));
     }
 
+    // =========================================================
+    // ✅ HINDI BINAGO — lahat ng ibang methods
+    // =========================================================
     public function getWeeklyData(Request $request)
     {
         return response()->json(['data' => []]);
@@ -747,7 +1012,7 @@ class ReportsController extends Controller
             'remarks'          => 'nullable|string',
         ]);
 
-        $serialNumber = \App\Models\SerializedProduct::findOrFail($request->serial_number_id);
+        $serialNumber = SerializedProduct::findOrFail($request->serial_number_id);
         $serialNumber->update([
             'status'  => 5,
             'remarks' => $request->remarks,
@@ -756,7 +1021,6 @@ class ReportsController extends Controller
         return redirect()->back()->with('success', 'Product reported as damaged successfully.');
     }
 
-    // ===== SAVE INVENTORY AUDIT =====
     public function saveAudit(Request $request)
     {
         try {
@@ -779,13 +1043,11 @@ class ReportsController extends Controller
                 $actualCount = (int) $item['actual_count'];
                 $variance    = $actualCount - $systemCount;
 
-                if ($variance === 0) {
-                    $status = 'Match';
-                } elseif ($variance < 0) {
-                    $status = 'Missing';
-                } else {
-                    $status = 'Surplus';
-                }
+                $status = match (true) {
+                    $variance === 0 => 'Match',
+                    $variance < 0   => 'Missing',
+                    default         => 'Surplus',
+                };
 
                 InventoryAudit::create([
                     'product_name' => $item['product_name'],
@@ -821,7 +1083,6 @@ class ReportsController extends Controller
         }
     }
 
-    // ===== VIEW AUDIT HISTORY =====
     public function auditHistory(Request $request)
     {
         $auditPeriods = InventoryAudit::select('audit_period', DB::raw('MAX(created_at) as latest'))

@@ -24,7 +24,8 @@ use App\Http\Controllers\{
     RetailerOrderController,
     ManpowerController,
     GymEquipmentController,
-    PincodeController
+    PincodeController,
+    ConsumableController  // ✅ DAGDAG — missing sa dati mong version
 };
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Middleware\CheckPinStatus;
@@ -40,7 +41,6 @@ Route::get('/', function () {
 // ✅ LOGOUT FORCED — OUTSIDE auth middleware
 // (kailangan accessible kahit expired na session)
 // ─────────────────────────────────────────────
-
 Route::get('/logout-forced', function () {
     $user = auth()->user();
     if ($user) $user->update(['session_token' => null]);
@@ -181,10 +181,7 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session'])->group(funct
 
         // WAREHOUSE
         Route::get('/warehouse', [WarehouseController::class, 'index'])->name('warehouse.index');
-
-        // ✅ DAGDAG ITO — BAGO ang store/update/delete
         Route::get('/warehouse/check-duplicate', [WarehouseController::class, 'checkDuplicate'])->name('warehouse.check_duplicate');
-
         Route::post('/warehouse/store', [WarehouseController::class, 'store'])->name('warehouse.store');
         Route::post('/warehouse/update', [WarehouseController::class, 'update'])->name('warehouse.update');
         Route::delete('/warehouse/delete', [WarehouseController::class, 'destroy'])->name('warehouse.delete');
@@ -193,10 +190,7 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session'])->group(funct
         Route::controller(SuppliersController::class)->group(function () {
             Route::get('/suppliers', 'index')->name('suppliers.index');
             Route::get('/suppliers/create', 'create')->name('suppliers.create');
-
-            // ✅ DAPAT NANDITO — BAGO ang {id} routes
             Route::get('/suppliers/check_duplicate', 'checkDuplicate')->name('suppliers.check_duplicate');
-
             Route::post('/suppliers/store', 'store')->name('suppliers.store');
             Route::get('/suppliers/{id}/products-table', 'showTable')->name('suppliers_products.show_table');
             Route::get('/suppliers/{id}/edit', 'edit')->name('suppliers.edit');
@@ -297,6 +291,36 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session'])->group(funct
         Route::get('/gym-equipments/{id}/edit', 'edit')->name('gym.edit');
         Route::put('/gym-equipments/{id}', 'update')->name('gym.update');
         Route::delete('/gym-equipments/{id}', 'destroy')->name('gym.delete');
+    });
+
+    // =========================================================
+    // ✅ CONSUMABLES INVENTORY — Stock Movement System
+    // =========================================================
+    Route::controller(ConsumableController::class)->group(function () {
+
+        // ⚠️ IMPORTANTENG AYOS NG ORDER:
+        // Ang mga static/specific routes (table, daily-summary, stock-in, etc.)
+        // ay DAPAT nauna bago ang dynamic {id} routes.
+        // Kung hindi, mako-confuse ng Laravel si /consumables/table
+        // bilang /consumables/{id} at mag-eerror.
+
+        // Stock Level Overview
+        Route::get('/consumables', 'index')->name('consumables.index');
+
+        // ✅ Static routes MUNA bago ang {id}
+        Route::get('/consumables/table', 'table')->name('consumables.table');
+        Route::get('/consumables/daily-summary', 'dailySummary')->name('consumables.daily-summary');
+
+        // ✅ Stock Operations (POST — walang conflict sa GET {id})
+        Route::post('/consumables/stock-in', 'stockIn')->name('consumables.stock-in');
+        Route::post('/consumables/stock-out', 'stockOut')->name('consumables.stock-out');
+        Route::post('/consumables/report-incident', 'reportIncident')->name('consumables.report-incident');
+        Route::post('/consumables/adjust', 'adjust')->name('consumables.adjust');
+
+        // ✅ Dynamic {id} routes — LAGING HULI
+        Route::get('/consumables/{id}', 'show')->name('consumables.show');
+        Route::get('/consumables/{id}/movements', 'movements')->name('consumables.movements');
+        Route::post('/consumables/{id}/set-min-stock', 'setMinStock')->name('consumables.set-min-stock');
     });
 }); // END AUTH ROUTES
 

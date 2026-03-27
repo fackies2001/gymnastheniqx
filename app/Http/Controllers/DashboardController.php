@@ -87,6 +87,15 @@ class DashboardController extends Controller
             'recent_activities',
             'retailer_orders'
         ));
+
+        $warehouseId = auth()->user()->assigned_at;
+
+        // Consumables summary para sa dashboard cards
+        // $consumableSummary = \App\Models\StockMovement::dailySummary($warehouseId);
+        // $lowStockConsumables = \App\Models\ConsumableStock::lowStock()
+        //     ->with('product')
+        //     ->when($warehouseId, fn($q) => $q->forWarehouse($warehouseId))
+        //     ->get();
     }
 
     // ============================================================

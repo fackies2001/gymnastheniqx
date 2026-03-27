@@ -75,7 +75,7 @@
                     <div class="mb-3 col-md-6">
                         <label class="form-label font-weight-bold">Barcode</label>
                         <input type="text" name="barcode" id="barcode_new" class="form-control" inputmode="numeric"
-                            pattern="[0-9]+" placeholder="Numbers only" required>
+                            pattern="[0-9]+" placeholder="Barcode Product" required>
                     </div>
                 </div>{{-- END .row --}}
 

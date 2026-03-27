@@ -9,6 +9,8 @@ use App\Http\Requests\StoreSerializationRequest;
 use App\Models\SupplierProduct;
 use App\Models\PurchaseRequest;
 use App\Models\SerialNumber;
+use App\Models\StockMovement;       // ✅ DAGDAG
+use App\Models\ConsumableStock;    // ✅ DAGDAG
 use App\Services\DatatableServices;
 use App\Services\SupplierProductServices;
 use App\Services\SystemProductServices;
@@ -66,30 +68,119 @@ class SerializedProductsController extends Controller
         return $this->datatableServices->get_serialized_products_summary_table($query);
     }
 
+    // =========================================================
+    // ✅ PINALITAN — show()
+    // DATI: Naglo-load lang ng view at nagpapasa ng product info
+    // NGAYON: Dagdag na ang $stock (ConsumableStock) para
+    //         ma-display ang current quantity at low stock status
+    //         sa left card ng show.blade.php
+    // =========================================================
     public function show($id, $product_name)
     {
-        $product = SupplierProduct::findOrFail($id);
+        $product = SupplierProduct::with('supplier')->findOrFail($id);
+
+        $warehouseId = auth()->user()->assigned_at;
+
+        // ✅ Kunin ang current stock record para sa product + warehouse
+        // Kung wala pang record (hindi pa natatanggap), null ang ibabalik
+        $stock = ConsumableStock::where('product_id', $id)
+            ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
+            ->first();
+
         return view('serialized_products.show', [
             'supplier_product_id' => $id,
-            'product_name' => $product->name,
-            'product' => $product
+            'product_name'        => $product->name,
+            'product'             => $product,
+            'stock'               => $stock,  // ✅ DAGDAG — para sa left card
         ]);
     }
 
+    // =========================================================
+    // ✅ PINALITAN — showTable()
+    // DATI: Nagbabalik ng SRN (serial number) list
+    // NGAYON: Nagbabalik ng stock movement history
+    //         Para gamitin ng DataTable sa show.blade.php
+    // =========================================================
     public function showTable($id = null)
     {
-        return $this->datatableServices->get_serialized_product_table($id);
+        // ✅ Kung walang id, ibalik ng empty data
+        if (!$id) {
+            return response()->json(['data' => []]);
+        }
+
+        $warehouseId = auth()->user()->assigned_at;
+
+        $movements = StockMovement::with(['createdBy', 'purchaseOrder', 'retailerOrder'])
+            ->where('product_id', $id)
+            ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
+            ->latest()
+            ->get()
+            ->map(function ($m) {
+
+                // ✅ Color coding per movement type
+                $typeColors = [
+                    'in'         => 'success',
+                    'out'        => 'primary',
+                    'damage'     => 'warning',
+                    'loss'       => 'danger',
+                    'adjustment' => 'secondary',
+                ];
+
+                // ✅ Icons per type
+                $typeIcons = [
+                    'in'         => '➕',
+                    'out'        => '➖',
+                    'damage'     => '❌',
+                    'loss'       => '⚠️',
+                    'adjustment' => '🔄',
+                ];
+
+                $color = $typeColors[$m->type] ?? 'secondary';
+                $icon  = $typeIcons[$m->type] ?? '';
+
+                // ✅ Quantity display — IN at positive ADJUSTMENT ay may + sign
+                $isPositive = $m->type === 'in' ||
+                    ($m->type === 'adjustment' && $m->quantity >= 0);
+
+                $qtyDisplay = $isPositive
+                    ? '<span class="text-success font-weight-bold">+' . abs($m->quantity) . ' pcs</span>'
+                    : '<span class="text-danger font-weight-bold">−' . abs($m->quantity) . ' pcs</span>';
+
+                // ✅ Reference — PO or Retailer Order
+                $reference = '—';
+                if ($m->purchase_order_id) {
+                    $reference = '<span class="badge badge-light">PO #' . $m->purchase_order_id . '</span>';
+                } elseif ($m->retailer_order_id) {
+                    $reference = '<span class="badge badge-light">Order #' . $m->retailer_order_id . '</span>';
+                }
+
+                return [
+                    'date'        => $m->created_at,
+                    'type'        => '<span class="badge badge-' . $color . '">'
+                        . $icon . ' ' . strtoupper($m->type)
+                        . '</span>',
+                    'quantity'    => $qtyDisplay,
+                    'reason'      => $m->reason_type
+                        ? ucwords(str_replace('_', ' ', $m->reason_type))
+                        : '—',
+                    'reference'   => $reference,
+                    'recorded_by' => $m->createdBy->full_name ?? '—',
+                    'remarks'     => $m->remarks ?? '—',
+                ];
+            });
+
+        return response()->json(['data' => $movements]);
     }
 
-    /**
-     * ✅ FINAL FIX: Use auth()->id() directly (User ID = Employee ID)
-     */
+    // =========================================================
+    // ✅ HINDI BINAGO — store()
+    // Para sa non-consumable / gym equipment serialization
+    // =========================================================
     public function store(StoreSerializationRequest $request)
     {
         $validated = $request->validated();
         $Abbrv = 'SRN';
 
-        // ✅ Get warehouse from user's assigned_at field
         $warehouseId = $validated['warehouse_id'] ?? auth()->user()->assigned_at;
 
         if (!$warehouseId) {
@@ -103,17 +194,15 @@ class SerializedProductsController extends Controller
             $bulkRecords = [];
             $baseSku = SkuHelper::generateSystemSku($Abbrv);
 
-            // ✅ SIMPLE: auth()->id() returns the employee ID directly
-            $scannedBy = auth()->id(); // This is 2 for John Vincent Fabay
+            $scannedBy = auth()->id();
             $scannedAt = now();
 
-            // ✅ Debug log
             \Log::info('Product Serialization', [
-                'user_id' => auth()->id(),
-                'user_name' => auth()->user()->full_name,
-                'scanned_by' => $scannedBy,
+                'user_id'      => auth()->id(),
+                'user_name'    => auth()->user()->full_name,
+                'scanned_by'   => $scannedBy,
                 'warehouse_id' => $warehouseId,
-                'timestamp' => $scannedAt
+                'timestamp'    => $scannedAt
             ]);
 
             foreach ($validated['sku_id'] as $sku) {
@@ -132,7 +221,7 @@ class SerializedProductsController extends Controller
                         'purchase_order_id' => $validated['purchase_order_id'],
                         'status'            => $validated['product_status_id'] ?? 1,
                         'warehouse_id'      => $warehouseId,
-                        'scanned_by'        => $scannedBy,  // ✅ Direct user/employee ID
+                        'scanned_by'        => $scannedBy,
                         'scanned_at'        => $scannedAt,
                         'created_at'        => now(),
                         'updated_at'        => now(),
@@ -153,9 +242,10 @@ class SerializedProductsController extends Controller
         });
     }
 
-    /**
-     * ✅ Overview with proper relationships
-     */
+    // =========================================================
+    // ✅ HINDI BINAGO — overview()
+    // Para sa non-consumable SRN overview page
+    // =========================================================
     public function overview($serial_number = null)
     {
         if (!$serial_number) {
@@ -180,20 +270,18 @@ class SerializedProductsController extends Controller
 
         $generator = new BarcodeGeneratorPNG();
 
-        // ✅ Serial Number Barcode (existing)
         $barcodeImage = base64_encode(
             $generator->getBarcode($serial_number, $generator::TYPE_CODE_128, 3, 80)
         );
 
-        $productName = $serialized_product_details->supplierProducts->name ?? 'Unknown Product';
+        $productName  = $serialized_product_details->supplierProducts->name ?? 'Unknown Product';
         $productImage = $serialized_product_details->supplierProducts->image_url ?? null;
 
         if (!$productImage) {
             $productImage = $this->generateProductPlaceholder($productName);
         }
 
-        // ✅ DAGDAG: Product Barcode mula sa supplier_product table
-        $productBarcode = $serialized_product_details->supplierProducts->barcode ?? null;
+        $productBarcode      = $serialized_product_details->supplierProducts->barcode ?? null;
         $productBarcodeImage = null;
 
         if ($productBarcode) {
@@ -207,11 +295,14 @@ class SerializedProductsController extends Controller
             'serial_number',
             'barcodeImage',
             'productImage',
-            'productBarcode',       // ✅ DAGDAG
-            'productBarcodeImage'   // ✅ DAGDAG
+            'productBarcode',
+            'productBarcodeImage'
         ));
     }
 
+    // =========================================================
+    // ✅ HINDI BINAGO — private helpers
+    // =========================================================
     private function generateProductPlaceholder($productName)
     {
         if (env('OPENAI_API_KEY')) {
@@ -226,8 +317,8 @@ class SerializedProductsController extends Controller
     {
         try {
             $sanitizedName = preg_replace('/[^A-Za-z0-9_\-]/', '_', $productName);
-            $filename = "{$sanitizedName}.png";
-            $storagePath = "products/{$filename}";
+            $filename      = "{$sanitizedName}.png";
+            $storagePath   = "products/{$filename}";
 
             if (Storage::disk('public')->exists($storagePath)) {
                 return asset("storage/{$storagePath}");
@@ -236,14 +327,14 @@ class SerializedProductsController extends Controller
             $client = OpenAI::client(env('OPENAI_API_KEY'));
 
             $response = $client->images()->create([
-                'model' => 'dall-e-3',
-                'prompt' => "Professional product photography of {$productName}, clean white background, studio lighting, high quality, centered composition, commercial product shot",
-                'n' => 1,
-                'size' => '1024x1024',
+                'model'   => 'dall-e-3',
+                'prompt'  => "Professional product photography of {$productName}, clean white background, studio lighting, high quality, centered composition, commercial product shot",
+                'n'       => 1,
+                'size'    => '1024x1024',
                 'quality' => 'standard',
             ]);
 
-            $imageUrl = $response->data[0]->url;
+            $imageUrl     = $response->data[0]->url;
             $imageContent = file_get_contents($imageUrl);
             Storage::disk('public')->put($storagePath, $imageContent);
 
@@ -256,6 +347,9 @@ class SerializedProductsController extends Controller
         }
     }
 
+    // =========================================================
+    // ✅ HINDI BINAGO — datatable methods
+    // =========================================================
     public function serialized_products_table(Request $request)
     {
         return $this->datatableServices->get_serialized_products_table();
@@ -266,6 +360,10 @@ class SerializedProductsController extends Controller
         return $this->datatableServices->get_serialized_product_table($id);
     }
 
+    // =========================================================
+    // ✅ HINDI BINAGO — updateStatus()
+    // Para sa non-consumable status updates
+    // =========================================================
     public function updateStatus(Request $request, $id)
     {
         try {
@@ -276,10 +374,10 @@ class SerializedProductsController extends Controller
             $item = \App\Models\SerializedProduct::findOrFail($id);
 
             \Log::info("Status Update Request", [
-                'product_id' => $id,
-                'old_status' => $item->status,
-                'new_status_id' => $request->status_id,
-                'requested_by' => auth()->user()->full_name ?? 'Unknown'
+                'product_id'     => $id,
+                'old_status'     => $item->status,
+                'new_status_id'  => $request->status_id,
+                'requested_by'   => auth()->user()->full_name ?? 'Unknown'
             ]);
 
             $statusExists = \App\Models\ProductStatus::find($request->status_id);
@@ -300,8 +398,8 @@ class SerializedProductsController extends Controller
             $item->refresh();
 
             \Log::info("Status Updated Successfully", [
-                'product_id' => $id,
-                'new_status' => $item->status,
+                'product_id'  => $id,
+                'new_status'  => $item->status,
                 'status_name' => $item->productStatus->name ?? 'Unknown'
             ]);
 
@@ -313,9 +411,9 @@ class SerializedProductsController extends Controller
             }
 
             return response()->json([
-                'success' => true,
-                'message' => 'Status updated successfully!',
-                'status_id' => $item->status,
+                'success'     => true,
+                'message'     => 'Status updated successfully!',
+                'status_id'   => $item->status,
                 'status_name' => $item->productStatus->name ?? 'Unknown'
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -326,8 +424,8 @@ class SerializedProductsController extends Controller
         } catch (\Exception $e) {
             \Log::error("Status Update Error", [
                 'product_id' => $id,
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
+                'error'      => $e->getMessage(),
+                'trace'      => $e->getTraceAsString()
             ]);
 
             return response()->json([
