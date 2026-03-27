@@ -24,18 +24,101 @@ use Illuminate\Support\Facades\DB;
 class ReportsController extends Controller
 {
 
-    // =========================================================
-    // ✅ PINALITAN — dailyIndex()
-    //
-    // DATI: Lahat ng counts (lowStock, received, outflow, damage)
-    //       ay galing sa serialized_product table lang (SRN-based)
-    //       → kaya 0 ang lumalabas para sa consumables
-    //
-    // NGAYON: Dual-source approach:
-    //   - Consumables → stock_movements + consumable_stocks tables
-    //   - Non-consumables → serialized_product table (dating logic)
-    //   - Pinagsama ang dalawa para sa final summary cards
-    // =========================================================
+
+    public function dailyIndex(Request $request)
+    {
+        $filterType = $request->get('filter_type', 'today');
+        $customDate = $request->get('custom_date', null);
+
+        $now  = now()->timezone('Asia/Manila');
+        $date = null;
+
+        if ($filterType === 'all_time' || !$filterType) {
+            $date = null;
+        } elseif ($filterType === 'today') {
+            $date = $now->toDateString();
+        } elseif ($filterType === 'yesterday') {
+            $date = $now->copy()->subDay()->toDateString();
+        } elseif ($filterType === 'custom' && $customDate) {
+            $date = $customDate;
+        } else {
+            $date = $now->toDateString();
+        }
+
+        $warehouseId = auth()->user()->assigned_at;
+
+        $dateFilter = function ($query, $column = 'created_at') use ($date) {
+            if ($date) {
+                $query->whereRaw(
+                    "DATE(CONVERT_TZ({$column}, '+00:00', '+08:00')) = ?",
+                    [$date]
+                );
+            }
+            return $query;
+        };
+
+        // LOW STOCK
+        $lowStockNonConsumable = SupplierProduct::where('is_consumable', 0)
+            ->select(
+                'supplier_product.id',
+                DB::raw("(SELECT COUNT(*) FROM serialized_product
+                      WHERE serialized_product.product_id = supplier_product.id
+                      AND serialized_product.status = 1) as available_count")
+            )
+            ->havingRaw('available_count > 0 AND available_count < 20')
+            ->get()
+            ->count();
+
+        $lowStockConsumable = ConsumableStock::lowStock()
+            ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
+            ->count();
+
+        $lowStockCount = $lowStockNonConsumable + $lowStockConsumable;
+
+        // RECEIVED
+        $receivedNonConsumable = SerializedProduct::whereNotNull('purchase_order_id')
+            ->whereHas('supplierProducts', fn($q) => $q->where('is_consumable', 0));
+        $dateFilter($receivedNonConsumable);
+        $receivedNonConsumable = $receivedNonConsumable->count();
+
+        $receivedConsumableQ = StockMovement::where('type', 'in')
+            ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId));
+        $dateFilter($receivedConsumableQ);
+        $receivedConsumable = $receivedConsumableQ->count();
+
+        $newArrivals = $receivedNonConsumable + $receivedConsumable;
+
+        // OUTFLOW
+        $outflowQ = RetailerOrder::whereIn('status', ['Approved', 'Completed']);
+        $dateFilter($outflowQ);
+        $dailyOutflow = $outflowQ->count();
+
+        // DAMAGED
+        $damagedNonConsumableQ = SerializedProduct::whereIn('status', [4, 5])
+            ->whereHas('supplierProducts', fn($q) => $q->where('is_consumable', 0));
+        $dateFilter($damagedNonConsumableQ, 'updated_at');
+        $damagedNonConsumable = $damagedNonConsumableQ->count();
+
+        $damagedConsumableQ = StockMovement::whereIn('type', ['damage', 'loss'])
+            ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId));
+        $dateFilter($damagedConsumableQ);
+        $damagedConsumable = $damagedConsumableQ->count();
+
+        $damagedCount = $damagedNonConsumable + $damagedConsumable;
+
+        $products = SupplierProduct::with(['supplier', 'category'])->get();
+
+        return view('reports.daily', compact(
+            'date',
+            'filterType',
+            'lowStockCount',
+            'newArrivals',
+            'dailyOutflow',
+            'damagedCount',
+            'products'
+        ));
+    }
+
     public function getDailyData(Request $request)
     {
         $filterType = $request->get('filter_type', null);

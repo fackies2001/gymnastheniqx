@@ -183,26 +183,32 @@ class ConsumableController extends Controller
 
         $warehouseId = auth()->user()->assigned_at;
 
-        // ✅ Check stock availability
-        $stock = ConsumableStock::where('product_id', $request->product_id)
-            ->where('warehouse_id', $warehouseId)
-            ->first();
-
-        if (!$stock || $stock->current_qty < $request->quantity) {
+        if (!$warehouseId) {
             return response()->json([
                 'success' => false,
-                'message' => 'Kulang ang stock para i-report. Available: ' . ($stock->current_qty ?? 0) . ' pcs.'
+                'message' => 'Walang assigned warehouse ang iyong account.'
             ], 422);
         }
 
+        // ✅ AYOS — huwag i-block ang damage/loss report kahit kulang ang stock
+        // Pwedeng mag-report ng nasira kahit 0 na ang stock
+        // (example: binilang mo na sira bago pa ma-receive ng system)
+        $stock = ConsumableStock::firstOrCreate(
+            [
+                'product_id'   => $request->product_id,
+                'warehouse_id' => $warehouseId,
+            ],
+            ['current_qty' => 0, 'min_stock_level' => 20]
+        );
+
         StockMovement::record([
-            'product_id'  => $request->product_id,
+            'product_id'   => $request->product_id,
             'warehouse_id' => $warehouseId,
-            'type'        => $request->type,       // 'damage' or 'loss'
-            'quantity'    => $request->quantity,
-            'reason_type' => $request->reason_type,
-            'remarks'     => $request->remarks,
-            'created_by'  => auth()->id(),
+            'type'         => $request->type,
+            'quantity'     => $request->quantity,
+            'reason_type'  => $request->reason_type,
+            'remarks'      => $request->remarks,
+            'created_by'   => auth()->id(),
         ]);
 
         return response()->json([
