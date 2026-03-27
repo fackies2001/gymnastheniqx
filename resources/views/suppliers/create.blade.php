@@ -79,7 +79,7 @@
     <script>
         $(document).ready(function() {
 
-            // ✅ Prevent native form submit entirely
+            // Prevent native form submit entirely
             $('#createSupplierForm').on('submit', function(e) {
                 e.preventDefault();
                 return false;
@@ -87,20 +87,25 @@
 
             let isSubmitting = false;
 
-            $('#createSupplierSubmit').on('click', function(e) {
+            $('#createSupplierSubmit').off('click').on('click', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
 
+                // ✅ Guard — block if already submitting
                 if (isSubmitting) return;
 
+                // ✅ Validate FIRST — bago pa mag-lock ng button o tanggalin ang listener
                 if (!document.getElementById('createSupplierForm').checkValidity()) {
                     document.getElementById('createSupplierForm').reportValidity();
-                    return false;
+                    return; // ✅ hindi pa naka-lock, pwede pa mag-retry
                 }
 
+                // ✅ DITO NA LANG mag-lock — after validation passed na
                 isSubmitting = true;
+                $('#createSupplierSubmit').off('click'); // ✅ dito na tanggalin
                 $('#createSupplierSubmit').prop('disabled', true).text('Saving...');
 
+                // Step 1: Check duplicate first
                 $.ajax({
                     url: '{{ route('suppliers.check_duplicate') }}',
                     type: 'GET',
@@ -110,9 +115,14 @@
                     },
                     success: function(response) {
                         if (response.exists) {
+                            // ✅ Reset — para makapag-edit at makapag-submit ulit
                             isSubmitting = false;
                             $('#createSupplierSubmit').prop('disabled', false).text(
                                 'Save Supplier');
+                            // ✅ Re-attach listener
+                            $('#createSupplierSubmit').off('click').on('click', arguments
+                                .callee);
+
                             Swal.fire({
                                 icon: 'warning',
                                 title: 'Supplier Already Exists!',
@@ -122,6 +132,7 @@
                                 confirmButtonText: 'OK'
                             });
                         } else {
+                            // Step 2: Actually store the supplier
                             $.ajax({
                                 url: $('#createSupplierForm').attr('action'),
                                 type: 'POST',
@@ -131,17 +142,19 @@
                                 },
                                 success: function(response) {
                                     if (response.success) {
-                                        // ✅ NO Swal here — store in sessionStorage, show on index only
                                         sessionStorage.setItem('swal_success',
                                             response.message);
                                         window.location.href = response.redirect;
                                     }
                                 },
-                                // ✅ UPDATED — handle 409 conflict separately
                                 error: function(xhr) {
+                                    // ✅ Reset on error — makapag-retry ang user
                                     isSubmitting = false;
                                     $('#createSupplierSubmit').prop('disabled',
                                         false).text('Save Supplier');
+                                    // ✅ Re-attach listener
+                                    $('#createSupplierSubmit').off('click').on(
+                                        'click', arguments.callee);
 
                                     if (xhr.status === 409) {
                                         Swal.fire({
@@ -164,9 +177,13 @@
                         }
                     },
                     error: function() {
+                        // ✅ Reset on error
                         isSubmitting = false;
                         $('#createSupplierSubmit').prop('disabled', false).text(
-                            'Save Supplier');
+                        'Save Supplier');
+                        // ✅ Re-attach listener
+                        $('#createSupplierSubmit').off('click').on('click', arguments.callee);
+
                         Swal.fire({
                             icon: 'error',
                             title: 'Error!',

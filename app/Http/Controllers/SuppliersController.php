@@ -93,6 +93,24 @@ class SuppliersController extends Controller
         $email    = $request->email ? strtolower($request->email) : null;
         $baseName = trim($request->name);
 
+        // ✅ BAGONG GUARD — block exact duplicate before anything else
+        // Ito ang nagpipigil sa double-submit race condition
+        $exactDuplicate = Supplier::whereRaw('LOWER(name) = ?', [strtolower($baseName)])
+            ->when($email, fn($q) => $q->whereRaw('LOWER(email) = ?', [$email]))
+            ->exists();
+
+        if ($exactDuplicate) {
+            if ($request->ajax() || $request->wantsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Supplier already exists.',
+                ], 409);
+            }
+            return redirect()->back()->withInput()
+                ->with('error', 'Supplier already exists.');
+        }
+
+        // ✅ Same-name counter — para sa intentional duplicates (iba email)
         $sameNameCount = Supplier::whereRaw(
             'LOWER(name) LIKE ?',
             [strtolower($baseName) . '%']
@@ -105,8 +123,6 @@ class SuppliersController extends Controller
         $isStudent     = auth()->user()->is_student;
         $source_id     = $isStudent ? 2 : 3;
         $validatedData = $request->all();
-
-        // ✅ INALIS NA — server-side guard (nagco-conflict sa sameNameCount logic)
 
         if (!\DB::table('source')->where('id', $source_id)->exists()) {
             $source_id = 1;
