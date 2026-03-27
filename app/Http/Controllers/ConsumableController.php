@@ -82,29 +82,22 @@ class ConsumableController extends Controller
         }
 
         return DB::transaction(function () use ($request, $warehouseId) {
-            $goodQty     = $request->quantity;
+            $goodQty      = $request->quantity;
             $defectiveQty = $request->defective_qty ?? 0;
 
-            // ✅ OPTION A (Partial Receive) — record good qty only as IN
+            // ✅ Record good qty as IN
             StockMovement::record([
-                'product_id'   => $request->product_id,
-                'warehouse_id' => $warehouseId,
-                'type'         => $request->type,
-                'quantity'     => $request->quantity,
-                'reason_type'  => $request->reason_type,
-                'remarks'      => $request->remarks,
-                'created_by'   => auth()->id(),
+                'product_id'        => $request->product_id,
+                'warehouse_id'      => $warehouseId,
+                'type'              => StockMovement::TYPE_IN,
+                'quantity'          => $goodQty,
+                'reason_type'       => StockMovement::REASON_RECEIVED,
+                'remarks'           => $request->remarks,
+                'purchase_order_id' => $request->purchase_order_id,
+                'created_by'        => auth()->id(),
             ]);
 
-            // ✅ DAGDAG — bawasan ang current_qty
-            $stock->decrement('current_qty', $request->quantity);
-
-            return response()->json([
-                'success' => true,
-                'message' => ucfirst($request->type) . " reported: {$request->quantity} pcs.",
-            ]);
-
-            // ✅ If may defective on arrival — i-record agad as DAMAGE
+            // ✅ If may defective on arrival
             if ($defectiveQty > 0) {
                 StockMovement::record([
                     'product_id'        => $request->product_id,

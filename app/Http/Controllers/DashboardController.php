@@ -372,16 +372,26 @@ class DashboardController extends Controller
     private function getLowStockProducts()
     {
         try {
-            $lowStockProducts = SupplierProduct::select(
-                'supplier_product.id',
-                'supplier_product.name',
-                'supplier_product.system_sku',
-                DB::raw("(SELECT COUNT(*) FROM serialized_product WHERE serialized_product.product_id = supplier_product.id AND serialized_product.status = 1) as available_count")
-            )
-                ->having('available_count', '<', 20)
-                ->orderBy('available_count', 'asc')
+            $warehouseId = auth()->user()->assigned_at
+                ?? auth()->user()->warehouse_id
+                ?? null;
+
+            // ✅ FIX — consumable_stocks na ang source, hindi serialized_product
+            $lowStockProducts = \App\Models\ConsumableStock::with(['product.supplier'])
+                ->whereColumn('current_qty', '<=', 'min_stock_level')
+                ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
+                ->orderBy('current_qty', 'asc')
                 ->limit(10)
-                ->get();
+                ->get()
+                ->map(function ($stock) {
+                    return (object)[
+                        'id'              => $stock->product_id,
+                        'name'            => $stock->product->name ?? 'Unknown',
+                        'system_sku'      => $stock->product->system_sku ?? 'N/A',
+                        'available_count' => $stock->current_qty,
+                        'min_stock_level' => $stock->min_stock_level,
+                    ];
+                });
 
             return $lowStockProducts->values();
         } catch (\Exception $e) {
