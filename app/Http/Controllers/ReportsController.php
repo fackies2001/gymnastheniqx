@@ -203,28 +203,31 @@ class ReportsController extends Controller
                         ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId));
 
                     $dateFilter($consumableQuery);
+                    
+                    $movements = $consumableQuery->get()
+                        ->groupBy('product_id');
 
-                    foreach ($consumableQuery->get() as $movement) {
+                    foreach ($movements as $productId => $group) {
+                        $movement      = $group->first();
+                        $totalQty      = $group->sum('quantity');
                         $productName   = $movement->product->name           ?? 'Unnamed Product';
                         $categoryName  = $movement->product->category->name ?? 'Consumables';
                         $poNumber      = $movement->purchaseOrder->po_number ?? 'N/A';
                         $originalPrice = $movement->product->cost_price      ?? 0;
-                        $totalAmount   = $movement->quantity * $originalPrice;
+                        $totalAmount   = $totalQty * $originalPrice;
 
-                        $reasonLabel = $movement->reason_type === 'defective_on_arrival'
-                            ? 'Received from PO (with DOA noted)'
-                            : 'Received from Supplier';
+                        $reasonLabel = 'Received from Supplier';
 
                         $data[] = [
                             'product_name'  => '<strong style="font-size:15px;color:black;">' . e($productName) . '</strong>',
                             'category_name' => '<span class="badge badge-info">' . e($categoryName) . '</span>',
                             'traceability'  => '<small>
-                        <strong>Type:</strong> ' . $reasonLabel . '<br>
-                        <strong>PO Number:</strong> ' . e($poNumber) . '<br>
-                        <strong>Original Price:</strong> <span class="text-danger font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
-                        <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span>
-                    </small>',
-                            'quantity' => $movement->quantity,
+                                <strong>Type:</strong> ' . $reasonLabel . '<br>
+                                <strong>PO Number:</strong> ' . e($poNumber) . '<br>
+                                <strong>Original Price:</strong> <span class="text-danger font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
+                                <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span>
+                            </small>',
+                            'quantity' => $totalQty,
                             'status'   => 'Received',
                         ];
                     }

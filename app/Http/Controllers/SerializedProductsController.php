@@ -47,7 +47,7 @@ class SerializedProductsController extends Controller
     public function indexTable()
     {
         $query = SupplierProduct::with(['supplier'])
-            ->where('is_consumable', false)   // ← DAGDAG LANG ITO
+            ->where('is_consumable', false)  // ← DAGDAG LANG ITO
             ->withCount([
                 'serializedProducts as available_count' => function ($query) {
                     $query->where('status', 1);

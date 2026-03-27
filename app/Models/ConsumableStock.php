@@ -32,7 +32,8 @@ class ConsumableStock extends Model
     // ✅ Low stock items: current_qty <= min_stock_level
     public function scopeLowStock($query)
     {
-        return $query->whereColumn('current_qty', '<=', 'min_stock_level');
+        // ✅ Strictly LESS THAN — hindi lalabas kung exactly equal sa min
+        return $query->whereColumn('current_qty', '<', 'min_stock_level');
     }
 
     // ✅ Filter by warehouse
@@ -45,6 +46,6 @@ class ConsumableStock extends Model
 
     public function isLowStock(): bool
     {
-        return $this->current_qty <= $this->min_stock_level;
+        return $this->current_qty < $this->min_stock_level;
     }
 }

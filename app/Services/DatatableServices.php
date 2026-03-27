@@ -263,13 +263,28 @@ class DatatableServices
                 return '<span class="font-monospace text-muted">' . ($row->system_sku ?? 'N/A') . '</span>';
             })
             ->addColumn('quantity', function ($row) {
-                $available = $row->available_count ?? 0;
+                // ✅ Kung consumable — kuhanin sa consumable_stocks
+                // Kung non-consumable — gamitin ang serialized count
+                if ($row->is_consumable) {
+                    $warehouseId = auth()->user()->employee->warehouse_id
+                        ?? \App\Models\ConsumableStock::where('product_id', $row->id)
+                        ->value('warehouse_id');
+
+                    $available = \App\Models\ConsumableStock::where('product_id', $row->id)
+                        ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
+                        ->value('current_qty') ?? 0;
+                } else {
+                    $available = $row->available_count ?? 0;
+                }
+
+                $color = $available <= 0 ? 'danger' : ($available < 20 ? 'warning' : 'primary');
+
                 return '<div class="text-center">
-                    <span class="badge badge-primary px-3 py-2" 
-                          style="font-size: 1rem; font-weight: 600;">
-                        ' . $available . ' Units
-                    </span>
-                </div>';
+        <span class="badge badge-' . $color . ' px-3 py-2" 
+              style="font-size: 1rem; font-weight: 600;">
+            ' . $available . ' Units
+        </span>
+    </div>';
             })
             ->addColumn('action', function ($row) {
                 return ['id' => $row->id, 'name' => $row->name];
