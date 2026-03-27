@@ -13,7 +13,7 @@ return new class extends Migration
             $table->string('supplier_code')->nullable()->after('id');
         });
 
-        // ✅ Fix existing NULL or duplicate supplier_codes bago mag-unique
+        //  Fix existing NULL or duplicate supplier_codes bago mag-unique
         $suppliers = DB::table('supplier')
             ->orderBy('id')
             ->get();
@@ -26,7 +26,7 @@ return new class extends Migration
                 ]);
         }
 
-        // ✅ Safe na mag-add ng unique AFTER na na-fix ang data
+        //  Safe na mag-add ng unique AFTER na na-fix ang data
         Schema::table('supplier', function (Blueprint $table) {
             $table->unique('supplier_code');
         });

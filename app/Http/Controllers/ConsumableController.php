@@ -119,7 +119,7 @@ class ConsumableController extends Controller
                 'doa_recorded' => $defectiveQty,
             ]);
         });
-    }   
+    }
 
     // ─────────────────────────────────────────────────────────
     // STOCK OUT — Ibinenta sa retailer
@@ -190,16 +190,10 @@ class ConsumableController extends Controller
             ], 422);
         }
 
-        // ✅ AYOS — huwag i-block ang damage/loss report kahit kulang ang stock
-        // Pwedeng mag-report ng nasira kahit 0 na ang stock
-        // (example: binilang mo na sira bago pa ma-receive ng system)
-        $actualQty = \App\Models\SerializedProduct::where('product_id', $request->product_id)
-            ->where('status', 1)
-            ->count();
-
+        // ✅ AYOS — Consumable stock starts at 0 kung wala pang record
         $stock = ConsumableStock::firstOrCreate(
             ['product_id' => $request->product_id, 'warehouse_id' => $warehouseId],
-            ['current_qty' => $actualQty, 'min_stock_level' => 20]
+            ['current_qty' => 0, 'min_stock_level' => 20]
         );
 
         StockMovement::record([

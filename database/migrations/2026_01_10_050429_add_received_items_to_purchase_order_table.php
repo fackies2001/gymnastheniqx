@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::table('purchase_order', function (Blueprint $table) {
             $table->json('received_items')->nullable()->comment('JSON array of received items...');
-            // ✅ Tinanggal ang ->after('total_amount')
+            //  Tinanggal ang ->after('total_amount')
         });
     }
 

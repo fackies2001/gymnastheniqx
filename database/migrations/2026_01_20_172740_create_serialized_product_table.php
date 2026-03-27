@@ -18,10 +18,10 @@ return new class extends Migration
                 ->constrained('purchase_order')
                 ->onDelete('set null');
 
-            // ✅ FIXED: Remove ->unique() from barcode
+            //  FIXED: Remove ->unique() from barcode
             $table->string('barcode')->index(); // Just index, not unique
 
-            // ✅ Only serial_number should be unique
+            //  Only serial_number should be unique
             $table->string('serial_number')->unique();
 
             $table->enum('status', ['pending', 'scanned', 'in_inventory', 'sold', 'damaged'])
@@ -29,7 +29,7 @@ return new class extends Migration
             $table->timestamp('scanned_at')->nullable();
             $table->timestamps();
 
-            // ✅ Removed redundant ->index('barcode')
+            //  Removed redundant ->index('barcode')
         });
     }
 

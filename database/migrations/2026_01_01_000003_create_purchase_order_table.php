@@ -14,7 +14,7 @@ return new class extends Migration
             $table->foreignId('purchase_request_id')->constrained('purchase_request')->onDelete('cascade');
             $table->foreignId('supplier_id')->constrained('supplier')->onDelete('cascade');
 
-            // ✅ FIXED: Changed 'user' to 'employee'
+            //  FIXED: Changed 'user' to 'employee'
             $table->foreignId('approved_by')->constrained('employee')->onDelete('cascade');
             $table->foreignId('requested_by')->constrained('employee')->onDelete('cascade');
 

@@ -5,7 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * ✅ SAFE MIGRATION - Adds missing columns to serialized_product
+ *  SAFE MIGRATION - Adds missing columns to serialized_product
  * 
  * Adds:
  * - scanned_by (foreign key to employee)
@@ -22,7 +22,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('serialized_product', function (Blueprint $table) {
-            // ✅ Add scanned_by column (references employee table)
+            //  Add scanned_by column (references employee table)
             if (!Schema::hasColumn('serialized_product', 'scanned_by')) {
                 $table->foreignId('scanned_by')
                     ->nullable()
@@ -32,7 +32,7 @@ return new class extends Migration
                     ->comment('Employee who scanned this item');
             }
 
-            // ✅ Add warehouse_id column (references warehouse table)
+            //  Add warehouse_id column (references warehouse table)
             if (!Schema::hasColumn('serialized_product', 'warehouse_id')) {
                 $table->foreignId('warehouse_id')
                     ->nullable()
@@ -42,7 +42,7 @@ return new class extends Migration
                     ->comment('Current warehouse location');
             }
 
-            // ✅ Add remarks column (optional text field)
+            //  Add remarks column (optional text field)
             if (!Schema::hasColumn('serialized_product', 'remarks')) {
                 $table->text('remarks')
                     ->nullable()

@@ -29,10 +29,10 @@ return new class extends Migration
             // adjustment = manual correction ng stock count
             $table->enum('type', ['in', 'out', 'damage', 'loss', 'adjustment']);
 
-            // ✅ How many pieces moved
+            //  How many pieces moved
             $table->integer('quantity');
 
-            // ✅ Sub-reason for the movement
+            //  Sub-reason for the movement
             // defective_on_arrival = may defect habang nire-receive (DOA)
             // damaged_in_storage   = nasira habang naka-stock
             // leaked               = nag-leak (tubig, gatas, etc)
@@ -56,29 +56,29 @@ return new class extends Migration
                 'other'
             ])->nullable();
 
-            // ✅ Additional notes
+            //  Additional notes
             $table->text('remarks')->nullable();
 
-            // ✅ Reference to Purchase Order (for IN movements)
+            //  Reference to Purchase Order (for IN movements)
             $table->foreignId('purchase_order_id')
                 ->nullable()
                 ->constrained('purchase_order')
                 ->onDelete('set null');
 
-            // ✅ Reference to Retailer Order (for OUT movements)
+            //  Reference to Retailer Order (for OUT movements)
             $table->foreignId('retailer_order_id')
                 ->nullable()
                 ->constrained('retailer_orders')
                 ->onDelete('set null');
 
-            // ✅ Who made this movement (points to existing employee table)
+            //  Who made this movement (points to existing employee table)
             $table->foreignId('created_by')
                 ->constrained('employee')
                 ->onDelete('cascade');
 
             $table->timestamps();
 
-            // ✅ Indexes para mabilis ang daily report queries
+            // Indexes para mabilis ang daily report queries
             $table->index(['product_id', 'type', 'created_at']);
             $table->index(['warehouse_id', 'created_at']);
         });

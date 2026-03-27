@@ -9,13 +9,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('purchase_order', function (Blueprint $table) {
-            // ✅ Drop old foreign keys that reference 'user' table
+            //  Drop old foreign keys that reference 'user' table
             $table->dropForeign(['approved_by']);
             $table->dropForeign(['requested_by']);
         });
 
         Schema::table('purchase_order', function (Blueprint $table) {
-            // ✅ Recreate foreign keys to reference 'employee' table
+            //  Recreate foreign keys to reference 'employee' table
             $table->foreign('approved_by')
                 ->references('id')
                 ->on('employee')
