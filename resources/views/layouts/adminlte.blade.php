@@ -526,7 +526,7 @@
             <div class="modal-dialog modal-dialog-centered" role="document">
                 <div class="modal-content" style="border-radius:15px; border:none; box-shadow:0 10px 40px rgba(0,0,0,0.2);">
                     <div class="modal-header"
-                        style="background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%); border-radius:15px 15px 0 0; border:none;">
+                        style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); border-radius:15px 15px 0 0; border:none;">
                         <h5 class="modal-title text-white font-weight-bold">
                             <i class="fas fa-exclamation-triangle mr-2"></i> Session Expiring Soon!
                         </h5>
