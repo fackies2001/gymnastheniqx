@@ -743,49 +743,57 @@
                 // ✅ SESSION HIJACK DETECTION — poll every 5 seconds
                 // Kapag nag-login ang ibang device, lalabas ang modal dito
                 // ============================================================
-                (function() {
-                    let hijackCheckInterval = null;
-                    let hijackDetected = false;
+                let failCount = 0; // ← dagdag mo ito
 
-                    function checkSessionValidity() {
-                        if (hijackDetected) return;
+                function checkSessionValidity() {
+                    if (hijackDetected) return;
 
-                        fetch('/check-session-status', {
-                                headers: {
-                                    'Accept': 'application/json',
-                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? ''
-                                }
-                            })
-                            .then(r => r.json())
-                            .then(data => {
-                                if (!data.valid) {
+                    fetch('/check-session-status', {
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? ''
+                            }
+                        })
+                        .then(r => {
+                            if (!r.ok) throw new Error('HTTP ' + r.status);
+                            return r.json();
+                        })
+                        .then(data => {
+                            if (!data.valid) {
+                                failCount++;
+                                // ✅ 3 consecutive failures before mag-trigger
+                                if (failCount >= 3) {
                                     hijackDetected = true;
                                     clearInterval(hijackCheckInterval);
                                     showHijackModal();
                                 }
-                            })
-                            .catch(() => {});
+                            } else {
+                                failCount = 0; // ✅ i-reset kapag valid
+                            }
+                        })
+                        .catch(() => {
+                            // ✅ network error — hindi counted as hijack
+                            console.warn('[Session] Check failed, ignoring...');
+                        });
+                }
+
+                function showHijackModal() {
+                    // ✅ Itago ang lahat ng ibang modal
+                    $('#sessionWarningModal').modal('hide');
+                    $('#pincodeModal').modal('hide');
+
+                    // ✅ Ipakita ang hijack modal
+                    const modal = document.getElementById('sessionHijackModal');
+                    if (modal) {
+                        modal.style.display = 'flex';
                     }
 
-                    function showHijackModal() {
-                        // ✅ Itago ang lahat ng ibang modal
-                        $('#sessionWarningModal').modal('hide');
-                        $('#pincodeModal').modal('hide');
+                    console.warn('[Session] ⚠️ Account accessed from another device!');
+                }
 
-                        // ✅ Ipakita ang hijack modal
-                        const modal = document.getElementById('sessionHijackModal');
-                        if (modal) {
-                            modal.style.display = 'flex';
-                        }
-
-                        console.warn('[Session] ⚠️ Account accessed from another device!');
-                    }
-
-                    // ✅ Start polling every 5 seconds
-                    hijackCheckInterval = setInterval(checkSessionValidity, 5000);
-                    console.log('[Session] Hijack detection started ✅');
-                })();
-
+                // ✅ Start polling every 5 seconds
+                hijackCheckInterval = setInterval(checkSessionValidity, 5000);
+                console.log('[Session] Hijack detection started ✅');
             })
             ();
         </script>
