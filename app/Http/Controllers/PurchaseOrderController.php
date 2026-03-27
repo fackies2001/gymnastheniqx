@@ -339,7 +339,10 @@ class PurchaseOrderController extends Controller
             // 6.5 ✅ I-record ang StockMovement (type = 'in')
             // Para lumabas sa Daily Received ng Reports
             // ─────────────────────────────────────────────────────
-            $employeeWarehouseId = null;
+            $employeeWarehouseId = $po->warehouse_id
+                ?? \App\Models\ConsumableStock::where('product_id', $product->id)
+                ->value('warehouse_id')
+                ?? 9; // ← fallback sa warehouse 9 (default mo based sa DB)
 
             if ($product->is_consumable) {
                 // Consumable — i-record sa StockMovement
