@@ -663,6 +663,10 @@
                 let secondsLeft = COUNTDOWN_SECONDS;
                 let warningShown = false;
 
+                // ✅ DAGDAG — declare dito para accessible sa buong IIFE
+                let hijackDetected = false;
+                let hijackCheckInterval = null;
+
                 function resetInactivityTimer() {
                     if (warningShown) return;
                     clearTimeout(inactivityTimer);

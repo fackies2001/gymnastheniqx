@@ -323,44 +323,49 @@
         }
 
         function renderTable(data) {
+            // ✅ Destroy muna LAGI bago mag-innerHTML
+            if ($.fn.DataTable.isDataTable('#dailyReportTable')) {
+                $('#dailyReportTable').DataTable().destroy();
+                dataTable = null;
+            }
+
             let html = '';
 
             if (data && data.length > 0) {
                 data.forEach(item => {
                     html += `<tr>
-                        <td>${item.product_name || ''}</td>
-                        <td>${item.category_name || ''}</td>
-                        <td>${item.traceability || '-'}</td>
-                        <td class="text-center font-weight-bold">${item.quantity || 0}</td>
-                    </tr>`;
+                <td>${item.product_name || ''}</td>
+                <td>${item.category_name || ''}</td>
+                <td>${item.traceability || '-'}</td>
+                <td class="text-center font-weight-bold">${item.quantity || 0}</td>
+            </tr>`;
                 });
             } else {
                 html = `<tr>
-                    <td colspan="4" class="text-center text-muted py-5">
-                        <i class="fas fa-inbox fa-3x mb-3" style="opacity:0.3;"></i>
-                        <div class="font-weight-bold">No inventory activity found</div>
-                        <small>Try selecting a different filter or date</small>
-                    </td>
-                </tr>`;
+            <td colspan="4" class="text-center text-muted py-5">
+                <i class="fas fa-inbox fa-3x mb-3" style="opacity:0.3;"></i>
+                <div class="font-weight-bold">No inventory activity found</div>
+                <small>Try selecting a different filter or date</small>
+            </td>
+        </tr>`;
             }
 
             $('#dailyReportTable tbody').html(html);
 
+            // ✅ Init PAGKATAPOS ng innerHTML, walang setTimeout
             if (data && data.length > 0) {
-                setTimeout(function() {
-                    dataTable = $('#dailyReportTable').DataTable({
-                        "responsive": true,
-                        "autoWidth": false,
-                        "destroy": true,
-                        "order": [
-                            [0, "asc"]
-                        ],
-                        "pageLength": 10,
-                        "language": {
-                            "emptyTable": "No records found for the selected period"
-                        }
-                    });
-                }, 100);
+                dataTable = $('#dailyReportTable').DataTable({
+                    "responsive": true,
+                    "autoWidth": false,
+                    "destroy": true,
+                    "order": [
+                        [0, "asc"]
+                    ],
+                    "pageLength": 10,
+                    "language": {
+                        "emptyTable": "No records found for the selected period"
+                    }
+                });
             }
         }
 
