@@ -376,29 +376,44 @@ class DashboardController extends Controller
                 ?? auth()->user()->warehouse_id
                 ?? null;
 
-            // ✅ STEP 1: Auto-sync consumable_stocks.current_qty
-            // base sa actual available count ng serialized_product
-            $productsWithCount = \App\Models\SupplierProduct::select(
+            // ✅ STEP 1: Count per product — WITH warehouse filter na
+            $query = \App\Models\SupplierProduct::select(
                 'supplier_product.id',
                 DB::raw('COUNT(serialized_product.id) as actual_count')
             )
-                ->leftJoin('serialized_product', function ($join) {
+                ->leftJoin('serialized_product', function ($join) use ($warehouseId) {
                     $join->on('serialized_product.product_id', '=', 'supplier_product.id')
                         ->where('serialized_product.status', '=', 1);
+
+                    // ✅ FIX: Idagdag ang warehouse filter dito mismo
+                    if ($warehouseId) {
+                        $join->where('serialized_product.warehouse_id', '=', $warehouseId);
+                    }
                 })
                 ->groupBy('supplier_product.id')
                 ->get();
 
-            // ✅ STEP 2: I-update ang bawat consumable_stock record
-            foreach ($productsWithCount as $product) {
-                \App\Models\ConsumableStock::where('product_id', $product->id)
-                    ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
-                    ->update(['current_qty' => $product->actual_count]);
+            // ✅ STEP 2: updateOrCreate — hindi na mag-silent fail
+            foreach ($query as $product) {
+                if ($warehouseId) {
+                    \App\Models\ConsumableStock::updateOrCreate(
+                        // ← Hanap ng record gamit ang dalawang keys
+                        [
+                            'product_id'   => $product->id,
+                            'warehouse_id' => $warehouseId,
+                        ],
+                        // ← I-update o i-create ang current_qty
+                        [
+                            'current_qty'     => $product->actual_count,
+                            'min_stock_level' => 20, // default, hindi mao-override kung may existing
+                        ]
+                    );
+                }
             }
 
-            // ✅ STEP 3: Kunin na ang low stock — below min_stock_level (20)
+            // ✅ STEP 3: Query na — may records na ngayon
             $lowStockProducts = \App\Models\ConsumableStock::with(['product'])
-                ->where('current_qty', '<', 'min_stock_level')
+                ->whereColumn('current_qty', '<', 'min_stock_level')
                 ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
                 ->orderBy('current_qty', 'asc')
                 ->limit(10)
