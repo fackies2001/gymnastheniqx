@@ -7,6 +7,7 @@
 @section('content_body')
     <div class="container-fluid">
         {{-- Statistics Cards --}}
+        {{-- Statistics Cards --}}
         <div class="row no-print mb-3">
             <div class="col-lg-3 col-6" onclick="filterByStatus('low_stock')" style="cursor: pointer;">
                 <div class="small-box bg-warning">
@@ -30,21 +31,23 @@
                 </div>
             </div>
 
+            {{-- ✅ FIX: id=cardOutflow, $dailyOutflow, label=Daily Outflow --}}
             <div class="col-lg-3 col-6" onclick="filterByStatus('outflow')" style="cursor: pointer;">
                 <div class="small-box bg-success">
                     <div class="inner">
-                        <h3 id="cardDamaged">{{ $damagedCount ?? 0 }}</h3>
-                        <p>Damaged/Lost</p>
+                        <h3 id="cardOutflow">{{ $dailyOutflow }}</h3>
+                        <p>Daily Outflow</p>
                     </div>
                     <div class="icon"><i class="fas fa-upload"></i></div>
                     <a href="#" class="small-box-footer">View Details <i class="fas fa-arrow-circle-right"></i></a>
                 </div>
             </div>
 
+            {{-- ✅ FIX: id=cardDamaged --}}
             <div class="col-lg-3 col-6" onclick="filterByStatus('damage')" style="cursor: pointer;">
                 <div class="small-box bg-danger">
                     <div class="inner">
-                        <h3>{{ $damagedCount ?? 0 }}</h3>
+                        <h3 id="cardDamaged">{{ $damagedCount ?? 0 }}</h3>
                         <p>Damaged/Lost</p>
                     </div>
                     <div class="icon"><i class="fas fa-tools"></i></div>
@@ -291,10 +294,12 @@
 
                     currentData.forEach(function(item) {
                         const status = (item.status || '').toLowerCase();
-                        if (status === 'received') receivedCount++;
-                        else if (status === 'outflow') outflowCount++;
-                        else if (status === 'damaged' || status === 'lost') damagedCount++;
-                        else if (status === 'low stock') lowStockCount++;
+                        const qty = parseInt(item.quantity) || 0; // ✅ kuhanin ang qty
+
+                        if (status === 'received') receivedCount += qty;
+                        else if (status === 'outflow') outflowCount += qty;
+                        else if (status === 'damaged' || status === 'lost') damagedCount += qty;
+                        else if (status === 'low stock') lowStockCount += qty;
                     });
 
                     // ✅ Only update cards if NOT filtering by specific type
