@@ -24,9 +24,9 @@
             --text-dark: #0f0f1a;
             --text-mid: #4a4a6a;
             --text-light: #9a9ab0;
-            --lime: #b8e000;
-            --lime-dark: #8aaa00;
-            --lime-glow: rgba(184, 224, 0, 0.25);
+            --lime: #764ba2;
+            --lime-dark: #5a3680;
+            --lime-glow: rgba(118, 75, 162, 0.25);
         }
 
         *,
@@ -300,7 +300,7 @@
         }
 
         .hero-btn-main:hover {
-            background: #c8f000;
+            background: #8b5cc8;
             transform: translateY(-2px);
             box-shadow: 0 8px 32px rgba(184, 224, 0, 0.4);
         }
