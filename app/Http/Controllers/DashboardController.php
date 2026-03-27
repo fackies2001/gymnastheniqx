@@ -376,9 +376,29 @@ class DashboardController extends Controller
                 ?? auth()->user()->warehouse_id
                 ?? null;
 
-            // ✅ FIX — consumable_stocks na ang source, hindi serialized_product
-            $lowStockProducts = \App\Models\ConsumableStock::with(['product.supplier'])
-                ->whereColumn('current_qty', '<=', 'min_stock_level')
+            // ✅ STEP 1: Auto-sync consumable_stocks.current_qty
+            // base sa actual available count ng serialized_product
+            $productsWithCount = \App\Models\SupplierProduct::select(
+                'supplier_product.id',
+                DB::raw('COUNT(serialized_product.id) as actual_count')
+            )
+                ->leftJoin('serialized_product', function ($join) {
+                    $join->on('serialized_product.product_id', '=', 'supplier_product.id')
+                        ->where('serialized_product.status', '=', 1);
+                })
+                ->groupBy('supplier_product.id')
+                ->get();
+
+            // ✅ STEP 2: I-update ang bawat consumable_stock record
+            foreach ($productsWithCount as $product) {
+                \App\Models\ConsumableStock::where('product_id', $product->id)
+                    ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
+                    ->update(['current_qty' => $product->actual_count]);
+            }
+
+            // ✅ STEP 3: Kunin na ang low stock — below min_stock_level (20)
+            $lowStockProducts = \App\Models\ConsumableStock::with(['product'])
+                ->where('current_qty', '<', 'min_stock_level')
                 ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
                 ->orderBy('current_qty', 'asc')
                 ->limit(10)
@@ -399,6 +419,7 @@ class DashboardController extends Controller
             return collect();
         }
     }
+
 
     // ============================================================
     // ✅ HELPER: Get recent activities
