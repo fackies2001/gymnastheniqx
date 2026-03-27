@@ -535,7 +535,7 @@
                 </p>
             </div>
 
-            {{-- <div class="brand-bottom">
+             <div class="brand-bottom">
                 <div class="stat-item">
                     <div class="stat-num" data-count="500">0+</div>
                     <div class="stat-lbl">Equipment</div>
@@ -549,7 +549,7 @@
                     <div class="stat-lbl">Uptime</div>
                 </div>
             </div>
-        </div> --}}
+        </div> 
 
         {{-- ── RIGHT FORM PANEL ── --}}
         <div class="form-panel">

@@ -336,6 +336,38 @@ class PurchaseOrderController extends Controller
             }
 
             // ─────────────────────────────────────────────────────
+            // 6.5 ✅ I-record ang StockMovement (type = 'in')
+            // Para lumabas sa Daily Received ng Reports
+            // ─────────────────────────────────────────────────────
+            $employeeWarehouseId = null;
+
+            if ($product->is_consumable) {
+                // Consumable — i-record sa StockMovement
+                \App\Models\StockMovement::record([
+                    'product_id'        => $product->id,
+                    'warehouse_id'      => $employeeWarehouseId,
+                    'type'              => \App\Models\StockMovement::TYPE_IN,
+                    'quantity'          => $qtyToAdd,
+                    'reason_type'       => \App\Models\StockMovement::REASON_RECEIVED,
+                    'remarks'           => 'Received via PO scan - ' . $po->po_number,
+                    'purchase_order_id' => $po->id,
+                    'created_by'        => auth()->id(),
+                ]);
+            } else {
+                // Non-consumable — record lang sa StockMovement, hindi mag-a-update ng ConsumableStock
+                \App\Models\StockMovement::create([
+                    'product_id'        => $product->id,
+                    'warehouse_id'      => $employeeWarehouseId,
+                    'type'              => \App\Models\StockMovement::TYPE_IN,
+                    'quantity'          => $qtyToAdd,
+                    'reason_type'       => \App\Models\StockMovement::REASON_RECEIVED,
+                    'remarks'           => 'Received via PO scan - ' . $po->po_number,
+                    'purchase_order_id' => $po->id,
+                    'created_by'        => auth()->id(),
+                ]);
+            }
+
+            // ─────────────────────────────────────────────────────
             // 7. I-update ang quantity_scanned ng PO item
             // ─────────────────────────────────────────────────────
             $poItem->increment('quantity_scanned', $qtyToAdd);
