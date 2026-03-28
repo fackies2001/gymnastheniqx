@@ -405,11 +405,15 @@ class DashboardController extends Controller
         $activities = collect();
 
         try {
-            $recentPR = PurchaseRequest::with(['user', 'supplier'])->latest()->limit(3)->get();
+            $recentPR = PurchaseRequest::with(['user', 'supplier'])
+                ->whereNotNull('supplier_id')  // ✅ exclude yung walang supplier
+                ->latest()
+                ->limit(3)
+                ->get();
             foreach ($recentPR as $pr) {
                 $activities->push((object)[
                     'user_name'   => $pr->user->full_name ?? 'System',
-                    'description' => "Created PR #" . ($pr->request_number ?? 'N/A') . " from " . ($pr->supplier->name ?? 'Unknown Supplier'),
+                    'description' => "Created PR #" . ($pr->request_number ?? 'N/A') . " from " . ($pr->supplier->name ?? 'N/A'),
                     'time_ago'    => (string) $pr->created_at->diffForHumans(),
                     'icon'        => 'file-alt',
                     'type_color'  => 'primary',
