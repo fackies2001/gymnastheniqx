@@ -301,6 +301,11 @@ class RetailerOrderController extends Controller
                 Log::warning('Retailer order approval notification failed: ' . $e->getMessage());
             }
 
+            if ($product->is_consumable) {
+                return back()->with('success', "Order Approved! {$order->quantity} items deducted from consumable stock.");
+            }
+
+            // Non-consumable — check serialized products
             $reservedQty = count($serialNumbers);
             if ($reservedQty === 0) {
                 return back()->with('warning', 'Order Approved with NO STOCK! Please request stock replenishment immediately.');
