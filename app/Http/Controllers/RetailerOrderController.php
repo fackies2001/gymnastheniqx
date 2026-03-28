@@ -34,11 +34,11 @@ class RetailerOrderController extends Controller
     }
 
     // ============================================================
-    // ✅ INDEX — Role-based filtering
+    //  INDEX — Role-based filtering
     //    Admin / Manager → sees ALL orders
     //    Staff           → sees only their own orders
     //
-    // ✅ FIX: Staff filter now uses BOTH created_by_user_id AND
+    //  FIX: Staff filter now uses BOTH created_by_user_id AND
     //    created_by name as fallback — fixes cases where older
     //    orders had null created_by_user_id
     // ============================================================
@@ -96,7 +96,7 @@ class RetailerOrderController extends Controller
             }
         };
 
-        // ✅ FIX: Staff filter — check BOTH user_id AND name as fallback
+        //  FIX: Staff filter — check BOTH user_id AND name as fallback
         // This fixes orders created before created_by_user_id was added
         $baseQuery = RetailerOrder::query()
             ->when(!$isAdmin && !$isManager, function ($query) use ($user) {
@@ -143,7 +143,7 @@ class RetailerOrderController extends Controller
             ->groupBy('supplier_product.id')
             ->get();
 
-        // ✅ Pass $isAdmin to blade
+        //  Pass $isAdmin to blade
         $isAdmin = $this->isAdmin();
 
         return view('orders.index', compact(
@@ -165,10 +165,18 @@ class RetailerOrderController extends Controller
             'unit_price'    => 'required|numeric|min:0',
         ]);
 
-        $product        = SupplierProduct::findOrFail($request->product_id);
-        $availableStock = SerializedProduct::where('product_id', $product->id)
-            ->where('status', 1)
-            ->count();
+        $product = SupplierProduct::findOrFail($request->product_id);
+
+        // ✅ FIX — Kung consumable, kuhanin sa consumable_stocks
+        // Kung non-consumable, kuhanin sa serialized_product
+        if ($product->is_consumable) {
+            $availableStock = \App\Models\ConsumableStock::where('product_id', $product->id)
+                ->value('current_qty') ?? 0;
+        } else {
+            $availableStock = SerializedProduct::where('product_id', $product->id)
+                ->where('status', 1)
+                ->count();
+        }
 
         if ($availableStock === 0) {
             return back()->with('error', '❌ Order failed! No available stock for this product.');
@@ -188,7 +196,7 @@ class RetailerOrderController extends Controller
             'status'             => 'Pending',
             'sku'                => $product->supplier_sku ?? $product->system_sku ?? 'N/A',
             'created_by'         => Auth::user()->full_name ?? 'Unknown User',
-            'created_by_user_id' => Auth::id(),   // ✅ Always saved
+            'created_by_user_id' => Auth::id(),
             'user_role'          => Auth::user()->role?->role_name ?? 'No Role',
         ]);
 
@@ -259,6 +267,23 @@ class RetailerOrderController extends Controller
                 'approved_at'              => now(),
                 'allocated_serial_numbers' => json_encode($serialNumbers),
             ]);
+
+            //  DAGDAG — i-record ang stock movement para sa consumable products
+            if ($product && $product->is_consumable) {
+                $warehouseId = \App\Models\ConsumableStock::where('product_id', $product->id)
+                    ->value('warehouse_id') ?? 9;
+
+                \App\Models\StockMovement::record([
+                    'product_id'        => $product->id,
+                    'warehouse_id'      => $warehouseId,
+                    'type'              => \App\Models\StockMovement::TYPE_OUT,
+                    'quantity'          => $order->quantity,
+                    'reason_type'       => \App\Models\StockMovement::REASON_SOLD,
+                    'remarks'           => "Sold to Retailer: {$order->retailer_name} (Order ID: {$order->id})",
+                    'retailer_order_id' => $order->id,
+                    'created_by'        => auth()->id(),
+                ]);
+            }
 
             DB::commit();
 
@@ -377,6 +402,37 @@ class RetailerOrderController extends Controller
                 'shipped_at'               => now(),
                 'allocated_serial_numbers' => json_encode($serialNumbers),
             ]);
+
+            //  DAGDAG — i-record ang stock movement para sa consumable products
+            $completedProduct = null;
+            if ($order->product_id) $completedProduct = \App\Models\SupplierProduct::find($order->product_id);
+            if (!$completedProduct && $order->product_name) {
+                $completedProduct = \App\Models\SupplierProduct::where('name', $order->product_name)->first();
+            }
+
+            if ($completedProduct && $completedProduct->is_consumable) {
+                $warehouseId = \App\Models\ConsumableStock::where('product_id', $completedProduct->id)
+                    ->value('warehouse_id') ?? 9;
+
+                //  Kung nag-approve na — bawasan na lang yung hindi pa nababawas
+                // (avoid double deduct kung nag-record na sa approve)
+                $alreadyRecorded = \App\Models\StockMovement::where('retailer_order_id', $order->id)
+                    ->where('type', 'out')
+                    ->exists();
+
+                if (!$alreadyRecorded) {
+                    \App\Models\StockMovement::record([
+                        'product_id'        => $completedProduct->id,
+                        'warehouse_id'      => $warehouseId,
+                        'type'              => \App\Models\StockMovement::TYPE_OUT,
+                        'quantity'          => $shippedQty,
+                        'reason_type'       => \App\Models\StockMovement::REASON_SOLD,
+                        'remarks'           => "Completed — Sold to Retailer: {$order->retailer_name} (Order ID: {$order->id})",
+                        'retailer_order_id' => $order->id,
+                        'created_by'        => auth()->id(),
+                    ]);
+                }
+            }
 
             DB::commit();
 

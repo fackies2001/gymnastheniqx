@@ -30,14 +30,14 @@
                                     <x-bootstrap.label for="name" value="Supplier Name" :required="true" />
                                     <x-bootstrap.input id="name" name="name" required
                                         placeholder="Enter supplier name" value="{{ old('name') }}" />
-                                    {{-- ✅ INALIS ang x-bootstrap.input-error para hindi mag-show ng PHP validation error --}}
+                                    {{--  INALIS ang x-bootstrap.input-error para hindi mag-show ng PHP validation error --}}
                                 </div>
 
                                 <div class="mb-3">
                                     <x-bootstrap.label for="email" value="Supplier Email" :required="true" />
                                     <x-bootstrap.input id="email" name="email" type="email" required
                                         placeholder="Enter supplier email" value="{{ old('email') }}" />
-                                    {{-- ✅ INALIS ang x-bootstrap.input-error --}}
+                                    {{--  INALIS ang x-bootstrap.input-error --}}
                                 </div>
 
                                 <div class="mb-3">
@@ -91,18 +91,18 @@
                 e.preventDefault();
                 e.stopPropagation();
 
-                // ✅ Guard — block if already submitting
+                //  Guard — block if already submitting
                 if (isSubmitting) return;
 
-                // ✅ Validate FIRST — bago pa mag-lock ng button o tanggalin ang listener
+                //  Validate FIRST — bago pa mag-lock ng button o tanggalin ang listener
                 if (!document.getElementById('createSupplierForm').checkValidity()) {
                     document.getElementById('createSupplierForm').reportValidity();
-                    return; // ✅ hindi pa naka-lock, pwede pa mag-retry
+                    return; //  hindi pa naka-lock, pwede pa mag-retry
                 }
 
-                // ✅ DITO NA LANG mag-lock — after validation passed na
+                //  DITO NA LANG mag-lock — after validation passed na
                 isSubmitting = true;
-                $('#createSupplierSubmit').off('click'); // ✅ dito na tanggalin
+                $('#createSupplierSubmit').off('click'); //  dito na tanggalin
                 $('#createSupplierSubmit').prop('disabled', true).text('Saving...');
 
                 // Step 1: Check duplicate first
@@ -115,11 +115,11 @@
                     },
                     success: function(response) {
                         if (response.exists) {
-                            // ✅ Reset — para makapag-edit at makapag-submit ulit
+                            //  Reset — para makapag-edit at makapag-submit ulit
                             isSubmitting = false;
                             $('#createSupplierSubmit').prop('disabled', false).text(
                                 'Save Supplier');
-                            // ✅ Re-attach listener
+                            //  Re-attach listener
                             $('#createSupplierSubmit').off('click').on('click', arguments
                                 .callee);
 
@@ -148,11 +148,11 @@
                                     }
                                 },
                                 error: function(xhr) {
-                                    // ✅ Reset on error — makapag-retry ang user
+                                    //  Reset on error — makapag-retry ang user
                                     isSubmitting = false;
                                     $('#createSupplierSubmit').prop('disabled',
                                         false).text('Save Supplier');
-                                    // ✅ Re-attach listener
+                                    //  Re-attach listener
                                     $('#createSupplierSubmit').off('click').on(
                                         'click', arguments.callee);
 
@@ -177,11 +177,11 @@
                         }
                     },
                     error: function() {
-                        // ✅ Reset on error
+                        //  Reset on error
                         isSubmitting = false;
                         $('#createSupplierSubmit').prop('disabled', false).text(
                         'Save Supplier');
-                        // ✅ Re-attach listener
+                        //  Re-attach listener
                         $('#createSupplierSubmit').off('click').on('click', arguments.callee);
 
                         Swal.fire({

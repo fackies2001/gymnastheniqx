@@ -42,7 +42,7 @@ class SupplierProduct extends Model implements Auditable
         'supplier_sku',
         'system_sku',
         'cost_price',
-        'selling_price', // ✅ ADDED — presyo ng ibebenta sa retailer
+        'selling_price', //  ADDED — presyo ng ibebenta sa retailer
         'discount',
         'availability_status',
         'shipping_information',
@@ -66,7 +66,7 @@ class SupplierProduct extends Model implements Auditable
     ];
 
     /* ========================================
-       🔥 SCOPES
+        SCOPES
        ======================================== */
 
     public function scopeFilterByStudent($query)
@@ -109,7 +109,7 @@ class SupplierProduct extends Model implements Auditable
     }
 
     /* ========================================
-       ✅ RELATIONSHIPS
+        RELATIONSHIPS
        ======================================== */
 
     public function category()
@@ -143,7 +143,7 @@ class SupplierProduct extends Model implements Auditable
     }
 
     /* ========================================
-       🔥 HELPER METHODS
+        HELPER METHODS
        ======================================== */
 
     public function getAvailableStockAttribute()
@@ -159,7 +159,7 @@ class SupplierProduct extends Model implements Auditable
     }
 
     /**
-     * ✅ NEW: Get effective selling price
+     *  NEW: Get effective selling price
      * Kung walang selling_price, fallback sa cost_price
      * Para hindi maging 0 ang unit price sa orders
      */
@@ -169,7 +169,7 @@ class SupplierProduct extends Model implements Auditable
     }
 
     /**
-     * ✅ NEW: Get markup amount
+     *  NEW: Get markup amount
      */
     public function getMarkupAmountAttribute()
     {
@@ -178,7 +178,7 @@ class SupplierProduct extends Model implements Auditable
     }
 
     /**
-     * ✅ NEW: Get markup percentage
+     *  NEW: Get markup percentage
      */
     public function getMarkupPercentageAttribute()
     {
@@ -187,7 +187,7 @@ class SupplierProduct extends Model implements Auditable
     }
 
     /* ========================================
-       ✅ BOOT METHOD
+        BOOT METHOD
        ======================================== */
 
     protected static function boot()

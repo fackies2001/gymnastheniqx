@@ -11,7 +11,7 @@ class PurchaseOrderItem extends Model
 
     protected $fillable = [
         'purchase_order_id',
-        'product_id', // ✅ References supplier_product.id
+        'product_id', //  References supplier_product.id
         'quantity_ordered',
         'quantity_scanned',
         'unit_cost',
@@ -30,19 +30,19 @@ class PurchaseOrderItem extends Model
         return $this->belongsTo(PurchaseOrder::class, 'purchase_order_id');
     }
 
-    // ✅ MAIN RELATIONSHIP
+    //  MAIN RELATIONSHIP
     public function supplierProduct(): BelongsTo
     {
         return $this->belongsTo(SupplierProduct::class, 'product_id', 'id');
     }
 
-    // ✅ ALIAS
+    //  ALIAS
     public function product(): BelongsTo
     {
         return $this->supplierProduct();
     }
 
-    // ✅ ACCESSOR
+    //  ACCESSOR
     public function getProductNameAttribute()
     {
         return $this->supplierProduct->name ?? 'Unknown Product';
