@@ -203,7 +203,7 @@ class ReportsController extends Controller
                         ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId));
 
                     $dateFilter($consumableQuery);
-                    
+
                     $movements = $consumableQuery->get()
                         ->groupBy('product_id');
 
@@ -331,7 +331,8 @@ class ReportsController extends Controller
             if (!$type || $type === 'low_stock') {
                 try {
                     $lowConsumables = ConsumableStock::with(['product.supplier'])
-                        ->whereColumn('current_qty', '<=', 'min_stock_level')
+                        ->whereColumn('current_qty', '<', 'min_stock_level')
+                        ->where('current_qty', '>', 0)
                         ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
                         ->get();
 

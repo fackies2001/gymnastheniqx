@@ -375,7 +375,7 @@ class DashboardController extends Controller
             // ✅ Direkta na sa consumable_stocks — hindi na nag-o-override ng qty
             $lowStockProducts = \App\Models\ConsumableStock::with(['product'])
                 ->whereColumn('current_qty', '<=', 'min_stock_level')
-                ->where('current_qty', '>', 0)
+                ->where('current_qty', '>', 0) // 
                 ->orderBy('current_qty', 'asc')
                 ->limit(10)
                 ->get()
