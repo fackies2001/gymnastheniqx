@@ -330,11 +330,11 @@ return [
         // ==========================================
         // SCAN - ALL USERS
         // ==========================================
-        [
-            'text' => 'Scan-in',
-            'url' => 'scan',
-            'icon' => 'fas fa-barcode',
-        ],
+        // [
+        //     'text' => 'Scan-in',
+        //     'url' => 'scan',
+        //     'icon' => 'fas fa-barcode',
+        // ],
 
         // ==========================================
         // OUR PRODUCTS - ALL USERS

@@ -179,8 +179,8 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session'])->group(funct
         Route::post('/read-all',  [NotificationsController::class, 'markAllRead'])->name('notifications.read-all');
     });
 
-    // ✅ Staff pwede mag-scan
-    Route::get('/scan', [ScanController::class, 'index'])->name('scan.index');
+    // // ✅ Staff pwede mag-scan
+    // Route::get('/scan', [ScanController::class, 'index'])->name('scan.index');
 
     // =========================================================
     // ✅ ADMIN & MANAGER ONLY
