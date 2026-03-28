@@ -431,10 +431,9 @@ class DashboardController extends Controller
 
             $recentSP = SerializedProduct::with(['scannedBy', 'supplierProducts'])->latest()->limit(3)->get();
             foreach ($recentSP as $sp) {
-                $serialNum = $sp->serial_number ?? $sp->id;
                 $activities->push((object)[
                     'user_name'   => $sp->scannedBy->full_name ?? 'System',
-                    'description' => "Scanned " . ($sp->supplierProducts->name ?? 'Unknown Product') . " (Serial: {$serialNum})",
+                    'description' => "Scanned " . ($sp->supplierProducts->name ?? 'Unknown Product'),
                     'time_ago'    => (string) $sp->created_at->diffForHumans(),
                     'icon'        => 'barcode',
                     'type_color'  => 'info',
