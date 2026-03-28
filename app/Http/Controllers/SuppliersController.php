@@ -93,11 +93,12 @@ class SuppliersController extends Controller
         $email    = $request->email ? strtolower($request->email) : null;
         $baseName = trim($request->name);
 
-        // ✅ BAGONG GUARD — block exact duplicate before anything else
-        // Ito ang nagpipigil sa double-submit race condition
-        $exactDuplicate = Supplier::whereRaw('LOWER(name) = ?', [strtolower($baseName)])
-            ->when($email, fn($q) => $q->whereRaw('LOWER(email) = ?', [$email]))
-            ->exists();
+    //  GUARD — block exact duplicate (prevents double-submit race condition)
+        $duplicateQuery = Supplier::whereRaw('LOWER(name) = ?', [strtolower($baseName)]);
+        if ($email) {
+            $duplicateQuery->whereRaw('LOWER(email) = ?', [$email]);
+        }
+        $exactDuplicate = $duplicateQuery->exists();
 
         if ($exactDuplicate) {
             if ($request->ajax() || $request->wantsJson()) {
@@ -110,7 +111,7 @@ class SuppliersController extends Controller
                 ->with('error', 'Supplier already exists.');
         }
 
-        // ✅ Same-name counter — para sa intentional duplicates (iba email)
+        //  Same-name counter — para sa intentional duplicates (iba email)
         $sameNameCount = Supplier::whereRaw(
             'LOWER(name) LIKE ?',
             [strtolower($baseName) . '%']
@@ -200,7 +201,7 @@ class SuppliersController extends Controller
             'address' => $request->address,
         ]);
 
-        // ✅ BAGO
+        //  BAGO
         return redirect()->route('suppliers.index')
             ->with('crud_success', 'Supplier updated successfully!');
     }
