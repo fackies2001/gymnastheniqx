@@ -90,10 +90,12 @@
                                             <i class="fas fa-key"></i> Reset Password
                                         </button>
 
-                                        <button class="btn btn-xs btn-danger delete-employee-btn"
-                                            data-id="{{ $employee->id }}" data-name="{{ $employee->full_name }}">
-                                            <i class="fas fa-trash"></i> Delete
-                                        </button>
+                                        @if ((int) $employee->id !== (int) auth()->id())
+                                            <button class="btn btn-xs btn-danger delete-employee-btn"
+                                                data-id="{{ $employee->id }}" data-name="{{ $employee->full_name }}">
+                                                <i class="fas fa-trash"></i> Delete
+                                            </button>
+                                        @endif
                                     </td>
                                 </tr>
                             @endforeach
@@ -134,6 +136,21 @@
                             <div class="col-md-6 form-group">
                                 <label>Email <span class="text-danger">*</span></label>
                                 <input type="email" name="email" id="email" class="form-control" required>
+                            </div>
+
+                            {{-- Password (create: required; edit: optional) --}}
+                            <div class="col-md-6 form-group password-field-wrap">
+                                <label>Password <span class="text-danger password-required-mark">*</span></label>
+                                <input type="password" name="password" id="password" class="form-control" autocomplete="new-password"
+                                    minlength="8">
+                                <small class="text-muted password-help-create">At least 8 characters. User will use this to sign in.</small>
+                                <small class="text-muted password-help-edit" style="display:none;">Leave blank to keep the current password.</small>
+                            </div>
+
+                            <div class="col-md-6 form-group password-field-wrap">
+                                <label>Confirm password <span class="text-danger password-required-mark">*</span></label>
+                                <input type="password" name="password_confirmation" id="password_confirmation" class="form-control"
+                                    autocomplete="new-password" minlength="8">
                             </div>
 
                             {{-- Contact Number --}}
@@ -241,6 +258,12 @@
                 $('#create_employee').on('click', function() {
                     $('#employeeForm')[0].reset();
                     $('#emp_id').val('');
+                    $('#password').val('');
+                    $('#password_confirmation').val('');
+                    $('#password, #password_confirmation').prop('required', true);
+                    $('.password-required-mark').show();
+                    $('.password-help-create').show();
+                    $('.password-help-edit').hide();
                     $('.modal-title').text('Create New Employee');
                     $('#save_btn').text('Save Employee');
                     $('#createUserModal').modal('show');
@@ -261,6 +284,12 @@
                     $('#department_id').val(btn.data('department') || '');
                     $('#assigned_at').val(btn.data('warehouse') || '');
                     $('#status').val(btn.data('status') || 'active');
+                    $('#password').val('');
+                    $('#password_confirmation').val('');
+                    $('#password, #password_confirmation').prop('required', false);
+                    $('.password-required-mark').hide();
+                    $('.password-help-create').hide();
+                    $('.password-help-edit').show();
                     $('.modal-title').text('Edit Employee Details');
                     $('#save_btn').text('Update Employee');
                     $('#createUserModal').modal('show');

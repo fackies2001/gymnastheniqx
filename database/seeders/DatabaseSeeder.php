@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
@@ -17,6 +17,7 @@ class DatabaseSeeder extends Seeder
             ProductStatusSeeder::class,
             CategorySeeder::class,
             DepartmentSeeder::class,
+            PaymentTermSeeder::class,
         ]);
 
         User::updateOrCreate(
@@ -31,9 +32,25 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        echo "\n✅ SUCCESS: Admin account created!\n";
-        echo "   Email: admin@test.com\n";
-        echo "   Password: password123\n";
-        echo "   PIN: 123456\n\n";
+        $this->call([
+            WarehouseSeeder::class,
+            EmployeeSeeder::class,
+            SupplierSeeder::class,
+            SupplierApisSeeder::class,
+            SupplierProductSeeder::class,
+            SupplierBarcodesSeeder::class,
+            PurchaseDocumentsSeeder::class,
+            PurchaseOrderSeeder::class,
+            SerializedProductSeeder::class,
+            TestProductSeeder::class,
+            PurchaseRequestSeeder::class,
+            PersonalAccessTokenSeeder::class,
+            ReportDataSeeder::class,
+        ]);
+
+        $this->command->newLine();
+        $this->command->info('Admin: admin@test.com / password123 (PIN 123456)');
+        $this->command->info('Optional: php artisan db:seed --class=VerifyReportTablesSeeder (schema check — may warn on legacy column names).');
+        $this->command->info('Not included: UserSeeder (truncates core tables), SerialNumberSeeder (factory targets wrong schema).');
     }
 }

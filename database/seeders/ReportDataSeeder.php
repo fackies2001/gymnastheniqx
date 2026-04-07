@@ -274,6 +274,7 @@ class ReportDataSeeder extends Seeder
                 'purchase_request_id' => $pr ? $pr->id : null,
                 'supplier_id' => $supplier->id,
                 'approved_by' => $user->id,
+                'requested_by' => $user->id,
                 'order_date' => $today,
                 'delivery_date' => $today->copy()->addDays(7),
                 'payment_terms' => 'cash_on_delivery',
@@ -293,31 +294,32 @@ class ReportDataSeeder extends Seeder
         $today = Carbon::today();
         $user = User::first();
 
-        // Status distribution for today's report
+        // product_status.id: 1 Available, 3 Sold, 2 Reserved (see ProductStatusSeeder)
         $statusDistribution = [
-            'in_inventory' => 15,  // Available items (15 new arrivals)
-            'sold' => 8,           // Sold today (Daily Outflow)
-            'pending' => 5,        // Pending/damaged/returned
+            1 => 15,
+            3 => 8,
+            2 => 5,
         ];
 
-        foreach ($statusDistribution as $status => $count) {
+        foreach ($statusDistribution as $statusId => $count) {
             for ($i = 0; $i < $count; $i++) {
                 $product = $products->random();
 
-                $createdAt = $status == 'in_inventory'
-                    ? $today->copy()->addHours(rand(8, 17))  // New arrivals today
-                    : $today->copy()->subDays(rand(1, 30));  // Older items
+                $createdAt = $statusId === 1
+                    ? $today->copy()->addHours(rand(8, 17))
+                    : $today->copy()->subDays(rand(1, 30));
 
-                $updatedAt = in_array($status, ['sold', 'pending'])
-                    ? $today->copy()->addHours(rand(10, 18))  // Status changed today
+                $updatedAt = in_array($statusId, [3, 2], true)
+                    ? $today->copy()->addHours(rand(10, 18))
                     : $createdAt;
 
                 SerializedProduct::create([
                     'serial_number' => 'SN-' . strtoupper(Str::random(12)),
-                    'barcode' => '88' . str_pad(rand(0, 99999999999), 11, '0', STR_PAD_LEFT), // 13 digits total
+                    'barcode' => '88' . str_pad((string) random_int(0, 99999999999), 11, '0', STR_PAD_LEFT),
                     'product_id' => $product->id,
-                    'status' => $status,
+                    'status' => $statusId,
                     'purchase_order_id' => null,
+                    'scanned_by' => $user->id,
                     'scanned_at' => $updatedAt,
                     'created_at' => $createdAt,
                     'updated_at' => $updatedAt,
@@ -325,16 +327,16 @@ class ReportDataSeeder extends Seeder
             }
         }
 
-        // Add some older serialized products for stock counts
         for ($i = 0; $i < 50; $i++) {
             $product = $products->random();
 
             SerializedProduct::create([
                 'serial_number' => 'SN-' . strtoupper(Str::random(12)),
-                'barcode' => '88' . str_pad(rand(0, 99999999999), 11, '0', STR_PAD_LEFT), // 13 digits total
+                'barcode' => '88' . str_pad((string) random_int(0, 99999999999), 11, '0', STR_PAD_LEFT),
                 'product_id' => $product->id,
-                'status' => 'in_inventory', // Available
+                'status' => 1,
                 'purchase_order_id' => null,
+                'scanned_by' => $user->id,
                 'scanned_at' => $today->copy()->subDays(rand(2, 60)),
                 'created_at' => $today->copy()->subDays(rand(2, 60)),
             ]);
@@ -428,11 +430,13 @@ class ReportDataSeeder extends Seeder
                     'created_at' => $orderDate->copy()->subDays(3),
                 ]);
 
+                $u = User::first();
                 PurchaseOrder::create([
                     'po_number' => 'PO-' . $orderDate->format('Ymd') . '-' . str_pad($i + 1, 4, '0', STR_PAD_LEFT) . '-' . $monthsAgo . $i,
                     'purchase_request_id' => $pr->id,
                     'supplier_id' => $supplier->id,
-                    'approved_by' => User::first()->id,
+                    'approved_by' => $u->id,
+                    'requested_by' => $u->id,
                     'order_date' => $orderDate,
                     'delivery_date' => $orderDate->copy()->addDays(7),
                     'payment_terms' => 'cash_on_delivery',

@@ -2,9 +2,8 @@
 
 namespace Database\Seeders;
 
-use App\Models\Departments;
+use App\Models\Department;
 use App\Models\Employee;
-use App\Models\Warehouse;
 use Illuminate\Database\Seeder;
 
 class EmployeeSeeder extends Seeder
@@ -51,18 +50,19 @@ class EmployeeSeeder extends Seeder
         ];
 
         foreach ($employees as $data) {
-            Employee::create(array_merge($data, [
-                'department_id' => Department::inRandomOrder()->first()?->id, // Nullable
-                'contact_number' => '09123456789',
-                'address' => 'Default Address',
-                'date_hired' => now(),
-                'profile_photo' => 'https://randomuser.me/api/portraits/men/' . rand(1, 99) . '.jpg',
-                'status' => 'active',
-                'last_login_at' => now(),
-            ]));
+            Employee::updateOrCreate(
+                ['email' => $data['email']],
+                array_merge($data, [
+                    'department_id' => Department::query()->inRandomOrder()->first()?->id,
+                    'contact_number' => '09123456789',
+                    'address' => 'Default Address',
+                    'date_hired' => now(),
+                    'profile_photo' => 'https://randomuser.me/api/portraits/men/' . rand(1, 99) . '.jpg',
+                    'status' => 'active',
+                    'last_login_at' => now(),
+                ])
+            );
         }
 
-        // Add 10 random employees using factory
-        Employee::factory(10)->create();
     }
 }

@@ -100,10 +100,14 @@ class RetailerOrderController extends Controller
         // This fixes orders created before created_by_user_id was added
         $baseQuery = RetailerOrder::query()
             ->when(!$isAdmin && !$isManager, function ($query) use ($user) {
-                $userName = $user->full_name ?? ($user->first_name . ' ' . $user->last_name);
+                $userName = $user->full_name
+                    ?? trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? ''))
+                    ?: null;
                 $query->where(function ($q) use ($user, $userName) {
-                    $q->where('created_by_user_id', $user->id)
-                        ->orWhere('created_by', $userName);
+                    $q->where('created_by_user_id', $user->id);
+                    if ($userName) {
+                        $q->orWhere('created_by', $userName);
+                    }
                 });
             });
 
@@ -135,12 +139,13 @@ class RetailerOrderController extends Controller
             ->where('status', 'Completed')
             ->count();
 
-        $warehouse_products = SupplierProduct::select(
-            'supplier_product.*',
-            DB::raw('COUNT(CASE WHEN serialized_product.status = 1 THEN 1 END) as available_quantity')
-        )
-            ->leftJoin('serialized_product', 'supplier_product.id', '=', 'serialized_product.product_id')
-            ->groupBy('supplier_product.id')
+        $warehouse_products = SupplierProduct::query()
+            ->withCount([
+                'serializedProducts as available_quantity' => function ($q) {
+                    $q->where('status', 1);
+                },
+            ])
+            ->orderBy('name')
             ->get();
 
         //  Pass $isAdmin to blade
@@ -154,6 +159,15 @@ class RetailerOrderController extends Controller
             'completedOrders',
             'isAdmin'
         ));
+    }
+
+    /**
+     * Admin / Manager — same listing as index (already shows all orders for those roles).
+     * Route kept for bookmarks and sidebar links to retailer.orders.all.
+     */
+    public function indexAll(Request $request)
+    {
+        return $this->index($request);
     }
 
     public function store(Request $request)

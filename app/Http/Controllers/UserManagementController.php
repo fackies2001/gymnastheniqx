@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rules\Password;
 use App\Models\User;
 use App\Models\Role;
 use App\Models\Warehouse;
@@ -52,6 +53,7 @@ class UserManagementController extends Controller
             'date_hired'     => 'nullable|date',
             'status'         => 'required|in:Active,Inactive,active,inactive',
             'profile_photo'  => 'nullable|image|max:2048',
+            'password'       => ['required', 'string', 'confirmed', Password::defaults()],
         ], [
             // ✅ Custom error message para mas clear sa user
             'email.regex' => 'Only Gmail addresses are allowed (e.g. example@gmail.com).',
@@ -66,7 +68,8 @@ class UserManagementController extends Controller
         $validated['username'] = strtolower(str_replace(' ', '.', $request->full_name))
             . rand(100, 999);
 
-        $validated['password'] = Hash::make('password123');
+        $validated['password'] = Hash::make($validated['password']);
+        unset($validated['password_confirmation']);
         $validated['status']   = ucfirst(strtolower($validated['status']));
 
         User::create($validated);
@@ -107,6 +110,13 @@ class UserManagementController extends Controller
             'email.regex' => 'Only Gmail addresses are allowed (e.g. example@gmail.com).',
         ]);
 
+        if ($request->filled('password') || $request->filled('password_confirmation')) {
+            $request->validate([
+                'password' => ['required', 'string', 'confirmed', Password::defaults()],
+            ]);
+            $validated['password'] = Hash::make($request->password);
+        }
+
         if ($request->hasFile('profile_photo')) {
             if ($employee->profile_photo) {
                 Storage::disk('public')->delete($employee->profile_photo);
@@ -129,6 +139,13 @@ class UserManagementController extends Controller
      */
     public function destroy($id)
     {
+        if ((int) $id === (int) auth()->id()) {
+            return response()->json([
+                'success' => false,
+                'message' => 'You cannot delete your own account.',
+            ], 403);
+        }
+
         $employee = User::findOrFail($id);
 
         if ($employee->profile_photo) {
