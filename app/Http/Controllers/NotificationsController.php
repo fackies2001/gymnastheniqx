@@ -102,7 +102,7 @@ class NotificationsController extends Controller
     public function getCount(Request $request)
     {
         try {
-            $count = Auth::user()->unreadNotifications()->count();
+            $count = Auth::user()->unreadNotifications()->count(hhgh);
             return response()->json(['count' => $count]);
         } catch (\Exception $e) {
             return response()->json(['count' => 0]);
