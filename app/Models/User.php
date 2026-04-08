@@ -120,6 +120,36 @@ class User extends Authenticatable
         return $this->role?->role_name === 'staff';
     }
 
+    public function normalizedRoleName(): ?string
+    {
+        $r = $this->role?->role_name;
+        if ($r === null || $r === '') {
+            return null;
+        }
+
+        return strtolower(trim($r));
+    }
+
+    /**
+     * Roles that can approve PRs/POs, retailer orders, and see unrestricted operational data (not view-only staff).
+     */
+    public static function privilegedRoleNames(): array
+    {
+        return ['admin', 'manager', 'account staff'];
+    }
+
+    public function hasPrivilegedAccess(): bool
+    {
+        $n = $this->normalizedRoleName();
+
+        return $n !== null && in_array($n, self::privilegedRoleNames(), true);
+    }
+
+    public function isViewOnlyStaff(): bool
+    {
+        return $this->normalizedRoleName() === 'staff';
+    }
+
     /**
      * Check if user has specific role
      */

@@ -52,7 +52,7 @@ class PurchaseRequestNotification extends Notification
             'pr_id'          => $this->prId,
             'pr_number'      => $this->prNumber,
             'requester_name' => $this->requesterName,
-            'url'            => route('pr.index'),
+            'url'            => route('pr.index', ['focus_pr' => $this->prId]),
         ];
     }
 }

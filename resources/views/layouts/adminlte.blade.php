@@ -125,6 +125,59 @@
             border-left: 3px solid #667eea !important;
         }
 
+        .notif-item.unread.notif-bell-pr-created {
+            border-left-color: #007bff !important;
+            background: linear-gradient(90deg, rgba(0, 123, 255, 0.12), rgba(0, 123, 255, 0.02)) !important;
+        }
+
+        .notif-item.unread.notif-bell-pr-approved {
+            border-left-color: #28a745 !important;
+            background: linear-gradient(90deg, rgba(40, 167, 69, 0.14), rgba(40, 167, 69, 0.03)) !important;
+        }
+
+        .notif-item.unread.notif-bell-pr-rejected {
+            border-left-color: #dc3545 !important;
+            background: linear-gradient(90deg, rgba(220, 53, 69, 0.12), rgba(220, 53, 69, 0.02)) !important;
+        }
+
+        .notif-item.unread.notif-bell-po-created {
+            border-left-color: #6f42c1 !important;
+            background: linear-gradient(90deg, rgba(111, 66, 193, 0.12), rgba(111, 66, 193, 0.02)) !important;
+        }
+
+        .notif-item.unread.notif-bell-po-completed {
+            border-left-color: #17a2b8 !important;
+            background: linear-gradient(90deg, rgba(23, 162, 184, 0.12), rgba(23, 162, 184, 0.02)) !important;
+        }
+
+        .notif-item.unread.notif-bell-ro-created {
+            border-left-color: #fd7e14 !important;
+            background: linear-gradient(90deg, rgba(253, 126, 20, 0.12), rgba(253, 126, 20, 0.02)) !important;
+        }
+
+        .notif-item.unread.notif-bell-ro-approved {
+            border-left-color: #28a745 !important;
+            background: linear-gradient(90deg, rgba(40, 167, 69, 0.12), rgba(40, 167, 69, 0.02)) !important;
+        }
+
+        .notif-item.unread.notif-bell-ro-rejected {
+            border-left-color: #dc3545 !important;
+            background: linear-gradient(90deg, rgba(220, 53, 69, 0.1), transparent) !important;
+        }
+
+        .notif-item.unread.notif-bell-ro-completed {
+            border-left-color: #20c997 !important;
+            background: linear-gradient(90deg, rgba(32, 201, 151, 0.12), rgba(32, 201, 151, 0.02)) !important;
+        }
+
+        .notif-item.unread.notif-bell-default {
+            border-left-color: #6c757d !important;
+        }
+
+        body.dark-mode .notif-item.unread {
+            background-color: rgba(102, 126, 234, 0.12) !important;
+        }
+
         /* DARK MODE */
         body.dark-mode,
         body.dark-mode .wrapper {
@@ -860,7 +913,8 @@
                 }
                 let html = '';
                 notifications.forEach(n => {
-                    html += `<a href="${esc(n.url||'#')}" class="dropdown-item notif-item d-flex align-items-start py-2 px-3 unread"
+                    const typeClass = getNotifHighlightClass(n.type, n.action);
+                    html += `<a href="${esc(n.url||'#')}" class="dropdown-item notif-item d-flex align-items-start py-2 px-3 unread ${typeClass}"
                         data-notif-id="${esc(n.id)}" style="border-bottom:1px solid rgba(0,0,0,0.05);white-space:normal;cursor:pointer;">
                         <div class="mr-2 mt-1" style="min-width:28px;text-align:center;">
                             <i class="${esc(n.icon||'fas fa-bell text-info')}" style="font-size:1rem;"></i>
@@ -916,6 +970,24 @@
                         }
                     }).then(r => r.json()).then(() => fetchNotifications())
                     .catch(err => console.warn('[Bell] Mark all read error:', err));
+            }
+
+            function getNotifHighlightClass(type, action) {
+                const t = (type || 'general').toLowerCase();
+                const a = (action || '').toLowerCase();
+                const key = t + '|' + a;
+                const map = {
+                    'purchase_request|created': 'notif-bell-pr-created',
+                    'purchase_request|approved': 'notif-bell-pr-approved',
+                    'purchase_request|rejected': 'notif-bell-pr-rejected',
+                    'purchase_order|created': 'notif-bell-po-created',
+                    'purchase_order|completed': 'notif-bell-po-completed',
+                    'retailer_order|created': 'notif-bell-ro-created',
+                    'retailer_order|approved': 'notif-bell-ro-approved',
+                    'retailer_order|rejected': 'notif-bell-ro-rejected',
+                    'retailer_order|completed': 'notif-bell-ro-completed',
+                };
+                return map[key] || 'notif-bell-default';
             }
 
             function getActionLabel(type, action) {

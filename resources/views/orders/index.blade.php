@@ -150,9 +150,12 @@
         <div class="card-header no-print">
             <h3 class="card-title font-weight-bold">RETAILER TRANSACTIONS</h3>
             <div class="card-tools">
-                <button class="btn btn-primary btn-sm shadow-sm" data-toggle="modal" data-target="#createOrderModal">
-                    <i class="fas fa-plus"></i> CREATE RETAILER ORDER
-                </button>
+                @php $roleNorm = auth()->user()->normalizedRoleName(); @endphp
+                @if ($roleNorm !== 'account staff')
+                    <button class="btn btn-primary btn-sm shadow-sm" data-toggle="modal" data-target="#createOrderModal">
+                        <i class="fas fa-plus"></i> CREATE RETAILER ORDER
+                    </button>
+                @endif
                 <button class="btn btn-info btn-sm shadow-sm ml-2" onclick="handleOrderPrint()">
                     <i class="fas fa-print"></i> PRINT ALL
                 </button>
@@ -174,7 +177,7 @@
                 </thead>
                 <tbody>
                     @foreach ($retailer_orders as $order)
-                        <tr>
+                        <tr data-order-id="{{ $order->id }}">
                             <td class="font-weight-bold text-muted">
                                 ORD-{{ str_pad($order->id, 6, '0', STR_PAD_LEFT) }}
                             </td>
@@ -196,14 +199,15 @@
                             </td>
                             <td class="no-print">
                                 @if ($order->status == 'Pending')
-                                    @if (Auth::user()->role && strtolower(Auth::user()->role->role_name) === 'admin')
+                                    @if ($canManageRetailerOrders)
                                         <span class="badge badge-warning view-pending-order"
                                             style="cursor: pointer; font-size: 0.9rem;" data-id="{{ $order->id }}"
                                             data-retailer="{{ $order->retailer_name }}"
                                             data-sku="{{ $order->sku ?? 'N/A' }}"
                                             data-product="{{ $order->product_name }}" data-qty="{{ $order->quantity }}"
                                             data-price="{{ number_format($order->unit_price, 2) }}"
-                                            data-total="{{ number_format($order->total_amount, 2) }}">
+                                            data-total="{{ number_format($order->total_amount, 2) }}"
+                                            data-total-raw="{{ $order->total_amount }}">
                                             <i class="fas fa-hourglass-half"></i> PENDING (Click to Review)
                                         </span>
                                     @else
@@ -219,7 +223,7 @@
                                     @if ($order->approved_by)
                                         <br><small class="text-muted">by {{ $order->approved_by }}</small>
                                     @endif
-                                    @if (Auth::user()->role && strtolower(Auth::user()->role->role_name) === 'admin')
+                                    @if ($canManageRetailerOrders)
                                         <br>
                                         <button class="btn btn-sm btn-primary mt-1 ship-order-btn"
                                             data-order-id="{{ $order->id }}"
@@ -398,9 +402,17 @@
                                 <td>₱ <span id="modal-price"></span></td>
                             </tr>
                             <tr class="bg-light">
-                                <th>Total Amount</th>
-                                <td class="font-weight-bold text-danger" style="font-size: 1.2rem;">₱ <span
-                                        id="modal-total"></span></td>
+                                <th>Subtotal (excl. VAT)</th>
+                                <td class="font-weight-bold">₱ <span id="modal-subtotal-excl"></span></td>
+                            </tr>
+                            <tr>
+                                <th>VAT (12%)</th>
+                                <td>₱ <span id="modal-vat"></span></td>
+                            </tr>
+                            <tr class="bg-warning">
+                                <th>Total (incl. VAT)</th>
+                                <td class="font-weight-bold text-dark" style="font-size: 1.2rem;">₱ <span
+                                        id="modal-total-incl"></span></td>
                             </tr>
                         </table>
                     </div>
@@ -410,12 +422,14 @@
                     <button type="button" class="btn btn-secondary" data-dismiss="modal">
                         <i class="fas fa-times"></i> Close
                     </button>
-                    <button type="button" class="btn btn-danger" id="btn-reject-order">
-                        <i class="fas fa-ban"></i> REJECT ORDER
-                    </button>
-                    <button type="button" class="btn btn-success" id="btn-approve-order">
-                        <i class="fas fa-check-circle"></i> APPROVE ORDER
-                    </button>
+                    @if ($canManageRetailerOrders)
+                        <button type="button" class="btn btn-danger" id="btn-reject-order">
+                            <i class="fas fa-ban"></i> REJECT ORDER
+                        </button>
+                        <button type="button" class="btn btn-success" id="btn-approve-order">
+                            <i class="fas fa-check-circle"></i> APPROVE ORDER
+                        </button>
+                    @endif
                 </div>
             </div>
         </div>
@@ -571,7 +585,7 @@
 @push('js')
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
-        const IS_ADMIN = {{ $isAdmin ? 'true' : 'false' }};
+        const CAN_MANAGE_RETAILER_ORDERS = {{ $canManageRetailerOrders ? 'true' : 'false' }};
 
         // ✅ UPDATED PRINT FUNCTION
         function handleOrderPrint() {
@@ -678,6 +692,27 @@
                 }]
             });
 
+            (function focusOrderFromQuery() {
+                const params = new URLSearchParams(window.location.search);
+                const oid = params.get('focus_order');
+                if (!oid) return;
+                setTimeout(() => {
+                    const pending = $(`.view-pending-order[data-id="${oid}"]`);
+                    if (pending.length) {
+                        pending.trigger('click');
+                    } else {
+                        const row = $(`#retailerTable tbody tr[data-order-id="${oid}"]`);
+                        if (row.length) {
+                            row.addClass('table-info');
+                            row[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        }
+                    }
+                    params.delete('focus_order');
+                    const q = params.toString();
+                    window.history.replaceState({}, '', window.location.pathname + (q ? '?' + q : ''));
+                }, 550);
+            })();
+
             function calculate() {
                 let q = parseFloat($('#inp_qty').val()) || 0;
                 let p = parseFloat($('#inp_price').val()) || 0;
@@ -771,7 +806,16 @@
                 $('#modal-product').text($(this).data('product'));
                 $('#modal-qty').text($(this).data('qty'));
                 $('#modal-price').text($(this).data('price'));
-                $('#modal-total').text($(this).data('total'));
+                let subExcl = parseFloat($(this).data('total-raw'));
+                if (Number.isNaN(subExcl)) {
+                    subExcl = parseFloat(String($(this).data('total')).replace(/,/g, '')) || 0;
+                }
+                const vat = subExcl * 0.12;
+                const incl = subExcl + vat;
+                const fmt = (n) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                $('#modal-subtotal-excl').text(fmt(subExcl));
+                $('#modal-vat').text(fmt(vat));
+                $('#modal-total-incl').text(fmt(incl));
                 $('#pendingOrderModal').modal('show');
             });
 

@@ -16,10 +16,12 @@
                         <h5 class="mb-0 font-weight-bold text-dark">
                             <i class="fas fa-shopping-cart mr-2 text-primary"></i> PURCHASE REQUESTS
                         </h5>
-                        <button type="button" class="btn btn-primary btn-sm shadow-sm" data-toggle="modal"
-                            data-target="#createPRModal">
-                            <i class="fas fa-plus-circle mr-1"></i> CREATE PURCHASE REQUEST
-                        </button>
+                        @if (!auth()->user()->isViewOnlyStaff())
+                            <button type="button" class="btn btn-primary btn-sm shadow-sm" data-toggle="modal"
+                                data-target="#createPRModal">
+                                <i class="fas fa-plus-circle mr-1"></i> CREATE PURCHASE REQUEST
+                            </button>
+                        @endif
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">
@@ -299,11 +301,19 @@
                         </div>
                     </div>
 
-                    {{-- Grand Total --}}
-                    <div class="bg-dark text-white p-3 rounded shadow">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0 font-weight-bold">GRAND TOTAL:</h5>
-                            <h4 class="mb-0 font-weight-bold text-success" id="receipt_grand_total">₱0.00</h4>
+                    {{-- Subtotal, VAT, Total --}}
+                    <div class="bg-dark text-white p-3 rounded shadow small">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-white-50">Subtotal (excl. VAT)</span>
+                            <span class="font-weight-bold" id="receipt_subtotal_excl">₱0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="text-white-50">VAT (12%)</span>
+                            <span class="font-weight-bold" id="receipt_vat">₱0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top border-secondary">
+                            <span class="font-weight-bold">Total (incl. VAT)</span>
+                            <span class="font-weight-bold text-success h5 mb-0" id="receipt_total_incl">₱0.00</span>
                         </div>
                     </div>
                 </div>
@@ -399,9 +409,17 @@
                                 </thead>
                                 <tbody id="approve_items_list"></tbody>
                                 <tfoot>
+                                    <tr class="bg-light">
+                                        <td colspan="4" class="text-right">Subtotal (excl. VAT)</td>
+                                        <td class="text-right text-primary" id="approve_subtotal_excl">₱0.00</td>
+                                    </tr>
+                                    <tr class="bg-light">
+                                        <td colspan="4" class="text-right">VAT (12%)</td>
+                                        <td class="text-right" id="approve_vat">₱0.00</td>
+                                    </tr>
                                     <tr class="bg-light font-weight-bold">
-                                        <td colspan="4" class="text-right">GRAND TOTAL:</td>
-                                        <td class="text-center text-primary" id="approve_grand_total">₱0.00</td>
+                                        <td colspan="4" class="text-right">Total (incl. VAT)</td>
+                                        <td class="text-right text-success" id="approve_total_incl">₱0.00</td>
                                     </tr>
                                 </tfoot>
                             </table>
@@ -454,12 +472,14 @@
                         <button type="button" class="btn btn-secondary" data-dismiss="modal">
                             <i class="fas fa-times mr-1"></i> Cancel
                         </button>
-                        <button type="button" class="btn btn-danger" id="confirmRejectBtn">
-                            <i class="fas fa-times-circle mr-1"></i> Reject Request
-                        </button>
-                        <button type="submit" class="btn btn-success" id="confirmApproveBtn">
-                            <i class="fas fa-check-circle mr-1"></i> Approve Request
-                        </button>
+                        @if (auth()->user()->hasPrivilegedAccess())
+                            <button type="button" class="btn btn-danger" id="confirmRejectBtn">
+                                <i class="fas fa-times-circle mr-1"></i> Reject Request
+                            </button>
+                            <button type="submit" class="btn btn-success" id="confirmApproveBtn">
+                                <i class="fas fa-check-circle mr-1"></i> Approve Request
+                            </button>
+                        @endif
                     </div>
                 </form>
             </div>
@@ -514,6 +534,7 @@
 
 @push('js')
     <script>
+        const canApprovePurchaseRequest = @json(auth()->user()->hasPrivilegedAccess());
         $(document).ready(function() {
             let selectedItems = [];
             let supplierProducts = [];
@@ -739,7 +760,17 @@
                         }
 
                         $('#receipt_items_body').html(itemsHtml);
-                        $('#receipt_grand_total').text('₱' + grandTotal.toLocaleString(undefined, {
+                        let vatAmt = grandTotal * 0.12;
+                        let totalIncl = grandTotal + vatAmt;
+                        $('#receipt_subtotal_excl').text('₱' + grandTotal.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        }));
+                        $('#receipt_vat').text('₱' + vatAmt.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2
+                        }));
+                        $('#receipt_total_incl').text('₱' + totalIncl.toLocaleString(undefined, {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2
                         }));
@@ -765,14 +796,10 @@
                 let data = table.row(this).data();
                 if (!data || !data.id) return;
 
-                // ✅ RBAC - Staff cannot open approval modal
-                let userRole = '{{ strtolower(auth()->user()->role?->role_name ?? '') }}';
-
                 if (data.status_id == 1) {
-                    if (userRole === 'admin' || userRole === 'manager') {
+                    if (canApprovePurchaseRequest) {
                         openApprovalModal(data.id);
                     } else {
-                        // Staff - view only
                         openPRDetailsModal(data.id);
                     }
                 } else {
@@ -787,9 +814,8 @@
                 e.preventDefault();
                 e.stopPropagation();
                 let prId = $(this).data('id');
-                let userRole = '{{ strtolower(auth()->user()->role?->role_name ?? '') }}';
                 if (prId) {
-                    if (userRole === 'admin' || userRole === 'manager') {
+                    if (canApprovePurchaseRequest) {
                         openApprovalModal(prId);
                     } else {
                         openPRDetailsModal(prId);
@@ -869,7 +895,15 @@
                             });
                         }
                         $('#approve_items_list').html(itemsHtml);
-                        $('#approve_grand_total').text('₱' + grandTotal.toLocaleString(undefined, {
+                        let approveVat = grandTotal * 0.12;
+                        let approveIncl = grandTotal + approveVat;
+                        $('#approve_subtotal_excl').text('₱' + grandTotal.toLocaleString(undefined, {
+                            minimumFractionDigits: 2
+                        }));
+                        $('#approve_vat').text('₱' + approveVat.toLocaleString(undefined, {
+                            minimumFractionDigits: 2
+                        }));
+                        $('#approve_total_incl').text('₱' + approveIncl.toLocaleString(undefined, {
                             minimumFractionDigits: 2
                         }));
 
@@ -1167,6 +1201,18 @@
                 });
             });
 
+            (function focusPrFromQuery() {
+                const params = new URLSearchParams(window.location.search);
+                const id = params.get('focus_pr');
+                if (!id) return;
+                setTimeout(function() {
+                    openPRDetailsModal(id);
+                    params.delete('focus_pr');
+                    const q = params.toString();
+                    window.history.replaceState({}, '', window.location.pathname + (q ? '?' + q : ''));
+                }, 650);
+            })();
+
         }); // end ready
     </script>
 @endpush
@@ -1271,7 +1317,6 @@
         #selectedItemsTable .unit-cost-input {
             min-width: 90px;
             width: 100%;
-        }
         }
     </style>
 @endpush

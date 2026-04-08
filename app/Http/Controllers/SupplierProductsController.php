@@ -81,7 +81,7 @@ class SupplierProductsController extends Controller
                     'supplier_name' => $product->supplier?->name ?? 'N/A',
                     'name'          => $product->name,
                     'system_sku'    => $product->system_sku,
-                    'cost_price'    => number_format($product->cost_price, 2),
+                    'cost_price'    => '₱' . number_format($product->cost_price, 2),
                     'barcode'       => $product->barcode ?? 'N/A',
                 ]
             ], 201);
@@ -162,7 +162,7 @@ class SupplierProductsController extends Controller
                 return $row->system_sku ?? 'No SKU';
             })
             ->editColumn('cost_price', function ($row) {
-                return number_format($row->cost_price, 2);
+                return '₱' . number_format($row->cost_price, 2);
             })
             ->editColumn('barcode', function ($row) {
                 return $row->barcode ?? 'N/A';

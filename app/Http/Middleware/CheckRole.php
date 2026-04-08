@@ -29,8 +29,20 @@ class CheckRole
             abort(403, 'No role assigned. Please contact administrator.');
         }
 
-        // Check if user has the required role
-        if (!in_array($userRole, $roles)) {
+        $allowed = [];
+        foreach ($roles as $param) {
+            foreach (preg_split('/\s*,\s*/', (string) $param) as $piece) {
+                $piece = strtolower(trim($piece));
+                if ($piece !== '') {
+                    $allowed[] = $piece;
+                }
+            }
+        }
+        $allowed = array_values(array_unique($allowed));
+
+        $userNorm = strtolower(trim($userRole));
+
+        if (!in_array($userNorm, $allowed, true)) {
             abort(403, 'Unauthorized access. You do not have permission to access this page.');
         }
 

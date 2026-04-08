@@ -33,8 +33,11 @@ class PurchaseRequestController extends Controller
     private function getAdmins()
     {
         return User::whereHas('role', function ($q) {
-            $q->where('role_name', 'Admin')
-                ->orWhere('role_name', 'admin');
+            $q->whereRaw('LOWER(TRIM(role_name)) IN (?, ?, ?)', [
+                'admin',
+                'manager',
+                'account staff',
+            ]);
         })->get();
     }
 
@@ -42,12 +45,12 @@ class PurchaseRequestController extends Controller
     {
         if ($request->ajax()) {
             $user = auth()->user();
-            $userRole = strtolower($user->role?->role_name ?? '');
 
             $query = PurchaseRequest::with(['user', 'department', 'supplier', 'status'])
                 ->select('purchase_request.*');
 
-            if ($userRole !== 'admin') {
+            $seeAll = $user->hasPrivilegedAccess() || $user->isViewOnlyStaff();
+            if (!$seeAll) {
                 $query->where('user_id', $user->id);
             }
 
@@ -109,10 +112,10 @@ class PurchaseRequestController extends Controller
     public function index()
     {
         $user = auth()->user();
-        $userRole = strtolower($user->role?->role_name ?? '');
+        $seeAll = $user->hasPrivilegedAccess() || $user->isViewOnlyStaff();
 
         $purchaseRequests = PurchaseRequest::with(['user', 'department', 'supplier'])
-            ->when($userRole !== 'admin', function ($q) use ($user) {
+            ->when(!$seeAll, function ($q) use ($user) {
                 $q->where('user_id', $user->id);
             })
             ->orderBy('created_at', 'desc')

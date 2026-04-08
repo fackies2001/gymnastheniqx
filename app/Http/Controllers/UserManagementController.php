@@ -20,7 +20,7 @@ class UserManagementController extends Controller
     {
         $employees = User::with(['role', 'warehouse', 'department'])->get();
 
-        $roles = Role::whereIn('role_name', ['admin', 'staff', 'manager'])->get();
+        $roles = Role::whereIn('role_name', ['admin', 'staff', 'manager', 'account staff'])->get();
 
         $warehouses = Warehouse::all();
 

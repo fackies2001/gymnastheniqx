@@ -42,6 +42,7 @@ class DashboardController extends Controller
                 'monthly_products_in' => $this->getMonthlyProductsScanned($request),
             ];
 
+            $monthly_sales_income = $this->getMonthlyRetailerSales($request);
             $recent_activities  = $this->getRecentActivities();
             $retailer_orders    = $this->getRecentRetailerOrders();
             $low_stock_products = $this->getLowStockProducts(); // ✅
@@ -50,6 +51,7 @@ class DashboardController extends Controller
                 'small_boxes',
                 'doughnut',
                 'bar',
+                'monthly_sales_income',
                 'recent_activities',
                 'retailer_orders',
                 'low_stock_products'
@@ -75,14 +77,16 @@ class DashboardController extends Controller
             'monthly_products_in' => $this->getMonthlyProductsScanned($request),
         ];
 
-        $low_stock_products = $this->getLowStockProducts();
-        $recent_activities  = $this->getRecentActivities();
-        $retailer_orders    = collect(); // ✅ Empty para sa admin/staff
+        $monthly_sales_income = $this->getMonthlyRetailerSales($request);
+        $low_stock_products   = $this->getLowStockProducts();
+        $recent_activities    = $this->getRecentActivities();
+        $retailer_orders      = collect(); // ✅ Empty para sa admin/staff
 
         return view('dashboard.index', compact(
             'small_boxes',
             'doughnut',
             'bar',
+            'monthly_sales_income',
             'low_stock_products',
             'recent_activities',
             'retailer_orders'
@@ -366,30 +370,113 @@ class DashboardController extends Controller
         }
     }
 
+    /**
+     * Monthly retailer sales (approved + completed) for the income chart — one series per calendar month.
+     */
+    private function getMonthlyRetailerSales(Request $request): array
+    {
+        $year = (int) Carbon::now()->year;
+        if ($request->filled('filter_type')) {
+            switch ($request->filter_type) {
+                case 'last_month':
+                    $year = (int) Carbon::now()->subMonth()->year;
+                    break;
+                case 'custom':
+                    if ($request->filled('start_date')) {
+                        $year = (int) Carbon::parse($request->start_date)->year;
+                    }
+                    break;
+            }
+        }
+
+        $amounts = array_fill(0, 12, 0.0);
+        try {
+            $rows = RetailerOrder::query()
+                ->select(
+                    DB::raw('MONTH(created_at) as m'),
+                    DB::raw('SUM(total_amount) as total')
+                )
+                ->whereYear('created_at', $year)
+                ->whereIn('status', ['Completed', 'Approved', 'completed', 'approved'])
+                ->groupBy('m')
+                ->pluck('total', 'm');
+
+            foreach ($rows as $month => $sum) {
+                $idx = (int) $month - 1;
+                if ($idx >= 0 && $idx < 12) {
+                    $amounts[$idx] = round((float) $sum, 2);
+                }
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error getting monthly retailer sales: ' . $e->getMessage());
+        }
+
+        return [
+            'year'    => $year,
+            'amounts' => $amounts,
+        ];
+    }
+
     // ============================================================
     // ✅ HELPER: Get low stock products
     // ============================================================
     private function getLowStockProducts()
     {
         try {
-            // ✅ Direkta na sa consumable_stocks — hindi na nag-o-override ng qty
-            $lowStockProducts = \App\Models\ConsumableStock::with(['product'])
-                ->whereColumn('current_qty', '<=', 'min_stock_level')
-                ->where('current_qty', '>', 0) // 
+            // Dashboard UI says: "Below 20"
+            $threshold = 20;
+
+            // ✅ Consumables: use min_stock_level when set, otherwise fallback to threshold
+            $consumables = \App\Models\ConsumableStock::with(['product'])
+                ->where(function ($q) use ($threshold) {
+                    $q->whereNotNull('min_stock_level')
+                        ->whereColumn('current_qty', '<=', 'min_stock_level')
+                        ->orWhereNull('min_stock_level')
+                        ->where('current_qty', '<', $threshold);
+                })
+                // include 0 qty so out-of-stock also appears
                 ->orderBy('current_qty', 'asc')
-                ->limit(10)
+                ->limit(50)
                 ->get()
                 ->map(function ($stock) {
                     return (object)[
                         'id'              => $stock->product_id,
                         'name'            => $stock->product->name ?? 'Unknown',
                         'system_sku'      => $stock->product->system_sku ?? 'N/A',
-                        'available_count' => $stock->current_qty,
+                        'available_count' => (int) ($stock->current_qty ?? 0),
                         'min_stock_level' => $stock->min_stock_level,
                     ];
                 });
 
-            return $lowStockProducts->values();
+            // ✅ Non-consumables: count AVAILABLE serialized products per supplier product
+            $serializedLow = \App\Models\SupplierProduct::query()
+                ->where(function ($q) {
+                    $q->whereNull('is_consumable')->orWhere('is_consumable', 0);
+                })
+                ->withCount([
+                    'serializedProducts as available_count' => function ($q) {
+                        $q->where('status', 1);
+                    },
+                ])
+                ->having('available_count', '<', $threshold)
+                ->orderBy('available_count', 'asc')
+                ->limit(50)
+                ->get()
+                ->map(function ($p) {
+                    return (object)[
+                        'id'              => $p->id,
+                        'name'            => $p->name ?? 'Unknown',
+                        'system_sku'      => $p->system_sku ?? 'N/A',
+                        'available_count' => (int) ($p->available_count ?? 0),
+                        'min_stock_level' => null,
+                    ];
+                });
+
+            return $consumables
+                ->concat($serializedLow)
+                ->sortBy('available_count')
+                ->take(10)
+                ->values();
         } catch (\Exception $e) {
             \Log::error('LOW STOCK ERROR: ' . $e->getMessage());
             return collect();
@@ -418,6 +505,9 @@ class DashboardController extends Controller
                     'icon'        => 'file-alt',
                     'type_color'  => 'primary',
                     'created_at'  => $pr->created_at,
+                    'kind'        => 'purchase_request',
+                    'url'         => route('pr.index', ['focus_pr' => $pr->id]),
+                    'sales_month_index' => null,
                 ]);
             }
 
@@ -430,11 +520,19 @@ class DashboardController extends Controller
                     'icon'        => 'shopping-cart',
                     'type_color'  => 'success',
                     'created_at'  => $po->created_at,
+                    'kind'        => 'purchase_order',
+                    'url'         => route('purchase-order.scan', $po->id),
+                    'sales_month_index' => null,
                 ]);
             }
 
             $recentSP = SerializedProduct::with(['scannedBy', 'supplierProducts'])->latest()->limit(3)->get();
             foreach ($recentSP as $sp) {
+                $serial = $sp->serial_number ?? '';
+                $spUrl  = $serial !== ''
+                    ? route('serialized_products.overview', $serial)
+                    : route('serialized_products.index');
+
                 $activities->push((object)[
                     'user_name'   => $sp->scannedBy->full_name ?? 'System',
                     'description' => "Scanned " . ($sp->supplierProducts->name ?? 'Unknown Product'),
@@ -442,11 +540,16 @@ class DashboardController extends Controller
                     'icon'        => 'barcode',
                     'type_color'  => 'info',
                     'created_at'  => $sp->created_at,
+                    'kind'        => 'serialized_product',
+                    'url'         => $spUrl,
+                    'sales_month_index' => null,
                 ]);
             }
 
             $recentRO = RetailerOrder::with(['creatorUser'])->latest()->limit(3)->get();
             foreach ($recentRO as $ro) {
+                $created   = $ro->created_at;
+                $monthIdx  = $created ? ((int) $created->format('n')) - 1 : null;
                 $activities->push((object)[
                     'user_name'   => $ro->creatorUser->full_name ?? $ro->created_by ?? 'System',
                     'description' => "Created Retailer Order #" . ($ro->id) . " for " . ($ro->retailer_name ?? 'Unknown Retailer'),
@@ -454,6 +557,9 @@ class DashboardController extends Controller
                     'icon'        => 'store',
                     'type_color'  => 'warning',
                     'created_at'  => $ro->created_at,
+                    'kind'        => 'retailer_order',
+                    'url'         => route('retailer.orders.index', ['focus_order' => $ro->id]),
+                    'sales_month_index' => $monthIdx,
                 ]);
             }
 

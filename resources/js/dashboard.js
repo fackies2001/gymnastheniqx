@@ -227,6 +227,164 @@
     }
 
     // ============================================================
+    // ✅ CHART: Monthly Sales / Income (Bar) + sort + highlight
+    // ============================================================
+    const MONTH_SHORT = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    const monthlySalesState = {
+        chart: null,
+        year: new Date().getFullYear(),
+        chronicOrder: true,
+        highlightIndex: null,
+        origLabels: [],
+        origData: [],
+    };
+
+    function defaultSalesColors(highlightIdx) {
+        const base = 'rgba(40, 167, 69, 0.75)';
+        const hi = 'rgba(255, 193, 7, 0.95)';
+        const len = monthlySalesState.chart
+            ? monthlySalesState.chart.data.datasets[0].data.length
+            : monthlySalesState.origData.length;
+        return Array.from({ length: len }, (_, i) => {
+            let origIdx = i;
+            if (!monthlySalesState.chronicOrder && monthlySalesState._sortMap) {
+                origIdx = monthlySalesState._sortMap[i];
+            }
+            const isHi = highlightIdx !== null && highlightIdx !== undefined && origIdx === highlightIdx;
+            return isHi ? hi : base;
+        });
+    }
+
+    function applySalesChartHighlight(idx) {
+        monthlySalesState.highlightIndex = idx;
+        if (!monthlySalesState.chart) return;
+        const ds = monthlySalesState.chart.data.datasets[0];
+        ds.backgroundColor = defaultSalesColors(idx);
+        monthlySalesState.chart.update('none');
+    }
+
+    function scrollToSalesChart() {
+        const el = document.getElementById('dashboard-monthly-sales-card');
+        el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    window.highlightDashboardSalesMonth = function (monthIndex) {
+        const idx = parseInt(monthIndex, 10);
+        if (Number.isNaN(idx) || idx < 0 || idx > 11) return;
+        scrollToSalesChart();
+        setTimeout(() => applySalesChartHighlight(idx), 350);
+    };
+
+    function reorderSalesChart(byAmount) {
+        if (!monthlySalesState.chart) return;
+
+        if (!byAmount) {
+            monthlySalesState.chronicOrder = true;
+            monthlySalesState._sortMap = null;
+            monthlySalesState.chart.data.labels = [...monthlySalesState.origLabels];
+            monthlySalesState.chart.data.datasets[0].data = [...monthlySalesState.origData];
+        } else {
+            monthlySalesState.chronicOrder = false;
+            const pairs = monthlySalesState.origLabels.map((label, i) => ({
+                label,
+                value: monthlySalesState.origData[i],
+                origIdx: i,
+            }));
+            pairs.sort((a, b) => b.value - a.value);
+            monthlySalesState._sortMap = pairs.map(p => p.origIdx);
+            monthlySalesState.chart.data.labels = pairs.map(p => p.label);
+            monthlySalesState.chart.data.datasets[0].data = pairs.map(p => p.value);
+        }
+
+        monthlySalesState.chart.data.datasets[0].backgroundColor = defaultSalesColors(monthlySalesState.highlightIndex);
+        monthlySalesState.chart.update();
+    }
+
+    function initMonthlySalesIncomeChart() {
+        const el = document.getElementById('MonthlySalesIncomeChart');
+        if (!el || !window.monthly_sales_income) return;
+
+        const pack = window.monthly_sales_income;
+        const amounts = Array.isArray(pack.amounts) ? pack.amounts : [];
+        if (amounts.length !== 12) return;
+
+        monthlySalesState.year = pack.year || new Date().getFullYear();
+        monthlySalesState.origLabels = MONTH_SHORT.map(l => l);
+        monthlySalesState.origData = amounts.map(v => parseFloat(v) || 0);
+
+        if (!monthlySalesState.origData.some(v => v > 0)) {
+            showNoData(el);
+            return;
+        }
+
+        monthlySalesState.chart = new Chart(el.getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: [...monthlySalesState.origLabels],
+                datasets: [{
+                    label: `Sales (₱) ${monthlySalesState.year}`,
+                    data: [...monthlySalesState.origData],
+                    backgroundColor: defaultSalesColors(null),
+                    borderColor: 'rgba(25, 135, 84, 1)',
+                    borderWidth: 1,
+                    borderRadius: 4,
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback(v) {
+                                return '₱' + Number(v).toLocaleString();
+                            },
+                        },
+                        grid: { color: 'rgba(0,0,0,0.06)' },
+                    },
+                    x: { grid: { display: false } },
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label(ctx) {
+                                const n = ctx.raw ?? 0;
+                                return ' ₱' + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        const btnChrono = document.getElementById('salesSortChrono');
+        const btnAmount = document.getElementById('salesSortAmount');
+        if (btnChrono && btnAmount) {
+            btnChrono.addEventListener('click', () => {
+                btnChrono.classList.add('active');
+                btnAmount.classList.remove('active');
+                reorderSalesChart(false);
+            });
+            btnAmount.addEventListener('click', () => {
+                btnAmount.classList.add('active');
+                btnChrono.classList.remove('active');
+                reorderSalesChart(true);
+            });
+        }
+
+        document.querySelectorAll('.activity-jump-sales').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const m = btn.getAttribute('data-sales-month');
+                window.highlightDashboardSalesMonth(m);
+            });
+        });
+    }
+
+    // ============================================================
     // ✅ CHART 3: Monthly Products Scanned (Bar)
     // ============================================================
     function initMonthlyBarChart() {
@@ -292,6 +450,7 @@
         DarkMode.init();
         initPurchaseRequestChart();
         initProductStatusChart();
+        initMonthlySalesIncomeChart();
         initMonthlyBarChart();
         console.log('✅ Dashboard.js initialized!');
     }
