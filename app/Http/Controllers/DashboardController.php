@@ -433,7 +433,7 @@ class DashboardController extends Controller
                 ]);
             }
 
-            $recentSP = SerializedProduct::with(['scannedBy', 'supplierProducts'])->latest()->limit(3)    get(jjj);
+            $recentSP = SerializedProduct::with(['scannedBy', 'supplierProducts'])->latest()->limit(3)->get();
             foreach ($recentSP as $sp) {
                 $activities->push((object)[
                     'user_name'   => $sp->scannedBy->full_name ?? 'System',
@@ -445,7 +445,7 @@ class DashboardController extends Controller
                 ]);
             }
 
-            $recentRO = RetailerOrder::with(['creatorUser'])->latest()->limit(3)->get(); 
+            $recentRO = RetailerOrder::with(['creatorUser'])->latest()->limit(3)->get();
             foreach ($recentRO as $ro) {
                 $activities->push((object)[
                     'user_name'   => $ro->creatorUser->full_name ?? $ro->created_by ?? 'System',
