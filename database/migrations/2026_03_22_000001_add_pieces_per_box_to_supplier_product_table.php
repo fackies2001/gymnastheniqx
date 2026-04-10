@@ -8,12 +8,14 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('supplier_product', function (Blueprint $table) {
-            $table->unsignedInteger('pieces_per_box')
-                ->default(1)
-                ->after('is_consumable')
-                ->comment('Ilang pieces ang nasa loob ng isang box. Default 1 = piece-level.');
-        });
+        if (!Schema::hasColumn('supplier_product', 'pieces_per_box')) {
+            Schema::table('supplier_product', function (Blueprint $table) {
+                $table->unsignedInteger('pieces_per_box')
+                    ->default(1)
+                    ->after('is_consumable')
+                    ->comment('Ilang pieces ang nasa loob ng isang box. Default 1 = piece-level.');
+            });
+        }
     }
 
     public function down(): void
