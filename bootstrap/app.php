@@ -16,6 +16,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
             'check.session' => \App\Http\Middleware\CheckSessionToken::class, // ✅ IDAGDAG
+            'view.only.staff' => \App\Http\Middleware\RestrictViewOnlyStaff::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

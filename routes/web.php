@@ -74,7 +74,7 @@ Route::middleware(['auth'])->group(function () {
 // ─────────────────────────────────────────────
 // ✅ AUTHENTICATED ROUTES WITH PIN + SESSION CHECK
 // ─────────────────────────────────────────────
-Route::middleware(['auth', CheckPinStatus::class, 'check.session'])->group(function () {
+Route::middleware(['auth', CheckPinStatus::class, 'check.session', 'view.only.staff'])->group(function () {
 
     Route::get('/keep-alive', function () {
         return response()->json(['status' => 'ok']);
@@ -123,11 +123,9 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session'])->group(funct
     });
 
     // =========================================================
-    // ✅ ADMIN ONLY
+    // ✅ USER MANAGEMENT — Admin & Manager
     // =========================================================
-    Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin')->group(function () {
-
-        // User Management
+    Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager')->group(function () {
         Route::get('/user-management', [UserManagementController::class, 'index'])->name('user.management');
         Route::post('/user-management/store', [UserManagementController::class, 'store'])->name('user.management.store');
         Route::post('/user-management/update', [UserManagementController::class, 'update'])->name('user.management.update');
@@ -136,8 +134,12 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session'])->group(funct
         Route::get('admin/register/form', [RegisteredUserController::class, 'create'])->name('register');
         Route::post('/employee/register', [RegisteredUserController::class, 'store'])->name('employee.register');
         Route::post('/user-management/reset-password', [UserManagementController::class, 'resetPassword'])->name('admin.reset.password');
+    });
 
-        // ✅ Purchase Order — Admin only
+    // =========================================================
+    // ✅ PURCHASE ORDER + RETAILER APPROVALS — Admin, Manager, Account staff
+    // =========================================================
+    Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager,account staff')->group(function () {
         Route::prefix('purchase-order')->group(function () {
             Route::get('/', [PurchaseOrderController::class, 'index'])->name('purchase-order.index');
             Route::get('/generate-number', [PurchaseOrderController::class, 'generatePONumber'])->name('purchase-order.generate-number');
@@ -149,16 +151,15 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session'])->group(funct
             Route::get('/{id}', [PurchaseOrderController::class, 'show'])->name('purchase-order.show');
         });
 
-        // ✅ Retailer Orders — Admin only
         Route::controller(RetailerOrderController::class)->group(function () {
             Route::post('/retailer-orders/{id}/approve', 'approve')->name('retailer.orders.approve');
             Route::post('/retailer-orders/{id}/reject', 'reject')->name('retailer.orders.reject');
             Route::post('/retailer-orders/{id}/complete', 'complete')->name('retailer.orders.complete');
         });
-    }); // END ADMIN ONLY
+    });
 
     // ✅ Retailer Orders — Admin & Manager
-    Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager')->group(function () {
+    Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager,account staff')->group(function () {
         Route::get('/retailer-orders/all', [RetailerOrderController::class, 'indexAll'])->name('retailer.orders.all');
     });
 
@@ -185,7 +186,7 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session'])->group(funct
     // =========================================================
     // ✅ ADMIN & MANAGER ONLY
     // =========================================================
-    Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager')->group(function () {
+    Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager,account staff')->group(function () {
 
         // WAREHOUSE
         Route::get('/warehouse', [WarehouseController::class, 'index'])->name('warehouse.index');
@@ -264,7 +265,7 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session'])->group(funct
         Route::post('/store', [PurchaseRequestController::class, 'store'])->name('pr.store');
         Route::get('/{id}', [PurchaseRequestController::class, 'show'])->name('pr.show');
 
-        Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin')->group(function () {
+        Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager,account staff')->group(function () {
             Route::post('/approve/{id}', [PurchaseRequestController::class, 'approve'])->name('pr.approve');
             Route::post('/reject/{id}', [PurchaseRequestController::class, 'reject'])->name('pr.reject');
         });

@@ -8,6 +8,7 @@
     $product_status_counts = $doughnut['product_status_counts'];
     $purchase_request_status_counts = $doughnut['purchase_request_status_counts'];
     $monthly_products_in = $bar['monthly_products_in'];
+    $monthly_sales_income = $monthly_sales_income ?? ['year' => (int) date('Y'), 'amounts' => array_fill(0, 12, 0)];
     $low_stock_products = $low_stock_products ?? [];
     $recent_activities = $recent_activities ?? [];
     $retailer_orders = $retailer_orders ?? collect();
@@ -99,6 +100,32 @@
 
         .stat-box-sales-total {
             background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .activity-item--clickable {
+            transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+        }
+
+        .activity-item--clickable:hover {
+            border-color: #667eea !important;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+            transform: translateY(-1px);
+            text-decoration: none;
+        }
+
+        .activity-item-link:focus {
+            outline: 2px solid rgba(102, 126, 234, 0.5);
+            outline-offset: 1px;
+        }
+
+        .activity-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
         }
 
         .report-shortcut-card {
@@ -516,6 +543,31 @@
                     </div>
                 </div>
 
+                <div class="col-md-12" id="dashboard-monthly-sales-card">
+                    <div class="card border-left-success shadow-sm" style="border-left-width:4px;">
+                        <div class="card-header d-flex flex-wrap align-items-center justify-content-between">
+                            <h3 class="card-title mb-0">
+                                <i class="fas fa-coins mr-1 text-success"></i> Monthly Sales (Income) —
+                                <small class="text-muted font-weight-normal">{{ $monthly_sales_income['year'] ?? date('Y') }}</small>
+                            </h3>
+                            <div class="btn-group btn-group-sm mt-2 mt-md-0" role="group" aria-label="Sort sales chart">
+                                <button type="button" class="btn btn-outline-secondary active" id="salesSortChrono"
+                                    title="January → December">
+                                    <i class="fas fa-calendar-alt mr-1"></i> By month
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary" id="salesSortAmount"
+                                    title="Highest sales first">
+                                    <i class="fas fa-sort-amount-down mr-1"></i> By amount
+                                </button>
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <canvas id="MonthlySalesIncomeChart"
+                                style="min-height:280px; height:280px; max-height:280px; max-width:100%;"></canvas>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="col-md-12">
                     <div class="card">
                         <div class="card-header">
@@ -625,22 +677,37 @@
                 </div>
                 <div class="card-body p-2" style="max-height:380px; overflow-y:auto;">
                     @forelse($recent_activities as $activity)
-                        @if ($isAdmin || $isManager || $activity->user_name === auth()->user()->full_name)
-                            <div class="activity-item">
-                                <div class="d-flex align-items-start">
-                                    <div
-                                        class="activity-icon bg-{{ $activity->type_color ?? 'primary' }} text-white mr-2">
-                                        <i class="fas fa-{{ $activity->icon ?? 'info' }}"></i>
-                                    </div>
-                                    <div class="flex-grow-1">
-                                        <div class="font-weight-bold" style="font-size:0.83rem;">
-                                            {{ $activity->user_name }}</div>
-                                        <div style="font-size:0.78rem;">{{ $activity->description }}</div>
-                                        <div class="activity-time">
-                                            <i class="far fa-clock"></i> {{ $activity->time_ago ?? 'Just now' }}
+                        @if (auth()->user()->hasPrivilegedAccess() || auth()->user()->isViewOnlyStaff() || $activity->user_name === auth()->user()->full_name)
+                            <div class="activity-item-wrap mb-2">
+                                <a href="{{ $activity->url ?? '#' }}"
+                                    class="activity-item-link d-block text-reset rounded border border-light bg-white p-2 {{ !empty($activity->url) ? 'activity-item--clickable' : '' }}">
+                                    <div class="d-flex align-items-start">
+                                        <div
+                                            class="activity-icon bg-{{ $activity->type_color ?? 'primary' }} text-white mr-2 flex-shrink-0">
+                                            <i class="fas fa-{{ $activity->icon ?? 'info' }}"></i>
+                                        </div>
+                                        <div class="flex-grow-1" style="min-width:0;">
+                                            <div class="font-weight-bold" style="font-size:0.83rem;">
+                                                {{ $activity->user_name }}</div>
+                                            <div style="font-size:0.78rem;">{{ $activity->description }}</div>
+                                            <div class="activity-time text-muted">
+                                                <i class="far fa-clock"></i> {{ $activity->time_ago ?? 'Just now' }}
+                                                @if (!empty($activity->url))
+                                                    <span class="float-right small text-primary"><i
+                                                            class="fas fa-external-link-alt"></i></span>
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
+                                </a>
+                                @if (($activity->kind ?? '') === 'retailer_order' && isset($activity->sales_month_index))
+                                    <button type="button"
+                                        class="btn btn-link btn-xs text-success p-0 mt-1 activity-jump-sales px-2"
+                                        data-sales-month="{{ (int) $activity->sales_month_index }}"
+                                        title="Show this month on the sales chart">
+                                        <i class="fas fa-chart-line mr-1"></i>Income chart
+                                    </button>
+                                @endif
                             </div>
                         @endif
                     @empty
@@ -660,6 +727,7 @@
 @push('js')
     <script>
         window.monthly_products_in = @json($monthly_products_in);
+        window.monthly_sales_income = @json($monthly_sales_income);
         window.product_status_counts = @json($product_status_counts);
         window.purchase_request_status_counts = @json($purchase_request_status_counts);
         window.isManager = {{ $isManager ? 'true' : 'false' }};

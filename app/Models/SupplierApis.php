@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class SupplierApis extends Model
 {
-    /** @use HasFactory<\Database\Factories\SupplierFactory> */
+    /** @use HasFactory<\Database\Factories\SupplierApisFactory> */
     use HasFactory;
 
     public $timestamps = true; // this is actually the default
@@ -26,6 +26,6 @@ class SupplierApis extends Model
 
     public function supplier()
     {
-        return $this->belongsTo(Suppliers::class, 'supplier_id');
+        return $this->belongsTo(Supplier::class, 'supplier_id');
     }
 }

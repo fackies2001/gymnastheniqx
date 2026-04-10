@@ -38,8 +38,8 @@ class WeeklyReportExport implements FromCollection, WithHeadings, WithMapping, W
             strtoupper($order->retailer_name), // Base sa screenshot mo: retailer_name
             strtoupper($order->product_name),  // Base sa screenshot mo: product_name
             $order->quantity,
-            number_format($order->unit_price, 2),
-            number_format($order->total_amount, 2)
+            '₱' . number_format($order->unit_price, 2),
+            '₱' . number_format($order->total_amount, 2)
         ];
     }
 

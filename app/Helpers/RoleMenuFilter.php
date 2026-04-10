@@ -30,18 +30,21 @@ class RoleMenuFilter implements FilterInterface
             return $item;
         }
 
-        $userRole = $user->role?->role_name ?? null;
+        $userRole = strtolower(trim($user->role?->role_name ?? ''));
 
         // If user has no role, restrict the item
-        if (!$userRole) {
+        if ($userRole === '') {
             $item['restricted'] = true;
             return $item;
         }
 
         // Check if user has required role
         $requiredRoles = is_array($item['role']) ? $item['role'] : [$item['role']];
+        $requiredRoles = array_map(static function ($r) {
+            return strtolower(trim((string) $r));
+        }, $requiredRoles);
 
-        if (!in_array($userRole, $requiredRoles)) {
+        if (!in_array($userRole, $requiredRoles, true)) {
             $item['restricted'] = true;
         }
 

@@ -18,19 +18,19 @@ class RetailerOrderController extends Controller
     private function getAdmins()
     {
         return User::whereHas('role', function ($q) {
-            $q->where('role_name', 'Admin')
-                ->orWhere('role_name', 'admin');
+            $q->whereRaw('LOWER(TRIM(role_name)) IN (?, ?, ?)', [
+                'admin',
+                'manager',
+                'account staff',
+            ]);
         })->get();
     }
 
-    private function isAdmin(): bool
+    private function canSeeAllOrders(): bool
     {
-        return strtolower(Auth::user()->role?->role_name ?? '') === 'admin';
-    }
+        $user = Auth::user();
 
-    private function isManager(): bool
-    {
-        return strtolower(Auth::user()->role?->role_name ?? '') === 'manager';
+        return $user && ($user->hasPrivilegedAccess() || $user->isViewOnlyStaff());
     }
 
     // ============================================================
@@ -44,9 +44,8 @@ class RetailerOrderController extends Controller
     // ============================================================
     public function index(Request $request)
     {
-        $user      = Auth::user();
-        $isAdmin   = $this->isAdmin();
-        $isManager = $this->isManager();
+        $user           = Auth::user();
+        $seeAllOrders   = $this->canSeeAllOrders();
 
         $dateConditions = function ($query) use ($request) {
             if ($request->filled('filter_type')) {
@@ -99,11 +98,15 @@ class RetailerOrderController extends Controller
         //  FIX: Staff filter — check BOTH user_id AND name as fallback
         // This fixes orders created before created_by_user_id was added
         $baseQuery = RetailerOrder::query()
-            ->when(!$isAdmin && !$isManager, function ($query) use ($user) {
-                $userName = $user->full_name ?? ($user->first_name . ' ' . $user->last_name);
+            ->when(!$seeAllOrders, function ($query) use ($user) {
+                $userName = $user->full_name
+                    ?? trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? ''))
+                    ?: null;
                 $query->where(function ($q) use ($user, $userName) {
-                    $q->where('created_by_user_id', $user->id)
-                        ->orWhere('created_by', $userName);
+                    $q->where('created_by_user_id', $user->id);
+                    if ($userName) {
+                        $q->orWhere('created_by', $userName);
+                    }
                 });
             });
 
@@ -135,16 +138,16 @@ class RetailerOrderController extends Controller
             ->where('status', 'Completed')
             ->count();
 
-        $warehouse_products = SupplierProduct::select(
-            'supplier_product.*',
-            DB::raw('COUNT(CASE WHEN serialized_product.status = 1 THEN 1 END) as available_quantity')
-        )
-            ->leftJoin('serialized_product', 'supplier_product.id', '=', 'serialized_product.product_id')
-            ->groupBy('supplier_product.id')
+        $warehouse_products = SupplierProduct::query()
+            ->withCount([
+                'serializedProducts as available_quantity' => function ($q) {
+                    $q->where('status', 1);
+                },
+            ])
+            ->orderBy('name')
             ->get();
 
-        //  Pass $isAdmin to blade
-        $isAdmin = $this->isAdmin();
+        $canManageRetailerOrders = Auth::user()->hasPrivilegedAccess();
 
         return view('orders.index', compact(
             'retailer_orders',
@@ -152,12 +155,26 @@ class RetailerOrderController extends Controller
             'totalSales',
             'pendingOrders',
             'completedOrders',
-            'isAdmin'
+            'canManageRetailerOrders'
         ));
+    }
+
+    /**
+     * Admin / Manager — same listing as index (already shows all orders for those roles).
+     * Route kept for bookmarks and sidebar links to retailer.orders.all.
+     */
+    public function indexAll(Request $request)
+    {
+        return $this->index($request);
     }
 
     public function store(Request $request)
     {
+        $user = Auth::user();
+        if ($user && $user->normalizedRoleName() === 'account staff') {
+            return back()->with('error', 'Access Denied! You are not allowed to submit retailer orders.');
+        }
+
         $request->validate([
             'retailer_name' => 'required',
             'product_id'    => 'required|exists:supplier_product,id',
@@ -221,8 +238,8 @@ class RetailerOrderController extends Controller
 
     public function approve($id)
     {
-        if (!$this->isAdmin()) {
-            return back()->with('error', 'Access Denied! Only Admins can approve orders.');
+        if (!Auth::user()->hasPrivilegedAccess()) {
+            return back()->with('error', 'Access Denied! You cannot approve orders.');
         }
 
         $order = RetailerOrder::findOrFail($id);
@@ -322,8 +339,8 @@ class RetailerOrderController extends Controller
 
     public function reject($id)
     {
-        if (!$this->isAdmin()) {
-            return back()->with('error', 'Access Denied! Only Admins can reject orders.');
+        if (!Auth::user()->hasPrivilegedAccess()) {
+            return back()->with('error', 'Access Denied! You cannot reject orders.');
         }
 
         $order = RetailerOrder::findOrFail($id);
@@ -352,7 +369,7 @@ class RetailerOrderController extends Controller
 
     public function complete($id)
     {
-        if (!$this->isAdmin()) {
+        if (!Auth::user()->hasPrivilegedAccess()) {
             return response()->json(['success' => false, 'message' => 'Access Denied!'], 403);
         }
 

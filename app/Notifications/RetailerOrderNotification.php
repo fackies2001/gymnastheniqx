@@ -54,7 +54,7 @@ class RetailerOrderNotification extends Notification
             'order_id'      => $this->orderId,
             'order_number'  => $this->orderNumber,
             'retailer_name' => $this->retailerName,
-            'url'           => route('retailer.orders.index'),
+            'url'           => route('retailer.orders.index', ['focus_order' => $this->orderId]),
         ];
     }
 }

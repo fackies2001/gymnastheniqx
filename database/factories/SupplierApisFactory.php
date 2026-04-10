@@ -2,27 +2,26 @@
 
 namespace Database\Factories;
 
-use App\Http\Controllers\SuppliersController;
+use App\Models\Supplier;
+use App\Models\SupplierApis;
 use Illuminate\Database\Eloquent\Factories\Factory;
-use App\Models\Suppliers;
 use Illuminate\Support\Str;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\SupplierApis>
+ * @extends Factory<SupplierApis>
  */
 class SupplierApisFactory extends Factory
 {
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
+    protected $model = SupplierApis::class;
+
     public function definition(): array
     {
-        $companyName = $this->faker->unique()->company;
+        $companyName = $this->faker->unique()->company();
+
         return [
-            'supplier_id' => Suppliers::factory(), // Automatically creates related Supplier
-            'api_url' => $this->faker->url,
+            'supplier_id' => Supplier::factory(),
+            'api_url' => $this->faker->url(),
+            'headers' => null,
             'service_class' => 'App\\Services\\Suppliers\\' . Str::studly($companyName) . 'SupplierService',
         ];
     }

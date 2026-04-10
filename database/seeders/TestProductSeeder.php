@@ -2,44 +2,38 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
-use App\Models\User;
-// Palitan mo itong mga nasa baba depende sa totoong file name sa app/Models/
-use App\Models\SupplierProducts;
-use App\Models\PurchaseOrders;
+use App\Models\PurchaseOrder;
 use App\Models\SerializedProduct;
-use App\Models\ProductStatus;
+use App\Models\SupplierProduct;
+use App\Models\User;
+use Illuminate\Database\Seeder;
 
 class TestProductSeeder extends Seeder
 {
-    public function run()
+    public function run(): void
     {
-        // 1. Siguraduhin nating may Status (Halimbawa ID 1)
-        // Kung wala kang ProductStatus Model, i-skip ito o manual ID gamitin
+        $product = SupplierProduct::query()->first();
+        $po = PurchaseOrder::query()->first();
+        $user = User::query()->first();
 
-        // 2. Kumuha ng existing data para hindi mag-error sa Foreign Keys
-        $product = \App\Models\SupplierProducts::first();
-        $po = \App\Models\PurchaseOrders::first();
-        $user = User::first();
+        if (!$product || !$po || !$user) {
+            $this->command->warn('TestProductSeeder: need SupplierProduct, PurchaseOrder, and User. Skipping.');
 
-        if (!$product || !$po) {
-            $this->command->error("Wala pang laman ang SupplierProducts o PurchaseOrders table. Mag-add ka muna ng kahit isa sa UI.");
             return;
         }
 
-        // 3. Gagawa tayo ng 5 Test Serialized Products
         for ($i = 1; $i <= 5; $i++) {
-            \App\Models\SerializedProduct::create([
-                'supplier_product_id' => $product->id,
-                'purchase_order_id'   => $po->id,
-                'serial_number'       => 'GYM-TEST-' . rand(1000, 9999),
-                'status_id'           => 1, // Siguraduhin mong may ID 1 sa product_statuses table
-                'scanned_by'          => $user->id,
-                'created_at'          => now(),
-                'updated_at'          => now(),
+            SerializedProduct::query()->create([
+                'product_id' => $product->id,
+                'purchase_order_id' => $po->id,
+                'serial_number' => 'GYM-TEST-' . random_int(1000, 9999),
+                'barcode' => '88' . str_pad((string) random_int(0, 999999999999), 12, '0', STR_PAD_LEFT),
+                'status' => 1,
+                'scanned_by' => $user->id,
+                'scanned_at' => now(),
             ]);
         }
 
-        $this->command->info("Success! 5 Test products added to Gymnastheniqx.");
+        $this->command->info('TestProductSeeder: added 5 serialized_product rows.');
     }
 }

@@ -360,7 +360,7 @@ return [
             'url' => 'warehouse',
             'icon' => 'fas fa-warehouse',
             'active' => ['warehouse*'],
-            'role' => 'admin', // ✅ Only admin can see
+            'role' => ['admin', 'manager', 'account staff'],
         ],
 
         // ==========================================
@@ -369,7 +369,7 @@ return [
         [
             'text' => 'Suppliers',
             'icon' => 'fas fa-parachute-box',
-            'role' => ['admin', 'manager'], // ✅ Admin & Manager only
+            'role' => ['admin', 'manager', 'account staff'],
             'submenu' => [
                 [
                     'text' => 'View Supplier',
@@ -398,7 +398,7 @@ return [
         [
             'text' => 'Purchases',
             'icon' => 'fas fa-comments-dollar',
-            'role' => ['admin', 'staff'], // ✅ Manager hidden
+            'role' => ['admin', 'staff', 'manager', 'account staff'],
             'submenu' => [
                 [
                     'text' => 'Purchase Request',
@@ -409,7 +409,7 @@ return [
                     'text' => 'Purchase Order',
                     'url' => 'purchase-order',
                     'icon' => 'far fa-circle',
-                    'role' => 'admin', // ✅ Admin only
+                    'role' => ['admin', 'manager', 'account staff'],
                 ],
             ],
         ],
@@ -420,7 +420,7 @@ return [
         [
             'text' => 'Retailers',
             'icon' => 'fas fa-print',
-            'role' => ['admin', 'staff', 'manager'], // ✅ Dagdag manager
+            'role' => ['admin', 'staff', 'manager', 'account staff'],
             'submenu' => [
                 [
                     'text' => 'Orders',
@@ -438,7 +438,7 @@ return [
             'text' => 'Reports',
             'url' => 'reports',
             'icon' => 'fas fa-file-export',
-            'role' => ['admin', 'manager'], // ✅ Admin & Manager only
+            'role' => ['admin', 'manager', 'account staff'],
             'submenu' => [
                 [
                     'text' => 'Daily Reports',
@@ -479,7 +479,7 @@ return [
             'url' => 'user-management',
             'icon' => 'fas fa-fw fa-users-cog',
             'active' => ['user-management*'],
-            'role' => 'admin', // ✅ Only admin can see
+            'role' => ['admin', 'manager'],
         ],
 
         // MANPOWER - ADMIN & MANAGER ONLY
@@ -488,7 +488,7 @@ return [
             'url' => 'manpower',
             'icon' => 'fas fa-fw fa-id-card',
             'active' => ['manpower*'],
-            'role' => ['admin', 'manager'], // ✅ Admin & Manager only
+            'role' => ['admin', 'manager', 'account staff'],
         ],
 
         // GYM EQUIPMENT - ALL USERS (view only for staff)

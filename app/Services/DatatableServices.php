@@ -42,7 +42,7 @@ class DatatableServices
                 return $row->system_sku ?? 'N/A';
             })
             ->addColumn('cost_price', function ($row) {
-                return number_format($row->cost_price ?? 0, 2);
+                return '₱' . number_format($row->cost_price ?? 0, 2);
             })
             ->addColumn('date_created', function ($row) {
                 return $row->created_at ? $row->created_at->format('M d, Y') : '-';
@@ -455,7 +455,7 @@ class DatatableServices
                 return $row->system_sku ?? 'N/A';
             })
             ->editColumn('cost_price', function ($row) {
-                return number_format($row->cost_price ?? 0, 2);
+                return '₱' . number_format($row->cost_price ?? 0, 2);
             })
             ->editColumn('barcode', function ($row) {
                 return $row->barcode ?? 'N/A';

@@ -41,7 +41,6 @@
         </div>
     </div>
 
-    @not_api
         <form id="createProductForm" action="{{ route('supplier_products.store') }}" method="POST">
             @csrf
             <x-bootstrap.modal id="createProductModal" title="Create Supplier Product" size="modal-lg" position="centered">
@@ -85,7 +84,6 @@
                 </x-slot:footer>
             </x-bootstrap.modal>
         </form>
-    @endnot_api
 @endsection
 
 @push('js')

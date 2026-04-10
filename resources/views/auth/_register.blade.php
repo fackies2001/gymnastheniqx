@@ -14,12 +14,12 @@
                     <div class="card-body">
                         @csrf
 
-                        <!-- Name -->
+                        <!-- Full name -->
                         <div>
-                            <x-bootstrap.label for="name" :value="__('Name')" />
-                            <x-bootstrap.input id="name" class="block mt-1 w-full" type="text" name="name"
-                                :value="old('name')" required autofocus autocomplete="name" />
-                            <x-bootstrap.input-error :messages="$errors->get('name')" class="mt-2" />
+                            <x-bootstrap.label for="full_name" :value="__('Full name')" />
+                            <x-bootstrap.input id="full_name" class="block mt-1 w-full" type="text" name="full_name"
+                                :value="old('full_name')" required autofocus autocomplete="name" />
+                            <x-bootstrap.input-error :messages="$errors->get('full_name')" class="mt-2" />
                         </div>
 
                         <!-- Email Address -->
@@ -60,7 +60,7 @@
                         </div>
                     </div>
                     <div class="card-footer text-right">
-                        <div class="btn btn-sm btn-primary" type="submit">Submit</div>
+                        <button type="submit" class="btn btn-sm btn-primary">Create account</button>
                     </div>
                 </form>
             </div>
