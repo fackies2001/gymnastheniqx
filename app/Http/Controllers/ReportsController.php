@@ -292,7 +292,7 @@ class ReportsController extends Controller
                 try {
                     $query = StockMovement::with(['product.supplier', 'createdBy'])
                         ->whereIn('type', ['damage', 'loss'])
-                        ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId));
+                        ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId));    
 
                     $dateFilter($query);
 
@@ -328,7 +328,7 @@ class ReportsController extends Controller
             // =====================================================
             // SECTION 4: LOW STOCK
             // =====================================================
-            
+
             if (!$type || $type === 'low_stock') {
                 try {
                     $lowConsumables = ConsumableStock::with(['product.supplier'])

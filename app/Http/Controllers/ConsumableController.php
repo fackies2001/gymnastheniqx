@@ -171,6 +171,7 @@ class ConsumableController extends Controller
     // ROUTE: POST /consumables/report-incident
     // CALLED FROM: Manual report form sa dashboard
     // ─────────────────────────────────────────────────────────
+
     public function reportIncident(Request $request)
     {
         $request->validate([
@@ -190,7 +191,6 @@ class ConsumableController extends Controller
             ], 422);
         }
 
-        // ✅ AYOS — Consumable stock starts at 0 kung wala pang record
         $stock = ConsumableStock::firstOrCreate(
             ['product_id' => $request->product_id, 'warehouse_id' => $warehouseId],
             ['current_qty' => 0, 'min_stock_level' => 20]
@@ -206,14 +206,33 @@ class ConsumableController extends Controller
             'created_by'   => auth()->id(),
         ]);
 
-        // ✅ FIX — bawasan ang current_qty
-        // $stock->decrement('current_qty', $request->quantity);
+        $product = SupplierProduct::find($request->product_id);
 
+        if ($product && $product->is_consumable) {
+            $stock->decrement('current_qty', $request->quantity);
+        } else {
+            $newStatus = $request->type === 'damage' ? 4 : 5;
+
+            \App\Models\SerializedProduct::where('product_id', $request->product_id)
+                ->where('status', 1)
+                ->where('warehouse_id', $warehouseId)
+                ->limit($request->quantity)
+                ->get()
+                ->each(function ($item) use ($newStatus, $request) {
+                    $item->update([
+                        'status'  => $newStatus,
+                        'remarks' => $request->remarks,
+                    ]);
+                });
+        }
+
+        // ✅ RETURN — missing sa version mo
         return response()->json([
             'success' => true,
             'message' => ucfirst($request->type) . " reported: {$request->quantity} pcs.",
         ]);
-    }
+    } 
+
 
     // ─────────────────────────────────────────────────────────
     // ADJUSTMENT — Stock correction (manual count)
