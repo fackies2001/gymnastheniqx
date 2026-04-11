@@ -79,20 +79,23 @@ class SerializedProductsController extends Controller
     public function show($id, $product_name)
     {
         $product = SupplierProduct::with('supplier')->findOrFail($id);
-
         $warehouseId = auth()->user()->assigned_at;
 
-        // ✅ Kunin ang current stock record para sa product + warehouse
-        // Kung wala pang record (hindi pa natatanggap), null ang ibabalik
         $stock = ConsumableStock::where('product_id', $id)
             ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
             ->first();
+
+        // ✅ DAGDAG — kung non-consumable, kuha sa serialized_product
+        $currentStock = $stock?->current_qty ?? SerializedProduct::where('product_id', $id)
+            ->where('status', 1)
+            ->count();
 
         return view('serialized_products.show', [
             'supplier_product_id' => $id,
             'product_name'        => $product->name,
             'product'             => $product,
-            'stock'               => $stock,  // ✅ DAGDAG — para sa left card
+            'stock'               => $stock,
+            'current_stock'       => $currentStock, // ✅ DAGDAG
         ]);
     }
 

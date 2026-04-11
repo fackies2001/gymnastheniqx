@@ -328,6 +328,7 @@ class ReportsController extends Controller
             // =====================================================
             // SECTION 4: LOW STOCK
             // =====================================================
+            
             if (!$type || $type === 'low_stock') {
                 try {
                     $lowConsumables = ConsumableStock::with(['product.supplier'])
@@ -335,6 +336,17 @@ class ReportsController extends Controller
                         ->where('current_qty', '>', 0)
                         ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
                         ->get();
+
+                    $serializedLowStock = SupplierProduct::where('is_consumable', false)
+                        ->whereNotNull('min_stock_level')
+                        ->get()
+                        ->filter(function ($product) use ($warehouseId) {
+                            $availableCount = SerializedProduct::where('product_id', $product->id)
+                                ->where('status', 1)
+                                ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
+                                ->count();
+                            return $availableCount < $product->min_stock_level;
+                        });
 
                     foreach ($lowConsumables as $stock) {
                         $productName  = $stock->product->name           ?? 'Unnamed Product';
@@ -352,15 +364,36 @@ class ReportsController extends Controller
 
                         $data[] = [
                             'product_name'  => '<strong style="font-size:15px;color:black;">' . e($productName) . '</strong><br>
-                        <span style="font-size:12px;color:#999;">SKU: ' . e($stock->product->system_sku ?? 'N/A') . '</span>',
+                    <span style="font-size:12px;color:#999;">SKU: ' . e($stock->product->system_sku ?? 'N/A') . '</span>',
                             'category_name' => '<span class="badge badge-warning">Low Stock</span>',
                             'traceability'  => '<small>
-                        <strong>Supplier:</strong> ' . e($supplierName) . '<br>
-                        <strong>Last Received:</strong> ' . $lastReceivedFormatted . '<br>
-                        <strong>Min Level:</strong> ' . $stock->min_stock_level . ' pcs<br>
-                        <strong>Reorder Needed:</strong> <span class="text-danger font-weight-bold">' . $reorderQty . ' pcs</span>
-                    </small>',
+                    <strong>Supplier:</strong> ' . e($supplierName) . '<br>
+                    <strong>Last Received:</strong> ' . $lastReceivedFormatted . '<br>
+                    <strong>Min Level:</strong> ' . $stock->min_stock_level . ' pcs<br>
+                    <strong>Reorder Needed:</strong> <span class="text-danger font-weight-bold">' . $reorderQty . ' pcs</span>
+                </small>',
                             'quantity' => $qty,
+                            'status'   => 'Low Stock',
+                        ];
+                    }
+
+                    // ✅ DAGDAG — foreach loop para sa serialized products
+                    foreach ($serializedLowStock as $product) {
+                        $availableCount = SerializedProduct::where('product_id', $product->id)
+                            ->where('status', 1)
+                            ->count();
+                        $reorderQty = max(0, $product->min_stock_level - $availableCount);
+
+                        $data[] = [
+                            'product_name'  => '<strong style="font-size:15px;color:black;">' . e($product->name) . '</strong><br>
+                    <span style="font-size:12px;color:#999;">SKU: ' . e($product->system_sku ?? 'N/A') . '</span>',
+                            'category_name' => '<span class="badge badge-warning">Low Stock</span>',
+                            'traceability'  => '<small>
+                    <strong>Supplier:</strong> ' . e($product->supplier->name ?? 'N/A') . '<br>
+                    <strong>Min Level:</strong> ' . $product->min_stock_level . ' pcs<br>
+                    <strong>Reorder Needed:</strong> <span class="text-danger font-weight-bold">' . $reorderQty . ' pcs</span>
+                </small>',
+                            'quantity' => $availableCount,
                             'status'   => 'Low Stock',
                         ];
                     }
