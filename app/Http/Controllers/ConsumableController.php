@@ -191,10 +191,7 @@ class ConsumableController extends Controller
             ], 422);
         }
 
-        $stock = ConsumableStock::firstOrCreate(
-            ['product_id' => $request->product_id, 'warehouse_id' => $warehouseId],
-            ['current_qty' => 0, 'min_stock_level' => 20]
-        );
+        $product = SupplierProduct::find($request->product_id);
 
         StockMovement::record([
             'product_id'   => $request->product_id,
@@ -206,11 +203,15 @@ class ConsumableController extends Controller
             'created_by'   => auth()->id(),
         ]);
 
-        $product = SupplierProduct::find($request->product_id);
-
         if ($product && $product->is_consumable) {
+            // ✅ Consumable ONLY — firstOrCreate dito lang
+            $stock = ConsumableStock::firstOrCreate(
+                ['product_id' => $request->product_id, 'warehouse_id' => $warehouseId],
+                ['current_qty' => 0, 'min_stock_level' => 20]
+            );
             $stock->decrement('current_qty', $request->quantity);
         } else {
+            // ✅ Serialized — update status ng individual records
             $newStatus = $request->type === 'damage' ? 4 : 5;
 
             \App\Models\SerializedProduct::where('product_id', $request->product_id)
@@ -226,12 +227,11 @@ class ConsumableController extends Controller
                 });
         }
 
-        // ✅ RETURN — missing sa version mo
         return response()->json([
             'success' => true,
             'message' => ucfirst($request->type) . " reported: {$request->quantity} pcs.",
         ]);
-    } 
+    }
 
 
     // ─────────────────────────────────────────────────────────
