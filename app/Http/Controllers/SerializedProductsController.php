@@ -7,10 +7,11 @@ use App\Helpers\SkuHelper;
 use App\Helpers\TransactionHelper;
 use App\Http\Requests\StoreSerializationRequest;
 use App\Models\SupplierProduct;
-use App\Models\PurchaseRequest;
+use App\Models\PurchaseRequest; 
 use App\Models\SerialNumber;
-use App\Models\StockMovement;       // ✅ DAGDAG
-use App\Models\ConsumableStock;    // ✅ DAGDAG
+use App\Models\StockMovement;
+use App\Models\ConsumableStock;
+use App\Models\SerializedProduct;
 use App\Services\DatatableServices;
 use App\Services\SupplierProductServices;
 use App\Services\SystemProductServices;
