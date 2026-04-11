@@ -37,13 +37,13 @@
                         <tr>
                             <th class="text-muted" style="font-size:12px;">Current Stock</th>
                             <td>
-                                @if ($stock && $stock->isLowStock())
+                                @if ($current_stock < ($stock->min_stock_level ?? 20))
                                     <span class="badge badge-danger" style="font-size:13px;">
-                                        {{ $stock->current_qty }} pcs
+                                        {{ $current_stock }} pcs
                                     </span>
-                                @elseif($stock)
+                                @elseif ($current_stock > 0)
                                     <span class="badge badge-success" style="font-size:13px;">
-                                        {{ $stock->current_qty }} pcs
+                                        {{ $current_stock }} pcs
                                     </span>
                                 @else
                                     <span class="badge badge-secondary" style="font-size:13px;">0 pcs</span>
