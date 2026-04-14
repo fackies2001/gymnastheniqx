@@ -485,9 +485,14 @@
                                     <i class="fas fa-edit"></i> Selling Price
                                     <small class="text-muted font-weight-normal">(editable)</small>
                                 </label>
-                                <input type="number" step="0.01" name="unit_price" id="inp_price"
-                                    class="form-control shadow-sm border-success" required
-                                    placeholder="Enter selling price">
+                                <div class="input-group">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text font-weight-bold bg-success text-white">₱</span>
+                                    </div>
+                                    <input type="number" step="0.01" name="unit_price" id="inp_price"
+                                        class="form-control shadow-sm border-success" required
+                                        placeholder="Enter selling price">
+                                </div>
 
                                 <div id="price_info_box" class="mt-2 p-2 rounded"
                                     style="display:none; background:#f8f9fa; border:1px solid #dee2e6;">
