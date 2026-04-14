@@ -20,7 +20,7 @@ return new class extends Migration
     public function up(): void
     {
         // 1. Get all consumable product IDs
-        $consumableProductIds = DB::table('supplier_products')
+        $consumableProductIds = DB::table('supplier_product')
             ->where('is_consumable', true)
             ->pluck('id')
             ->toArray();
