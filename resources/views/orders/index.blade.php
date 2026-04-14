@@ -801,12 +801,12 @@
                     Swal.fire({
                         icon: 'warning',
                         title: 'Price Below Cost!',
-                        html: `Ang entered price na <b>₱${enteredPrice.toFixed(2)}</b> ay mas mababa sa supplier cost na <b>₱${costPrice.toFixed(2)}</b>.<br><br>Malulugi kayo sa order na ito. Itutuloy pa rin?`,
+                        html: `The entered price <b>₱${enteredPrice.toFixed(2)}</b> is less than the supplier cost. <b>₱${costPrice.toFixed(2)}</b>.<br><br>You will lose money on this transaction. Will proceed nonetheless.?`,
                         showCancelButton: true,
                         confirmButtonColor: '#d33',
                         cancelButtonColor: '#6c757d',
-                        confirmButtonText: 'Ituloy pa rin',
-                        cancelButtonText: 'Baguhin ang price'
+                        confirmButtonText: 'Will continue anyway',
+                        cancelButtonText: 'Change the price'
                     }).then((result) => {
                         if (result.isConfirmed) proceed();
                     });
