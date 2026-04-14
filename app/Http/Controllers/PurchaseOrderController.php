@@ -258,10 +258,19 @@ class PurchaseOrderController extends Controller
             // ─────────────────────────────────────────────────────
             // 5. Duplicate scan guard (within 500ms)
             // ─────────────────────────────────────────────────────
-            $recentScan = SerializedProduct::where('product_id', $product->id)
-                ->where('purchase_order_id', $po->id)
-                ->where('scanned_at', '>=', now()->subMilliseconds(500))
-                ->exists();
+            if ($product->is_consumable) {
+                // Consumable — check StockMovement instead
+                $recentScan = \App\Models\StockMovement::where('product_id', $product->id)
+                    ->where('purchase_order_id', $po->id)
+                    ->where('created_at', '>=', now()->subMilliseconds(500))
+                    ->exists();
+            } else {
+                // Non-consumable — check SerializedProduct
+                $recentScan = SerializedProduct::where('product_id', $product->id)
+                    ->where('purchase_order_id', $po->id)
+                    ->where('scanned_at', '>=', now()->subMilliseconds(500))
+                    ->exists();
+            }
 
             if ($recentScan) {
                 DB::rollBack();
@@ -273,62 +282,65 @@ class PurchaseOrderController extends Controller
 
             // ─────────────────────────────────────────────────────
             // 6. Gumawa ng serialized product records
-            //
-            //    BOX scan:
-            //      - $qtyToAdd (e.g. 10) records
-            //      - LAHAT = SAME serial number (iisang box)
-            //      - Example: SN-BOX-ABCD1234 x10
-            //
-            //    PIECE scan:
-            //      - 1 record lang
-            //      - UNIQUE serial number
-            //      - Example: SN-PC-ABCD1234
+            //    PERO: CONSUMABLE products = WALANG serialization!
+            //    Consumables (food, supplies, etc.) ay quantity-based lang.
+            //    Non-consumable (gym equipment, etc.) = may serial number.
             // ─────────────────────────────────────────────────────
-            $scannedBy   = auth()->user()->employee->id ?? null;
-            $warehouseId = auth()->user()->employee->assigned_at ?? null;
-            $scannedAt   = now();
+            if (!$product->is_consumable) {
+                // ✅ NON-CONSUMABLE ONLY — gumawa ng SerializedProduct records
+                $scannedBy   = auth()->user()->employee->id ?? null;
+                $warehouseId = auth()->user()->employee->assigned_at ?? null;
+                $scannedAt   = now();
 
-            if ($scanType === 'box') {
-                // ✅ BOX: Generate IISANG serial number para sa buong box
-                // Lahat ng pieces sa box na ito = same serial number
-                $boxSerialNumber = 'SN-BOX-' . strtoupper(uniqid('', true));
+                if ($scanType === 'box') {
+                    // ✅ BOX: Generate IISANG serial number para sa buong box
+                    $boxSerialNumber = 'SN-BOX-' . strtoupper(uniqid('', true));
 
-                for ($i = 0; $i < $qtyToAdd; $i++) {
+                    for ($i = 0; $i < $qtyToAdd; $i++) {
+                        SerializedProduct::create([
+                            'product_id'        => $product->id,
+                            'purchase_order_id' => $po->id,
+                            'barcode'           => $product->barcode,
+                            'serial_number'     => $boxSerialNumber,
+                            'status'            => 1,
+                            'scanned_at'        => $scannedAt,
+                            'scanned_by'        => $scannedBy,
+                            'warehouse_id'      => $warehouseId,
+                        ]);
+                    }
+
+                    Log::info('BOX scanned (non-consumable):', [
+                        'product'       => $product->name,
+                        'serial_number' => $boxSerialNumber,
+                        'qty_added'     => $qtyToAdd,
+                    ]);
+                } else {
+                    // ✅ PIECE: Generate UNIQUE serial number
+                    $pieceSerialNumber = 'SN-PC-' . strtoupper(uniqid('', true));
+
                     SerializedProduct::create([
                         'product_id'        => $product->id,
                         'purchase_order_id' => $po->id,
                         'barcode'           => $product->barcode,
-                        'serial_number'     => $boxSerialNumber, // ← SAME para sa lahat
+                        'serial_number'     => $pieceSerialNumber,
                         'status'            => 1,
                         'scanned_at'        => $scannedAt,
                         'scanned_by'        => $scannedBy,
                         'warehouse_id'      => $warehouseId,
                     ]);
+
+                    Log::info('PIECE scanned (non-consumable):', [
+                        'product'       => $product->name,
+                        'serial_number' => $pieceSerialNumber,
+                    ]);
                 }
-
-                Log::info('BOX scanned:', [
-                    'product'       => $product->name,
-                    'serial_number' => $boxSerialNumber,
-                    'qty_added'     => $qtyToAdd,
-                ]);
             } else {
-                // ✅ PIECE: Generate UNIQUE serial number
-                $pieceSerialNumber = 'SN-PC-' . strtoupper(uniqid('', true));
-
-                SerializedProduct::create([
-                    'product_id'        => $product->id,
-                    'purchase_order_id' => $po->id,
-                    'barcode'           => $product->barcode,
-                    'serial_number'     => $pieceSerialNumber, // ← UNIQUE
-                    'status'            => 1,
-                    'scanned_at'        => $scannedAt,
-                    'scanned_by'        => $scannedBy,
-                    'warehouse_id'      => $warehouseId,
-                ]);
-
-                Log::info('PIECE scanned:', [
-                    'product'       => $product->name,
-                    'serial_number' => $pieceSerialNumber,
+                // ✅ CONSUMABLE — skip serialization, quantity tracking lang
+                // ConsumableStock ay ma-u-update sa StockMovement::record() sa baba
+                Log::info('CONSUMABLE scanned (no serialization):', [
+                    'product'   => $product->name,
+                    'qty_added' => $qtyToAdd,
+                    'scan_type' => $scanType,
                 ]);
             }
 
