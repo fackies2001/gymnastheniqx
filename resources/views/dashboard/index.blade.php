@@ -237,6 +237,91 @@
             font-size: 18px;
             color: white;
         }
+
+        /* ========== FONT SIZE BOOST ========== */
+
+        /* General content text */
+        .content-wrapper {
+            font-size: 16px;
+        }
+
+        /* Stat box numbers & labels */
+        .stat-box .stat-number {
+            font-size: 2.8rem;
+        }
+        .stat-box .stat-label {
+            font-size: 1.05rem;
+        }
+        .stat-box .stat-footer {
+            font-size: 0.9rem;
+        }
+
+        /* Card titles */
+        .card-title {
+            font-size: 1.15rem !important;
+        }
+
+        /* Filter labels & form elements */
+        label,
+        .font-weight-bold {
+            font-size: 1rem;
+        }
+        .form-control,
+        .form-control-lg {
+            font-size: 1.05rem;
+        }
+
+        /* Buttons */
+        .btn {
+            font-size: 1rem;
+        }
+
+        /* Badges */
+        .badge {
+            font-size: 0.9rem;
+        }
+
+        /* Alerts */
+        .alert {
+            font-size: 1rem;
+        }
+
+        /* Low Stock table */
+        .card-body .table th,
+        .card-body .table td {
+            font-size: 0.95rem;
+        }
+
+        /* Activity items */
+        .activity-item .font-weight-bold,
+        .activity-item-wrap .font-weight-bold {
+            font-size: 0.95rem !important;
+        }
+        .activity-item-wrap div[style*="font-size:0.78rem"] {
+            font-size: 0.9rem !important;
+        }
+        .activity-time {
+            font-size: 0.82rem;
+        }
+
+        /* Report shortcut cards */
+        .report-shortcut-card .shortcut-label {
+            font-size: 1.1rem;
+        }
+        .report-shortcut-card .shortcut-sub {
+            font-size: 0.85rem;
+        }
+        .report-shortcut-card .shortcut-arrow {
+            font-size: 0.9rem;
+        }
+
+        /* Content header */
+        .content-header h1,
+        .content-header .content_header_title {
+            font-size: 1.8rem !important;
+        }
+
+        /* ========== END FONT SIZE BOOST ========== */
     </style>
 @endpush
 

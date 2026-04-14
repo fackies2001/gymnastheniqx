@@ -65,11 +65,11 @@ class ConsumableController extends Controller
     public function stockIn(Request $request)
     {
         $request->validate([
-            'product_id'        => 'required|exists:supplier_product,id',
-            'quantity'          => 'required|integer|min:1',
+            'product_id' => 'required|exists:supplier_product,id',
+            'quantity' => 'required|integer|min:1',
             'purchase_order_id' => 'required|exists:purchase_order,id',
-            'defective_qty'     => 'nullable|integer|min:0',
-            'remarks'           => 'nullable|string|max:500',
+            'defective_qty' => 'nullable|integer|min:0',
+            'remarks' => 'nullable|string|max:500',
         ]);
 
         $warehouseId = auth()->user()->assigned_at;
@@ -82,38 +82,38 @@ class ConsumableController extends Controller
         }
 
         return DB::transaction(function () use ($request, $warehouseId) {
-            $goodQty      = $request->quantity;
+            $goodQty = $request->quantity;
             $defectiveQty = $request->defective_qty ?? 0;
 
             // ✅ Record good qty as IN
             StockMovement::record([
-                'product_id'        => $request->product_id,
-                'warehouse_id'      => $warehouseId,
-                'type'              => StockMovement::TYPE_IN,
-                'quantity'          => $goodQty,
-                'reason_type'       => StockMovement::REASON_RECEIVED,
-                'remarks'           => $request->remarks,
+                'product_id' => $request->product_id,
+                'warehouse_id' => $warehouseId,
+                'type' => StockMovement::TYPE_IN,
+                'quantity' => $goodQty,
+                'reason_type' => StockMovement::REASON_RECEIVED,
+                'remarks' => $request->remarks,
                 'purchase_order_id' => $request->purchase_order_id,
-                'created_by'        => auth()->id(),
+                'created_by' => auth()->id(),
             ]);
 
             // ✅ If may defective on arrival — i-record agad as DAMAGE
             if ($defectiveQty > 0) {
                 StockMovement::record([
-                    'product_id'        => $request->product_id,
-                    'warehouse_id'      => $warehouseId,
-                    'type'              => StockMovement::TYPE_DAMAGE,
-                    'quantity'          => $defectiveQty,
-                    'reason_type'       => StockMovement::REASON_DOA,
-                    'remarks'           => 'Defective on arrival — PO#' . $request->purchase_order_id,
+                    'product_id' => $request->product_id,
+                    'warehouse_id' => $warehouseId,
+                    'type' => StockMovement::TYPE_DAMAGE,
+                    'quantity' => $defectiveQty,
+                    'reason_type' => StockMovement::REASON_DOA,
+                    'remarks' => 'Defective on arrival — PO#' . $request->purchase_order_id,
                     'purchase_order_id' => $request->purchase_order_id,
-                    'created_by'        => auth()->id(),
+                    'created_by' => auth()->id(),
                 ]);
             }
 
             return response()->json([
-                'success'      => true,
-                'message'      => "Stock in recorded. Good: {$goodQty} pcs" .
+                'success' => true,
+                'message' => "Stock in recorded. Good: {$goodQty} pcs" .
                     ($defectiveQty > 0 ? ", DOA: {$defectiveQty} pcs" : ''),
                 'net_received' => $goodQty,
                 'doa_recorded' => $defectiveQty,
@@ -129,10 +129,10 @@ class ConsumableController extends Controller
     public function stockOut(Request $request)
     {
         $request->validate([
-            'product_id'        => 'required|exists:supplier_product,id',
-            'quantity'          => 'required|integer|min:1',
+            'product_id' => 'required|exists:supplier_product,id',
+            'quantity' => 'required|integer|min:1',
             'retailer_order_id' => 'nullable|exists:retailer_orders,id',
-            'remarks'           => 'nullable|string|max:500',
+            'remarks' => 'nullable|string|max:500',
         ]);
 
         $warehouseId = auth()->user()->assigned_at;
@@ -150,14 +150,14 @@ class ConsumableController extends Controller
         }
 
         StockMovement::record([
-            'product_id'        => $request->product_id,
-            'warehouse_id'      => $warehouseId,
-            'type'              => StockMovement::TYPE_OUT,
-            'quantity'          => $request->quantity,
-            'reason_type'       => StockMovement::REASON_SOLD,
-            'remarks'           => $request->remarks,
+            'product_id' => $request->product_id,
+            'warehouse_id' => $warehouseId,
+            'type' => StockMovement::TYPE_OUT,
+            'quantity' => $request->quantity,
+            'reason_type' => StockMovement::REASON_SOLD,
+            'remarks' => $request->remarks,
             'retailer_order_id' => $request->retailer_order_id,
-            'created_by'        => auth()->id(),
+            'created_by' => auth()->id(),
         ]);
 
         return response()->json([
@@ -175,11 +175,11 @@ class ConsumableController extends Controller
     public function reportIncident(Request $request)
     {
         $request->validate([
-            'product_id'  => 'required|exists:supplier_product,id',
-            'type'        => 'required|in:damage,loss',
-            'quantity'    => 'required|integer|min:1',
+            'product_id' => 'required|exists:supplier_product,id',
+            'type' => 'required|in:damage,loss',
+            'quantity' => 'required|integer|min:1',
             'reason_type' => 'required|in:defective_on_arrival,damaged_in_storage,leaked,expired,lost_in_transit,missing_in_count,other',
-            'remarks'     => 'nullable|string|max:500',
+            'remarks' => 'nullable|string|max:500',
         ]);
 
         $warehouseId = auth()->user()->assigned_at;
@@ -194,13 +194,13 @@ class ConsumableController extends Controller
         $product = SupplierProduct::find($request->product_id);
 
         StockMovement::record([
-            'product_id'   => $request->product_id,
+            'product_id' => $request->product_id,
             'warehouse_id' => $warehouseId,
-            'type'         => $request->type,
-            'quantity'     => $request->quantity,
-            'reason_type'  => $request->reason_type,
-            'remarks'      => $request->remarks,
-            'created_by'   => auth()->id(),
+            'type' => $request->type,
+            'quantity' => $request->quantity,
+            'reason_type' => $request->reason_type,
+            'remarks' => $request->remarks,
+            'created_by' => auth()->id(),
         ]);
 
         if ($product && $product->is_consumable) {
@@ -221,7 +221,7 @@ class ConsumableController extends Controller
                 ->get()
                 ->each(function ($item) use ($newStatus, $request) {
                     $item->update([
-                        'status'  => $newStatus,
+                        'status' => $newStatus,
                         'remarks' => $request->remarks,
                     ]);
                 });
@@ -231,7 +231,7 @@ class ConsumableController extends Controller
             'success' => true,
             'message' => ucfirst($request->type) . " reported: {$request->quantity} pcs.",
         ]);
-    }   
+    }
 
 
     // ─────────────────────────────────────────────────────────
@@ -242,9 +242,9 @@ class ConsumableController extends Controller
     public function adjust(Request $request)
     {
         $request->validate([
-            'product_id'     => 'required|exists:supplier_product,id',
-            'actual_qty'     => 'required|integer|min:0',
-            'remarks'        => 'required|string|max:500',
+            'product_id' => 'required|exists:supplier_product,id',
+            'actual_qty' => 'required|integer|min:0',
+            'remarks' => 'required|string|max:500',
         ]);
 
         $warehouseId = auth()->user()->assigned_at;
@@ -258,21 +258,21 @@ class ConsumableController extends Controller
         $difference = $request->actual_qty - $stock->current_qty;
 
         StockMovement::record([
-            'product_id'  => $request->product_id,
+            'product_id' => $request->product_id,
             'warehouse_id' => $warehouseId,
-            'type'        => StockMovement::TYPE_ADJUSTMENT,
-            'quantity'    => $difference,   // can be negative
+            'type' => StockMovement::TYPE_ADJUSTMENT,
+            'quantity' => $difference,   // can be negative
             'reason_type' => StockMovement::REASON_CORRECTION,
-            'remarks'     => $request->remarks . " (System: {$stock->current_qty}, Actual: {$request->actual_qty})",
-            'created_by'  => auth()->id(),
+            'remarks' => $request->remarks . " (System: {$stock->current_qty}, Actual: {$request->actual_qty})",
+            'created_by' => auth()->id(),
         ]);
 
         return response()->json([
-            'success'     => true,
-            'message'     => "Adjustment recorded: " . ($difference >= 0 ? "+{$difference}" : $difference) . " pcs.",
-            'old_qty'     => $stock->current_qty,
-            'new_qty'     => $request->actual_qty,
-            'difference'  => $difference,
+            'success' => true,
+            'message' => "Adjustment recorded: " . ($difference >= 0 ? "+{$difference}" : $difference) . " pcs.",
+            'old_qty' => $stock->current_qty,
+            'new_qty' => $request->actual_qty,
+            'difference' => $difference,
         ]);
     }
 
@@ -312,15 +312,15 @@ class ConsumableController extends Controller
         // ✅ DataTables response format (compatible sa existing DatatableServices mo)
         $data = $query->get()->map(function ($stock) {
             return [
-                'id'               => $stock->product_id,
-                'product_name'     => $stock->product->name ?? '—',
-                'system_sku'       => $stock->product->system_sku ?? '—',
-                'supplier_name'    => $stock->product->supplier->name ?? '—',
-                'warehouse'        => $stock->warehouse->name ?? '—',
-                'current_qty'      => $stock->current_qty,
-                'min_stock_level'  => $stock->min_stock_level,
-                'is_low_stock'     => $stock->isLowStock(),
-                'status_badge'     => $stock->isLowStock()
+                'id' => $stock->product_id,
+                'product_name' => $stock->product->name ?? '—',
+                'system_sku' => $stock->product->system_sku ?? '—',
+                'supplier_name' => $stock->product->supplier->name ?? '—',
+                'warehouse' => $stock->warehouse->name ?? '—',
+                'current_qty' => $stock->current_qty,
+                'min_stock_level' => $stock->min_stock_level,
+                'is_low_stock' => $stock->isLowStock(),
+                'status_badge' => $stock->isLowStock()
                     ? '<span class="badge badge-danger">Low Stock</span>'
                     : '<span class="badge badge-success">OK</span>',
             ];
@@ -345,33 +345,33 @@ class ConsumableController extends Controller
             ->get()
             ->map(function ($m) {
                 $typeColors = [
-                    'in'         => 'success',
-                    'out'        => 'primary',
-                    'damage'     => 'warning',
-                    'loss'       => 'danger',
+                    'in' => 'success',
+                    'out' => 'primary',
+                    'damage' => 'warning',
+                    'loss' => 'danger',
                     'adjustment' => 'secondary',
                 ];
 
                 $typeIcons = [
-                    'in'         => '➕',
-                    'out'        => '➖',
-                    'damage'     => '❌',
-                    'loss'       => '⚠️',
+                    'in' => '➕',
+                    'out' => '➖',
+                    'damage' => '❌',
+                    'loss' => '⚠️',
                     'adjustment' => '🔄',
                 ];
 
                 $color = $typeColors[$m->type] ?? 'secondary';
-                $icon  = $typeIcons[$m->type] ?? '';
+                $icon = $typeIcons[$m->type] ?? '';
 
                 return [
-                    'date'        => $m->created_at->format('M d, Y h:i A'),
-                    'type'        => "<span class='badge badge-{$color}'>{$icon} " . strtoupper($m->type) . '</span>',
-                    'quantity'    => in_array($m->type, ['in', 'adjustment']) && $m->quantity > 0
+                    'date' => $m->created_at->format('M d, Y h:i A'),
+                    'type' => "<span class='badge badge-{$color}'>{$icon} " . strtoupper($m->type) . '</span>',
+                    'quantity' => in_array($m->type, ['in', 'adjustment']) && $m->quantity > 0
                         ? "+{$m->quantity} pcs"
                         : "-{$m->quantity} pcs",
-                    'reason'      => $m->reason_type ? str_replace('_', ' ', ucfirst($m->reason_type)) : '—',
-                    'remarks'     => $m->remarks ?? '—',
-                    'reference'   => $m->purchase_order_id
+                    'reason' => $m->reason_type ? str_replace('_', ' ', ucfirst($m->reason_type)) : '—',
+                    'remarks' => $m->remarks ?? '—',
+                    'reference' => $m->purchase_order_id
                         ? "PO #{$m->purchase_order_id}"
                         : ($m->retailer_order_id ? "Order #{$m->retailer_order_id}" : '—'),
                     'recorded_by' => $m->createdBy->full_name ?? '—',
