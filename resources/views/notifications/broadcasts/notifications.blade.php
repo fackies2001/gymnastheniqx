@@ -8,7 +8,8 @@
     </div>
 @else
     @foreach ($notifications as $notif)
-        <a href="{{ $notif['url'] ?? '#' }}" class="dropdown-item notif-item d-flex align-items-start py-2 px-3"
+        <a href="{{ $notif['url'] ?? '#' }}"
+            class="dropdown-item notif-item d-flex align-items-start py-2 px-3 unread {{ $notif['highlight_class'] ?? 'notif-bell-default' }}"
             data-notif-id="{{ $notif['id'] }}" style="border-bottom: 1px solid rgba(0,0,0,0.05); white-space: normal;">
 
             {{-- Icon --}}

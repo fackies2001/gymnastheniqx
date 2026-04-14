@@ -30,16 +30,35 @@ class NotificationsController extends Controller
             $unreadCount = $user->unreadNotifications()->count();
 
             $notifications = $unread->map(function ($noti) {
+                $type   = $noti->data['type']   ?? 'general';
+                $action = $noti->data['action'] ?? '';
+
+                $highlightMap = [
+                    'purchase_request|created'  => 'notif-bell-pr-created',
+                    'purchase_request|approved' => 'notif-bell-pr-approved',
+                    'purchase_request|rejected' => 'notif-bell-pr-rejected',
+                    'purchase_order|created'    => 'notif-bell-po-created',
+                    'purchase_order|completed'  => 'notif-bell-po-completed',
+                    'retailer_order|created'    => 'notif-bell-ro-created',
+                    'retailer_order|approved'   => 'notif-bell-ro-approved',
+                    'retailer_order|rejected'   => 'notif-bell-ro-rejected',
+                    'retailer_order|completed'  => 'notif-bell-ro-completed',
+                ];
+
+                $key            = strtolower($type) . '|' . strtolower($action);
+                $highlightClass = $highlightMap[$key] ?? 'notif-bell-default';
+
                 return [
-                    'id'        => $noti->id,
-                    'icon'      => $noti->data['icon']    ?? 'fas fa-bell text-info',
-                    'message'   => $noti->data['message'] ?? 'New notification',
-                    'time'      => $noti->created_at->format('M d, Y h:i A'),
-                    'time_ago'  => $noti->created_at->diffForHumans(),
-                    'url'       => $noti->data['url']     ?? '#',
-                    'type'      => $noti->data['type']    ?? 'general',
-                    'action'    => $noti->data['action']  ?? '',
-                    'is_unread' => true,
+                    'id'              => $noti->id,
+                    'icon'            => $noti->data['icon']    ?? 'fas fa-bell text-info',
+                    'message'         => $noti->data['message'] ?? 'New notification',
+                    'time'            => $noti->created_at->format('M d, Y h:i A'),
+                    'time_ago'        => $noti->created_at->diffForHumans(),
+                    'url'             => $noti->data['url']     ?? '#',
+                    'type'            => $type,
+                    'action'          => $action,
+                    'is_unread'       => true,
+                    'highlight_class' => $highlightClass,   // ← DAGDAG
                 ];
             });
 
@@ -102,7 +121,7 @@ class NotificationsController extends Controller
     public function getCount(Request $request)
     {
         try {
-            $count = Auth::user()->unreadNotifications()->count(hhgh);
+            $count = Auth::user()->unreadNotifications()->count();
             return response()->json(['count' => $count]);
         } catch (\Exception $e) {
             return response()->json(['count' => 0]);
