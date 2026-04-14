@@ -1110,12 +1110,13 @@
                             <td class="small">${item.name}</td>
 
                             <td>
-                                <div class="input-group input-group-sm" style="min-width: 120px;">
+                                <div class="input-group input-group-sm flex-nowrap" style="min-width: 120px; max-width: 140px;">
                                     <div class="input-group-prepend">
-                                        <span class="input-group-text">₱</span>
+                                        <span class="input-group-text px-2">₱</span>
                                     </div>
                                     <input type="text" inputmode="decimal" name="products[${item.id}][unit_cost]"
                                         class="form-control form-control-sm text-center unit-cost-input"
+                                        style="min-width: 0;"
                                         data-index="${index}" value="${item.price.toFixed(2)}">
                                 </div>
                             </td>

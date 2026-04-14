@@ -207,7 +207,8 @@
                                             data-product="{{ $order->product_name }}" data-qty="{{ $order->quantity }}"
                                             data-price="{{ number_format($order->unit_price, 2) }}"
                                             data-total="{{ number_format($order->total_amount, 2) }}"
-                                            data-total-raw="{{ $order->total_amount }}">
+                                            data-total-raw="{{ $order->total_amount }}"
+                                            data-cost="{{ $order->product->cost_price ?? 0 }}">
                                             <i class="fas fa-hourglass-half"></i> PENDING (Click to Review)
                                         </span>
                                     @else
@@ -418,210 +419,218 @@
                     </div>
                     <input type="hidden" id="modal-order-id">
                 </div>
-                <div class="modal-footer bg-light">
-                    <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                        <i class="fas fa-times"></i> Close
-                    </button>
-                    @if ($canManageRetailerOrders)
-                        <button type="button" class="btn btn-danger" id="btn-reject-order">
-                            <i class="fas fa-ban"></i> REJECT ORDER
+                <div class="modal-footer bg-light flex-column align-items-stretch">
+                    <div id="below_cost_modal_warn" class="alert alert-danger mb-2" style="display:none;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>Cannot be approved </strong> The selling price is less than the cost to the supplier.
+                           This order will result in a loss for the company.   
+                    </div>
+                    <div class="d-flex justify-content-end">
+                        <button type="button" class="btn btn-secondary mr-2" data-dismiss="modal">
+                            <i class="fas fa-times"></i> Close
                         </button>
-                        <button type="button" class="btn btn-success" id="btn-approve-order">
-                            <i class="fas fa-check-circle"></i> APPROVE ORDER
-                        </button>
-                    @endif
+                        @if ($canManageRetailerOrders)
+                            <button type="button" class="btn btn-danger" id="btn-reject-order">
+                                <i class="fas fa-ban"></i> REJECT ORDER
+                            </button>
+                            <button type="button" class="btn btn-success" id="btn-approve-order">
+                                <i class="fas fa-check-circle"></i> APPROVE ORDER
+                            </button>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    {{-- 5. MODAL: CREATE ORDER --}}
-    <div class="modal fade" id="createOrderModal" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content shadow-lg">
-                <div class="modal-header bg-primary text-white font-weight-bold">
-                    <h5 class="modal-title">CREATE RETAILERS ORDER FORM</h5>
-                    <button type="button" class="close text-white" data-dismiss="modal"><span>&times;</span></button>
-                </div>
-                <form id="createOrderForm" action="{{ route('retailer.orders.store') }}" method="POST">
-                    @csrf
-                    <div class="modal-body">
-                        <div class="row">
-                            <div class="col-md-12 mb-3">
-                                <label class="font-weight-bold text-uppercase">Retailer's Name</label>
-                                <input type="text" name="retailer_name" class="form-control shadow-sm"
-                                    placeholder="Enter Retailer's Full Name" required>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="font-weight-bold">Select Product</label>
-                                <select name="product_id" id="sel_prod" class="form-control shadow-sm" required>
-                                    <option value="">-- Select Product --</option>
-                                    @foreach ($warehouse_products as $p)
-                                        @php $displaySku = $p->system_sku ?? ($p->supplier_sku ?? ($p->barcode ?? 'No SKU')); @endphp
-                                        <option value="{{ $p->id }}" data-cost="{{ $p->cost_price ?? 0 }}"
-                                            data-selling="{{ $p->selling_price ?? 0 }}"
-                                            data-has-selling="{{ $p->selling_price ? '1' : '0' }}"
-                                            data-sku="{{ $displaySku }}" data-name="{{ $p->name }}">
-                                            {{ $p->name }} (SKU: {{ $displaySku }})
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="font-weight-bold text-success">
-                                    <i class="fas fa-edit"></i> Selling Price
-                                    <small class="text-muted font-weight-normal">(editable)</small>
-                                </label>
-                                <input type="number" step="0.01" name="unit_price" id="inp_price"
-                                    class="form-control shadow-sm border-success" required
-                                    placeholder="Enter selling price">
-
-                                <div id="price_info_box" class="mt-2 p-2 rounded"
-                                    style="display:none; background:#f8f9fa; border:1px solid #dee2e6;">
-                                    <small>
-                                        <i class="fas fa-tag text-secondary mr-1"></i>
-                                        <strong>Original Price:</strong>
-                                        <span class="text-danger font-weight-bold" id="orig_cost_display">₱0.00</span>
-                                        &nbsp;|&nbsp;
-                                        <strong>Suggested:</strong>
-                                        <span class="text-success font-weight-bold" id="suggested_price_display">Not
-                                            set</span>
-                                    </small>
+        {{-- 5. MODAL: CREATE ORDER --}}
+        <div class="modal fade" id="createOrderModal" tabindex="-1" role="dialog">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content shadow-lg">
+                    <div class="modal-header bg-primary text-white font-weight-bold">
+                        <h5 class="modal-title">CREATE RETAILERS ORDER FORM</h5>
+                        <button type="button" class="close text-white"
+                            data-dismiss="modal"><span>&times;</span></button>
+                    </div>
+                    <form id="createOrderForm" action="{{ route('retailer.orders.store') }}" method="POST">
+                        @csrf
+                        <div class="modal-body">
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label class="font-weight-bold text-uppercase">Retailer's Name</label>
+                                    <input type="text" name="retailer_name" class="form-control shadow-sm"
+                                        placeholder="Enter Retailer's Full Name" required>
                                 </div>
 
-                                <div id="below_cost_warn" class="mt-1" style="display:none;">
-                                    <small class="text-danger">
-                                        <i class="fas fa-exclamation-triangle"></i>
-                                        Price is below supplier cost! You may be selling at a loss.
-                                    </small>
+                                <div class="col-md-6 mb-3">
+                                    <label class="font-weight-bold">Select Product</label>
+                                    <select name="product_id" id="sel_prod" class="form-control shadow-sm" required>
+                                        <option value="">-- Select Product --</option>
+                                        @foreach ($warehouse_products as $p)
+                                            @php $displaySku = $p->system_sku ?? ($p->supplier_sku ?? ($p->barcode ?? 'No SKU')); @endphp
+                                            <option value="{{ $p->id }}" data-cost="{{ $p->cost_price ?? 0 }}"
+                                                data-selling="{{ $p->selling_price ?? 0 }}"
+                                                data-has-selling="{{ $p->selling_price ? '1' : '0' }}"
+                                                data-sku="{{ $displaySku }}" data-name="{{ $p->name }}">
+                                                {{ $p->name }} (SKU: {{ $displaySku }})
+                                            </option>
+                                        @endforeach
+                                    </select>
                                 </div>
 
-                                <div id="markup_info" class="mt-1" style="display:none;">
-                                    <small class="text-info">
-                                        <i class="fas fa-chart-line"></i>
-                                        Markup: ₱<span id="markup_amount">0.00</span>
-                                        (<span id="markup_pct">0</span>%)
-                                    </small>
-                                </div>
-                            </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="font-weight-bold text-success">
+                                        <i class="fas fa-edit"></i> Selling Price
+                                        <small class="text-muted font-weight-normal">(editable)</small>
+                                    </label>
+                                    <input type="number" step="0.01" name="unit_price" id="inp_price"
+                                        class="form-control shadow-sm border-success" required
+                                        placeholder="Enter selling price">
 
-                            <div class="col-md-6 mb-3">
-                                <label class="font-weight-bold">Quantity</label>
-                                <input type="number" name="quantity" id="inp_qty" class="form-control shadow-sm"
-                                    min="1" placeholder="0" required>
-                            </div>
-
-                            <div class="col-md-6 mb-3">
-                                <label class="font-weight-bold text-primary">Total Price</label>
-                                <div class="input-group">
-                                    <div class="input-group-prepend">
-                                        <span class="input-group-text font-weight-bold bg-primary text-white">₱</span>
+                                    <div id="price_info_box" class="mt-2 p-2 rounded"
+                                        style="display:none; background:#f8f9fa; border:1px solid #dee2e6;">
+                                        <small>
+                                            <i class="fas fa-tag text-secondary mr-1"></i>
+                                            <strong>Original Price:</strong>
+                                            <span class="text-danger font-weight-bold" id="orig_cost_display">₱0.00</span>
+                                            &nbsp;|&nbsp;
+                                            <strong>Suggested:</strong>
+                                            <span class="text-success font-weight-bold" id="suggested_price_display">Not
+                                                set</span>
+                                        </small>
                                     </div>
-                                    <input type="text" id="disp_total" class="form-control font-weight-bold bg-light"
-                                        readonly>
+
+                                    <div id="below_cost_warn" class="mt-1" style="display:none;">
+                                        <small class="text-danger">
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                            Price is below supplier cost! You may be selling at a loss.
+                                        </small>
+                                    </div>
+
+                                    <div id="markup_info" class="mt-1" style="display:none;">
+                                        <small class="text-info">
+                                            <i class="fas fa-chart-line"></i>
+                                            Markup: ₱<span id="markup_amount">0.00</span>
+                                            (<span id="markup_pct">0</span>%)
+                                        </small>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label class="font-weight-bold">Quantity</label>
+                                    <input type="number" name="quantity" id="inp_qty" class="form-control shadow-sm"
+                                        min="1" placeholder="0" required>
+                                </div>
+
+                                <div class="col-md-6 mb-3">
+                                    <label class="font-weight-bold text-primary">Total Price</label>
+                                    <div class="input-group">
+                                        <div class="input-group-prepend">
+                                            <span class="input-group-text font-weight-bold bg-primary text-white">₱</span>
+                                        </div>
+                                        <input type="text" id="disp_total"
+                                            class="form-control font-weight-bold bg-light" readonly>
+                                    </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="modal-footer bg-light">
-                        <button type="button" class="btn btn-secondary shadow-sm" data-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-success shadow-sm font-weight-bold">Save Order</button>
-                    </div>
-                </form>
+                        <div class="modal-footer bg-light">
+                            <button type="button" class="btn btn-secondary shadow-sm"
+                                data-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-success shadow-sm font-weight-bold">Save Order</button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
-    </div>
 
-    <form id="approveForm" method="POST" style="display: none;">@csrf</form>
-    <form id="rejectForm" method="POST" style="display: none;">@csrf</form>
+        <form id="approveForm" method="POST" style="display: none;">@csrf</form>
+        <form id="rejectForm" method="POST" style="display: none;">@csrf</form>
 
-@endsection
+    @endsection
 
-@push('css')
-    <style>
-        .bg-gradient-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        #inp_price.border-success {
-            border-color: #28a745 !important;
-            border-width: 2px;
-        }
-
-        .view-pending-order:hover,
-        .ship-order-btn:hover {
-            opacity: 0.8;
-            transform: scale(1.02);
-            transition: all 0.2s;
-        }
-
-        @media print {
-            body * {
-                visibility: hidden;
+    @push('css')
+        <style>
+            .bg-gradient-primary {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             }
 
-            #printArea,
-            #printArea * {
-                visibility: visible;
+            #inp_price.border-success {
+                border-color: #28a745 !important;
+                border-width: 2px;
             }
 
-            #printArea {
-                display: block !important;
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100%;
+            .view-pending-order:hover,
+            .ship-order-btn:hover {
+                opacity: 0.8;
+                transform: scale(1.02);
+                transition: all 0.2s;
             }
 
-            .no-print {
-                display: none !important;
+            @media print {
+                body * {
+                    visibility: hidden;
+                }
+
+                #printArea,
+                #printArea * {
+                    visibility: visible;
+                }
+
+                #printArea {
+                    display: block !important;
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    width: 100%;
+                }
+
+                .no-print {
+                    display: none !important;
+                }
             }
-        }
-    </style>
-@endpush
+        </style>
+    @endpush
 
-@push('js')
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
-        const CAN_MANAGE_RETAILER_ORDERS = {{ $canManageRetailerOrders ? 'true' : 'false' }};
+    @push('js')
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script>
+            const CAN_MANAGE_RETAILER_ORDERS = {{ $canManageRetailerOrders ? 'true' : 'false' }};
 
-        // ✅ UPDATED PRINT FUNCTION
-        function handleOrderPrint() {
-            const rows = document.querySelectorAll('#retailerTable tbody tr');
-            if (!rows.length) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'No Data',
-                    text: 'No orders to print.'
-                });
-                return;
-            }
+            // ✅ UPDATED PRINT FUNCTION
+            function handleOrderPrint() {
+                const rows = document.querySelectorAll('#retailerTable tbody tr');
+                if (!rows.length) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'No Data',
+                        text: 'No orders to print.'
+                    });
+                    return;
+                }
 
-            let html = '';
-            let grandTotal = 0;
-            let totalItems = 0;
-            let totalOrders = 0;
+                let html = '';
+                let grandTotal = 0;
+                let totalItems = 0;
+                let totalOrders = 0;
 
-            rows.forEach(row => {
-                const cells = row.querySelectorAll('td');
-                if (cells.length < 7) return;
+                rows.forEach(row => {
+                    const cells = row.querySelectorAll('td');
+                    if (cells.length < 7) return;
 
-                const orderNo = cells[0].innerText.trim();
-                const retailer = cells[1].innerText.trim();
-                const product = cells[2].innerText.trim();
-                const qty = cells[3].innerText.trim();
-                const unitPrice = cells[4].innerText.trim();
-                const total = cells[5].innerText.trim();
-                const status = cells[6].innerText.trim();
+                    const orderNo = cells[0].innerText.trim();
+                    const retailer = cells[1].innerText.trim();
+                    const product = cells[2].innerText.trim();
+                    const qty = cells[3].innerText.trim();
+                    const unitPrice = cells[4].innerText.trim();
+                    const total = cells[5].innerText.trim();
+                    const status = cells[6].innerText.trim();
 
-                const totalNum = parseFloat(total.replace(/[₱,]/g, '')) || 0;
-                grandTotal += totalNum;
-                totalItems += parseInt(qty) || 0;
-                totalOrders++;
+                    const totalNum = parseFloat(total.replace(/[₱,]/g, '')) || 0;
+                    grandTotal += totalNum;
+                    totalItems += parseInt(qty) || 0;
+                    totalOrders++;
 
-                html += `<tr>
+                    html += `<tr>
                     <td style="border:1px solid black;padding:5px;">${orderNo}</td>
                     <td style="border:1px solid black;padding:5px;">${retailer}</td>
                     <td style="border:1px solid black;padding:5px;">${product}</td>
@@ -630,300 +639,327 @@
                     <td style="border:1px solid black;padding:5px;text-align:right;">${total}</td>
                     <td style="border:1px solid black;padding:5px;text-align:center;">${status}</td>
                 </tr>`;
-            });
-
-            document.getElementById('printOrdersBody').innerHTML = html;
-            document.getElementById('printGrandTotal').innerText = '₱' + grandTotal.toLocaleString(undefined, {
-                minimumFractionDigits: 2
-            });
-            document.getElementById('printTotalOrders').innerText = totalOrders;
-            document.getElementById('printTotalItems').innerText = totalItems;
-            document.getElementById('printTotalAmount').innerText = '₱' + grandTotal.toLocaleString(undefined, {
-                minimumFractionDigits: 2
-            });
-
-            window.print();
-        }
-
-        $(document).ready(function() {
-
-            @if (session('success'))
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Success!',
-                    text: '{{ session('success') }}',
-                    timer: 3000,
-                    showConfirmButton: false
                 });
-            @endif
-            @if (session('error'))
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error!',
-                    text: '{{ session('error') }}',
-                    confirmButtonColor: '#d33'
+
+                document.getElementById('printOrdersBody').innerHTML = html;
+                document.getElementById('printGrandTotal').innerText = '₱' + grandTotal.toLocaleString(undefined, {
+                    minimumFractionDigits: 2
                 });
-            @endif
-            @if (session('info'))
-                Swal.fire({
-                    icon: 'info',
-                    title: 'Notice',
-                    text: '{{ session('info') }}',
-                    confirmButtonColor: '#3085d6'
+                document.getElementById('printTotalOrders').innerText = totalOrders;
+                document.getElementById('printTotalItems').innerText = totalItems;
+                document.getElementById('printTotalAmount').innerText = '₱' + grandTotal.toLocaleString(undefined, {
+                    minimumFractionDigits: 2
                 });
-            @endif
 
-            if ($.fn.DataTable.isDataTable('#retailerTable')) $('#retailerTable').DataTable().destroy();
-            $('#retailerTable').DataTable({
-                responsive: true,
-                autoWidth: false,
-                destroy: true,
-                order: [
-                    [0, 'desc']
-                ],
-                pageLength: 10,
-                language: {
-                    emptyTable: 'No records found'
-                },
-                columnDefs: [{
-                    targets: -1,
-                    orderable: false,
-                    searchable: false
-                }]
-            });
-
-            (function focusOrderFromQuery() {
-                const params = new URLSearchParams(window.location.search);
-                const oid = params.get('focus_order');
-                if (!oid) return;
-                setTimeout(() => {
-                    const pending = $(`.view-pending-order[data-id="${oid}"]`);
-                    if (pending.length) {
-                        pending.trigger('click');
-                    } else {
-                        const row = $(`#retailerTable tbody tr[data-order-id="${oid}"]`);
-                        if (row.length) {
-                            row.addClass('table-info');
-                            row[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        }
-                    }
-                    params.delete('focus_order');
-                    const q = params.toString();
-                    window.history.replaceState({}, '', window.location.pathname + (q ? '?' + q : ''));
-                }, 550);
-            })();
-
-            function calculate() {
-                let q = parseFloat($('#inp_qty').val()) || 0;
-                let p = parseFloat($('#inp_price').val()) || 0;
-                $('#disp_total').val((q * p).toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2
-                }));
+                window.print();
             }
 
-            function updateMarkup() {
-                let entered = parseFloat($('#inp_price').val()) || 0;
-                let cost = parseFloat($('#sel_prod').find(':selected').data('cost')) || 0;
+            $(document).ready(function() {
 
-                if (entered > 0 && cost > 0) {
-                    let markup = entered - cost;
-                    let markupPct = ((markup / cost) * 100).toFixed(1);
-                    $('#markup_amount').text(markup.toFixed(2));
-                    $('#markup_pct').text(markupPct);
-                    $('#markup_info').show();
-                    $('#below_cost_warn').toggle(entered < cost);
-                } else {
-                    $('#markup_info').hide();
-                    $('#below_cost_warn').hide();
-                }
-                calculate();
-            }
-
-            $('#sel_prod').on('change', function() {
-                let selected = $(this).find(':selected');
-                let cost = parseFloat(selected.data('cost')) || 0;
-                let selling = parseFloat(selected.data('selling')) || 0;
-
-                $('#inp_price').val(selling > 0 ? selling : '');
-
-                if (cost > 0 || selling > 0) {
-                    $('#orig_cost_display').text('₱' + cost.toFixed(2));
-                    $('#suggested_price_display').text(selling > 0 ? '₱' + selling.toFixed(2) : 'Not set');
-                    $('#price_info_box').show();
-                } else {
-                    $('#price_info_box').hide();
-                }
-
-                updateMarkup();
-            });
-
-            $('#inp_price').on('input', updateMarkup);
-            $('#inp_qty').on('input', calculate);
-
-            $('#createOrderForm').on('submit', function(e) {
-                e.preventDefault();
-                let enteredPrice = parseFloat($('#inp_price').val()) || 0;
-                let costPrice = parseFloat($('#sel_prod').find(':selected').data('cost')) || 0;
-
-                const proceed = () => {
+                @if (session('success'))
                     Swal.fire({
-                        title: 'Submit Order?',
-                        text: 'This order will be marked as Pending and require admin approval.',
-                        icon: 'question',
+                        icon: 'success',
+                        title: 'Success!',
+                        text: '{{ session('success') }}',
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                @endif
+                @if (session('error'))
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error!',
+                        text: '{{ session('error') }}',
+                        confirmButtonColor: '#d33'
+                    });
+                @endif
+                @if (session('info'))
+                    Swal.fire({
+                        icon: 'info',
+                        title: 'Notice',
+                        text: '{{ session('info') }}',
+                        confirmButtonColor: '#3085d6'
+                    });
+                @endif
+
+                if ($.fn.DataTable.isDataTable('#retailerTable')) $('#retailerTable').DataTable().destroy();
+                $('#retailerTable').DataTable({
+                    responsive: true,
+                    autoWidth: false,
+                    destroy: true,
+                    order: [
+                        [0, 'desc']
+                    ],
+                    pageLength: 10,
+                    language: {
+                        emptyTable: 'No records found'
+                    },
+                    columnDefs: [{
+                        targets: -1,
+                        orderable: false,
+                        searchable: false
+                    }]
+                });
+
+                (function focusOrderFromQuery() {
+                    const params = new URLSearchParams(window.location.search);
+                    const oid = params.get('focus_order');
+                    if (!oid) return;
+                    setTimeout(() => {
+                        const pending = $(`.view-pending-order[data-id="${oid}"]`);
+                        if (pending.length) {
+                            pending.trigger('click');
+                        } else {
+                            const row = $(`#retailerTable tbody tr[data-order-id="${oid}"]`);
+                            if (row.length) {
+                                row.addClass('table-info');
+                                row[0].scrollIntoView({
+                                    behavior: 'smooth',
+                                    block: 'center'
+                                });
+                            }
+                        }
+                        params.delete('focus_order');
+                        const q = params.toString();
+                        window.history.replaceState({}, '', window.location.pathname + (q ? '?' + q : ''));
+                    }, 550);
+                })();
+
+                function calculate() {
+                    let q = parseFloat($('#inp_qty').val()) || 0;
+                    let p = parseFloat($('#inp_price').val()) || 0;
+                    $('#disp_total').val((q * p).toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    }));
+                }
+
+                function updateMarkup() {
+                    let entered = parseFloat($('#inp_price').val()) || 0;
+                    let cost = parseFloat($('#sel_prod').find(':selected').data('cost')) || 0;
+
+                    if (entered > 0 && cost > 0) {
+                        let markup = entered - cost;
+                        let markupPct = ((markup / cost) * 100).toFixed(1);
+                        $('#markup_amount').text(markup.toFixed(2));
+                        $('#markup_pct').text(markupPct);
+                        $('#markup_info').show();
+                        $('#below_cost_warn').toggle(entered < cost);
+                    } else {
+                        $('#markup_info').hide();
+                        $('#below_cost_warn').hide();
+                    }
+                    calculate();
+                }
+
+                $('#sel_prod').on('change', function() {
+                    let selected = $(this).find(':selected');
+                    let cost = parseFloat(selected.data('cost')) || 0;
+                    let selling = parseFloat(selected.data('selling')) || 0;
+
+                    $('#inp_price').val(selling > 0 ? selling.toFixed(2) : '');
+
+                    if (cost > 0 || selling > 0) {
+                        $('#orig_cost_display').text('₱' + cost.toFixed(2));
+                        $('#suggested_price_display').text(selling > 0 ? '₱' + selling.toFixed(2) : 'Not set');
+                        $('#price_info_box').show();
+                    } else {
+                        $('#price_info_box').hide();
+                    }
+
+                    updateMarkup();
+                });
+
+                $('#inp_price').on('input', updateMarkup);
+                $('#inp_qty').on('input', calculate);
+
+                $('#createOrderForm').on('submit', function(e) {
+                    e.preventDefault();
+                    let enteredPrice = parseFloat($('#inp_price').val()) || 0;
+                    let costPrice = parseFloat($('#sel_prod').find(':selected').data('cost')) || 0;
+
+                    const proceed = () => {
+                        Swal.fire({
+                            title: 'Submit Order?',
+                            text: 'This order will be marked as Pending and require admin approval.',
+                            icon: 'question',
+                            showCancelButton: true,
+                            confirmButtonColor: '#28a745',
+                            cancelButtonColor: '#6c757d',
+                            confirmButtonText: 'Yes, Submit!',
+                            cancelButtonText: 'Cancel'
+                        }).then((result) => {
+                            if (result.isConfirmed) this.submit();
+                        });
+                    };
+
+                    if (costPrice > 0 && enteredPrice < costPrice) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Price Below Cost!',
+                            html: `Ang entered price na <b>₱${enteredPrice.toFixed(2)}</b> ay mas mababa sa supplier cost na <b>₱${costPrice.toFixed(2)}</b>.<br><br>Malulugi kayo sa order na ito. Itutuloy pa rin?`,
+                            showCancelButton: true,
+                            confirmButtonColor: '#d33',
+                            cancelButtonColor: '#6c757d',
+                            confirmButtonText: 'Ituloy pa rin',
+                            cancelButtonText: 'Baguhin ang price'
+                        }).then((result) => {
+                            if (result.isConfirmed) proceed();
+                        });
+                    } else {
+                        proceed();
+                    }
+                });
+
+                $(document).on('click', '.view-pending-order', function() {
+                    $('#modal-order-id').val($(this).data('id'));
+                    $('#modal-retailer').text($(this).data('retailer'));
+                    $('#modal-sku').text($(this).data('sku'));
+                    $('#modal-product').text($(this).data('product'));
+                    $('#modal-qty').text($(this).data('qty'));
+                    $('#modal-price').text($(this).data('price'));
+
+                    // ✅ Below cost check — i-disable ang Approve button
+                    let unitPrice = parseFloat(String($(this).data('price')).replace(/,/g, '')) || 0;
+                    let costPrice = parseFloat($(this).data('cost') || 0);
+                    if (costPrice > 0 && unitPrice < costPrice) {
+                        $('#btn-approve-order')
+                            .prop('disabled', true)
+                            .removeClass('btn-success')
+                            .addClass('btn-secondary')
+                            .html('<i class="fas fa-ban"></i> Hindi Pwede (Below Cost)');
+                        // ✅ Dagdag na warning sa modal
+                        $('#below_cost_modal_warn').show();
+                    } else {
+                        $('#btn-approve-order')
+                            .prop('disabled', false)
+                            .removeClass('btn-secondary')
+                            .addClass('btn-success')
+                            .html('<i class="fas fa-check-circle"></i> APPROVE ORDER');
+                        $('#below_cost_modal_warn').hide();
+                    }
+
+                    let subExcl = parseFloat($(this).data('total-raw'));
+                    if (Number.isNaN(subExcl)) {
+                        subExcl = parseFloat(String($(this).data('total')).replace(/,/g, '')) || 0;
+                    }
+                    const vat = subExcl * 0.12;
+                    const incl = subExcl + vat;
+                    const fmt = (n) => n.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2
+                    });
+                    $('#modal-subtotal-excl').text(fmt(subExcl));
+                    $('#modal-vat').text(fmt(vat));
+                    $('#modal-total-incl').text(fmt(incl));
+                    $('#pendingOrderModal').modal('show');
+                });
+
+                $('#btn-approve-order').on('click', function() {
+                    let orderId = $('#modal-order-id').val();
+                    Swal.fire({
+                        title: 'Approve Order?',
+                        text: 'This will reserve stock for this retailer.',
+                        icon: 'warning',
                         showCancelButton: true,
                         confirmButtonColor: '#28a745',
-                        cancelButtonColor: '#6c757d',
-                        confirmButtonText: 'Yes, Submit!',
-                        cancelButtonText: 'Cancel'
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: 'Yes, Approve!'
                     }).then((result) => {
-                        if (result.isConfirmed) this.submit();
+                        if (result.isConfirmed) {
+                            $('#pendingOrderModal').modal('hide');
+                            $('#approveForm').attr('action', '/retailer-orders/' + orderId + '/approve')
+                                .submit();
+                        }
                     });
-                };
+                });
 
-                if (costPrice > 0 && enteredPrice < costPrice) {
+                $('#btn-reject-order').on('click', function() {
+                    let orderId = $('#modal-order-id').val();
                     Swal.fire({
+                        title: 'Reject Order?',
+                        text: 'This order will be marked as rejected.',
                         icon: 'warning',
-                        title: 'Price Below Cost!',
-                        html: `Ang entered price na <b>₱${enteredPrice.toFixed(2)}</b> ay mas mababa sa supplier cost na <b>₱${costPrice.toFixed(2)}</b>.<br><br>Malulugi kayo sa order na ito. Itutuloy pa rin?`,
                         showCancelButton: true,
                         confirmButtonColor: '#d33',
                         cancelButtonColor: '#6c757d',
-                        confirmButtonText: 'Ituloy pa rin',
-                        cancelButtonText: 'Baguhin ang price'
+                        confirmButtonText: 'Yes, Reject!'
                     }).then((result) => {
-                        if (result.isConfirmed) proceed();
+                        if (result.isConfirmed) {
+                            $('#pendingOrderModal').modal('hide');
+                            $('#rejectForm').attr('action', '/retailer-orders/' + orderId + '/reject')
+                                .submit();
+                        }
                     });
-                } else {
-                    proceed();
-                }
-            });
-
-            $(document).on('click', '.view-pending-order', function() {
-                $('#modal-order-id').val($(this).data('id'));
-                $('#modal-retailer').text($(this).data('retailer'));
-                $('#modal-sku').text($(this).data('sku'));
-                $('#modal-product').text($(this).data('product'));
-                $('#modal-qty').text($(this).data('qty'));
-                $('#modal-price').text($(this).data('price'));
-                let subExcl = parseFloat($(this).data('total-raw'));
-                if (Number.isNaN(subExcl)) {
-                    subExcl = parseFloat(String($(this).data('total')).replace(/,/g, '')) || 0;
-                }
-                const vat = subExcl * 0.12;
-                const incl = subExcl + vat;
-                const fmt = (n) => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-                $('#modal-subtotal-excl').text(fmt(subExcl));
-                $('#modal-vat').text(fmt(vat));
-                $('#modal-total-incl').text(fmt(incl));
-                $('#pendingOrderModal').modal('show');
-            });
-
-            $('#btn-approve-order').on('click', function() {
-                let orderId = $('#modal-order-id').val();
-                Swal.fire({
-                    title: 'Approve Order?',
-                    text: 'This will reserve stock for this retailer.',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#28a745',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: 'Yes, Approve!'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $('#pendingOrderModal').modal('hide');
-                        $('#approveForm').attr('action', '/retailer-orders/' + orderId + '/approve')
-                            .submit();
-                    }
                 });
-            });
 
-            $('#btn-reject-order').on('click', function() {
-                let orderId = $('#modal-order-id').val();
-                Swal.fire({
-                    title: 'Reject Order?',
-                    text: 'This order will be marked as rejected.',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#d33',
-                    cancelButtonColor: '#6c757d',
-                    confirmButtonText: 'Yes, Reject!'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $('#pendingOrderModal').modal('hide');
-                        $('#rejectForm').attr('action', '/retailer-orders/' + orderId + '/reject')
-                            .submit();
-                    }
-                });
-            });
-
-            $(document).on('click', '.ship-order-btn', function() {
-                let orderId = $(this).data('order-id');
-                let retailer = $(this).data('retailer');
-                let qty = $(this).data('qty');
-                Swal.fire({
-                    title: 'Ship this order?',
-                    html: `This will:<br>• Mark <b>${qty} items</b> as <b class="text-success">SOLD</b><br>• Complete transaction for <b>${retailer}</b>`,
-                    icon: 'question',
-                    showCancelButton: true,
-                    confirmButtonText: '<i class="fas fa-shipping-fast"></i> Yes, Ship It!',
-                    confirmButtonColor: '#007bff',
-                    cancelButtonColor: '#6c757d'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        $.ajax({
-                            url: `/retailer-orders/${orderId}/complete`,
-                            method: 'POST',
-                            data: {
-                                _token: '{{ csrf_token() }}'
-                            },
-                            success: function(response) {
-                                Swal.fire({
-                                        icon: 'success',
-                                        title: 'Order Shipped!',
-                                        text: response.message,
-                                        timer: 2000,
-                                        showConfirmButton: false
-                                    })
-                                    .then(() => location.reload());
-                            },
-                            error: function(xhr) {
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Shipping Failed',
-                                    text: xhr.responseJSON?.message ||
-                                        'Failed to ship order',
-                                    confirmButtonColor: '#d33'
-                                });
-                            }
-                        });
-                    }
-                });
-            });
-
-            $('#filterType').on('change', function() {
-                if ($(this).val() === 'custom') {
-                    $('#customDateRange, #customDateRangeEnd').show();
-                } else {
-                    $('#customDateRange, #customDateRangeEnd').hide();
-                    if ($(this).val() !== '') $('#dateFilterForm').submit();
-                }
-            });
-
-            $('#startDate, #endDate').on('change', function() {
-                const s = new Date($('#startDate').val());
-                const e = new Date($('#endDate').val());
-                if (s && e && s > e) {
+                $(document).on('click', '.ship-order-btn', function() {
+                    let orderId = $(this).data('order-id');
+                    let retailer = $(this).data('retailer');
+                    let qty = $(this).data('qty');
                     Swal.fire({
-                        icon: 'warning',
-                        title: 'Invalid Date Range',
-                        text: 'Start date cannot be after end date!',
-                        confirmButtonColor: '#d33'
+                        title: 'Ship this order?',
+                        html: `This will:<br>• Mark <b>${qty} items</b> as <b class="text-success">SOLD</b><br>• Complete transaction for <b>${retailer}</b>`,
+                        icon: 'question',
+                        showCancelButton: true,
+                        confirmButtonText: '<i class="fas fa-shipping-fast"></i> Yes, Ship It!',
+                        confirmButtonColor: '#007bff',
+                        cancelButtonColor: '#6c757d'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            $.ajax({
+                                url: `/retailer-orders/${orderId}/complete`,
+                                method: 'POST',
+                                data: {
+                                    _token: '{{ csrf_token() }}'
+                                },
+                                success: function(response) {
+                                    Swal.fire({
+                                            icon: 'success',
+                                            title: 'Order Shipped!',
+                                            text: response.message,
+                                            timer: 2000,
+                                            showConfirmButton: false
+                                        })
+                                        .then(() => location.reload());
+                                },
+                                error: function(xhr) {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Shipping Failed',
+                                        text: xhr.responseJSON?.message ||
+                                            'Failed to ship order',
+                                        confirmButtonColor: '#d33'
+                                    });
+                                }
+                            });
+                        }
                     });
-                    $(this).val('');
-                }
-            });
+                });
 
-        });
-    </script>
-@endpush
+                $('#filterType').on('change', function() {
+                    if ($(this).val() === 'custom') {
+                        $('#customDateRange, #customDateRangeEnd').show();
+                    } else {
+                        $('#customDateRange, #customDateRangeEnd').hide();
+                        if ($(this).val() !== '') $('#dateFilterForm').submit();
+                    }
+                });
+
+                $('#startDate, #endDate').on('change', function() {
+                    const s = new Date($('#startDate').val());
+                    const e = new Date($('#endDate').val());
+                    if (s && e && s > e) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Invalid Date Range',
+                            text: 'Start date cannot be after end date!',
+                            confirmButtonColor: '#d33'
+                        });
+                        $(this).val('');
+                    }
+                });
+
+            });
+        </script>
+    @endpush
