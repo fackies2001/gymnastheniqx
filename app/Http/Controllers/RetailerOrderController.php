@@ -252,7 +252,7 @@ class RetailerOrderController extends Controller
         $product = SupplierProduct::find($order->product_id);
         if ($product && $product->cost_price > 0 && $order->unit_price < $product->cost_price) {
             return back()->with('error', '❌ Cannot approve! The selling price. (₱' . number_format($order->unit_price, 2) . ') 
-is lower than supplier cost (₱' . number_format($product->cost_price, 2) . '). Change the price first.');
+            is lower than supplier cost (₱' . number_format($product->cost_price, 2) . '). Change the price first.');
         }
 
         $product = null;
