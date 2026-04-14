@@ -231,7 +231,7 @@ class ConsumableController extends Controller
             'success' => true,
             'message' => ucfirst($request->type) . " reported: {$request->quantity} pcs.",
         ]);
-    }
+    }   
 
 
     // ─────────────────────────────────────────────────────────

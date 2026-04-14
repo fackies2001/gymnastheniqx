@@ -544,7 +544,11 @@
             let currentViewStatus = null;
 
             // I-dagdag ito bago mag-close ng $(document).ready
-            $(document).on('keypress', '.qty-input', function(e) {
+            $(document).on('keydown', '.qty-input', function(e) {
+                // Allow: backspace, delete, tab, arrows, numbers
+                if ([8, 9, 37, 38, 39, 40, 46].includes(e.which)) return true;
+                // Block decimals and negative
+                if (e.which === 190 || e.which === 189) return false;
                 return /[0-9]/.test(String.fromCharCode(e.which));
             });
 
@@ -1104,16 +1108,23 @@
                     tbody.append(`
                         <tr>
                             <td class="small">${item.name}</td>
+
                             <td>
-                                <input type="text" inputmode="decimal" name="products[${item.id}][unit_cost]"
-                                    class="form-control form-control-sm text-center unit-cost-input"
-                                    style="min-width: 110px;"
-                                    data-index="${index}" value="${item.price.toFixed(2)}">
+                                <div class="input-group input-group-sm" style="min-width: 120px;">
+                                    <div class="input-group-prepend">
+                                        <span class="input-group-text">₱</span>
+                                    </div>
+                                    <input type="text" inputmode="decimal" name="products[${item.id}][unit_cost]"
+                                        class="form-control form-control-sm text-center unit-cost-input"
+                                        data-index="${index}" value="${item.price.toFixed(2)}">
+                                </div>
                             </td>
+
                             <td>
-                                <input type="text" inputmode="numeric" name="products[${item.id}][quantity]"
+                                <input type="number" inputmode="numeric" name="products[${item.id}][quantity]"
                                     class="form-control form-control-sm text-center qty-input"
-                                    style="min-width: 110px;"
+                                    style="min-width: 90px;"
+                                    min="1" step="1"
                                     data-index="${index}" value="${item.quantity}">
                             </td>
                          <td class="text-center font-weight-bold subtotal-cell">₱${item.subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
@@ -1317,6 +1328,12 @@
         #selectedItemsTable .unit-cost-input {
             min-width: 90px;
             width: 100%;
+        }
+
+        #selectedItemsTable input[type="number"]::-webkit-inner-spin-button,
+        #selectedItemsTable input[type="number"]::-webkit-outer-spin-button {
+            opacity: 1;
+            height: 28px;
         }
     </style>
 @endpush
