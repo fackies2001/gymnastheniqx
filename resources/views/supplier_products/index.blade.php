@@ -127,13 +127,6 @@
                         data: 'barcode',
                         name: 'supplier_product.barcode',
                         title: 'Barcode'
-                    },
-                    {
-                        data: 'stock_status',
-                        name: 'stock_status',
-                        title: 'Health Status',
-                        orderable: false,
-                        searchable: false
                     }
                 ],
                 order: [
