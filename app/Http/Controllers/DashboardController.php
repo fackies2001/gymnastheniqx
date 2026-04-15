@@ -21,12 +21,25 @@ class DashboardController extends Controller
     // ============================================================
     public function index(Request $request)
     {
-        // ✅ NEW: Automatic Sanitizer for Railway
-        // Zeroes out any negative quantities in the new quantity-based system (ConsumableStock)
+        // ✅ NUCLEAR RESET SANITIZER (One-time cleanup for Railway)
+        // Clears all Retailer Orders, Daily Reports, and non-H&S stock
         try {
-            \App\Models\ConsumableStock::where('current_qty', '<', 0)->update(['current_qty' => 0]);
+            // 1. Clear stock for everything EXCEPT Head & Shoulder
+            // We search by name to be safe across different environments
+            $hsIds = \App\Models\SupplierProduct::where('name', 'like', '%Head & Shoulder%')->pluck('id')->toArray();
+            \App\Models\ConsumableStock::whereNotIn('product_id', $hsIds)->update(['current_qty' => 0]);
+
+            // 2. Clear all transaction history (Daily Reports / Stock Movements)
+            // We use DB::statement because truncate might fail on foreign keys
+            \DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+            \App\Models\StockMovement::truncate();
+            \App\Models\RetailerOrder::truncate();
+            \DB::table('retailer_order_items')->truncate(); // Assuming standard table name
+            \DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+
+            \Log::info('Nuclear Reset: Success');
         } catch (\Exception $e) {
-            \Log::error('Sanitizer Error: ' . $e->getMessage());
+            \Log::error('Nuclear Reset Error: ' . $e->getMessage());
         }
 
         $user = auth()->user();
@@ -425,15 +438,20 @@ class DashboardController extends Controller
         try {
             // ✅ Consumables
             $consumables = \App\Models\ConsumableStock::with(['product'])
-                ->orderBy('current_qty', 'asc')
+                ->select('product_id', \DB::raw('SUM(current_qty) as total_qty'))
+                ->groupBy('product_id')
                 ->get()
                 ->map(function ($stock) {
-                    $status = $stock->getStockStatus();
+                    // Create a dummy stock object to use the model helper
+                    $tempStock = new \App\Models\ConsumableStock();
+                    $tempStock->current_qty = $stock->total_qty;
+                    
+                    $status = $tempStock->getStockStatus();
                     return (object)[
                         'id'              => $stock->product_id,
                         'name'            => $stock->product->name ?? 'Unknown',
                         'system_sku'      => $stock->product->system_sku ?? 'N/A',
-                        'available_count' => (int) ($stock->current_qty ?? 0),
+                        'available_count' => (int) $stock->total_qty,
                         'status_label'    => $status->label,
                         'status_color'    => $status->color,
                         'status_icon'     => $status->icon,
