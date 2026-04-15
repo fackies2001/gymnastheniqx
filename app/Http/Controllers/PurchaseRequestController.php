@@ -49,7 +49,7 @@ class PurchaseRequestController extends Controller
             $query = PurchaseRequest::with(['user', 'department', 'supplier', 'status'])
                 ->select('purchase_request.*');
 
-            $seeAll = $user->hasPrivilegedAccess() || $user->isViewOnlyStaff();
+            $seeAll = $user->hasPrivilegedAccess(); 
             if (!$seeAll) {
                 $query->where('user_id', $user->id);
             }
@@ -112,7 +112,7 @@ class PurchaseRequestController extends Controller
     public function index()
     {
         $user = auth()->user();
-        $seeAll = $user->hasPrivilegedAccess() || $user->isViewOnlyStaff();
+        $seeAll = $user->hasPrivilegedAccess();
 
         $purchaseRequests = PurchaseRequest::with(['user', 'department', 'supplier'])
             ->when(!$seeAll, function ($q) use ($user) {

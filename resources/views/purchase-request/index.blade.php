@@ -16,7 +16,7 @@
                         <h5 class="mb-0 font-weight-bold text-dark">
                             <i class="fas fa-shopping-cart mr-2 text-primary"></i> PURCHASE REQUESTS
                         </h5>
-                        @if (!auth()->user()->isViewOnlyStaff())
+                       @if (auth()->user()->normalizedRoleName() !== 'account staff')
                             <button type="button" class="btn btn-primary btn-sm shadow-sm" data-toggle="modal"
                                 data-target="#createPRModal">
                                 <i class="fas fa-plus-circle mr-1"></i> CREATE PURCHASE REQUEST
