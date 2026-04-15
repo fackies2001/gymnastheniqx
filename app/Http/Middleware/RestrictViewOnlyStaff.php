@@ -33,6 +33,8 @@ class RestrictViewOnlyStaff
             'notifications.read-all',
             'profile.update',
             'password.update',
+            'pr.store',
+            'pr.generate-number',
         ];
 
         if ($name && in_array($name, $allowedNames, true)) {

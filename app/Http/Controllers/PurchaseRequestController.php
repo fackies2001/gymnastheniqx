@@ -49,7 +49,7 @@ class PurchaseRequestController extends Controller
             $query = PurchaseRequest::with(['user', 'department', 'supplier', 'status'])
                 ->select('purchase_request.*');
 
-            $seeAll = $user->hasPrivilegedAccess(); 
+            $seeAll = $user->hasPrivilegedAccess();
             if (!$seeAll) {
                 $query->where('user_id', $user->id);
             }
