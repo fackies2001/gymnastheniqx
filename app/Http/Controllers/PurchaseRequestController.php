@@ -151,12 +151,18 @@ class PurchaseRequestController extends Controller
             $prNumber = $prefix . '-' . $newNumber;
 
             $pr = PurchaseRequest::create([
-                'request_number' => $prNumber,
-                'user_id'        => $user->id,
-                'department_id'  => $user->department_id ?? $user->department?->id ?? null,
-                'supplier_id'    => $validated['supplier_id'],
-                'status_id'      => 1,
-                'order_date'     => now(),
+                'request_number'          => $prNumber,
+                'user_id'                 => $user->id,
+                'department_id'           => $user->department_id ?? $user->department?->id ?? null,
+                'supplier_id'             => $validated['supplier_id'],
+                'status_id'               => 1,
+                'order_date'              => $request->input('order_date') ?: now(),
+                'estimated_delivery_date' => $request->input('estimated_delivery_date'),
+                'payment_term_id'         => null, // Not used strictly if we save to remarks or if we alter DB later. Let's adapt as string.
+                'remarks'                 => json_encode([
+                    'payment_terms' => $request->input('payment_terms'),
+                    'notes'         => $request->input('remarks')
+                ]),
             ]);
 
             if (!$pr || !$pr->id) {
@@ -259,9 +265,15 @@ class PurchaseRequestController extends Controller
                 $pr->supplier_address        = $pr->supplier->address         ?? 'N/A';
             }
 
+            // Extract remarks/payment terms JSON
+            $remarksData = is_string($pr->remarks) && str_starts_with($pr->remarks, '{') ? json_decode($pr->remarks, true) : null;
+            $pr->pr_payment_terms = $remarksData['payment_terms'] ?? 'N/A';
+            $pr->pr_notes         = $remarksData['notes'] ?? $pr->remarks ?? 'N/A';
+
+
             $po = \App\Models\PurchaseOrder::where('purchase_request_id', $pr->id)->first();
-            $pr->po_delivery_date = $po?->delivery_date?->format('Y-m-d') ?? null;
-            $pr->po_payment_terms = $po?->payment_terms ?? null;
+            $pr->po_delivery_date = $po?->delivery_date?->format('Y-m-d') ?? $pr->estimated_delivery_date?->format('Y-m-d') ?? null;
+            $pr->po_payment_terms = $po?->payment_terms ?? $pr->pr_payment_terms ?? null;
             $pr->po_number_linked = $po?->po_number ?? null;
 
             return response()->json($pr);
@@ -275,22 +287,18 @@ class PurchaseRequestController extends Controller
 
     public function approve(Request $request, $id)
     {
-        $validated = $request->validate([
-            'order_date'                => 'nullable|date',
-            'estimated_delivery_date'   => 'nullable|date',
-            'payment_terms'             => 'nullable|string|in:cash_on_delivery,bank_transfer',
-            'remarks'                   => 'nullable|string',
-        ]);
-
         DB::beginTransaction();
         try {
             $pr = PurchaseRequest::with('items.supplierProduct')->findOrFail($id);
+
+            $remarksData = is_string($pr->remarks) && str_starts_with($pr->remarks, '{') ? json_decode($pr->remarks, true) : null;
+            $paymentTerms = $remarksData['payment_terms'] ?? 'cash_on_delivery';
+            $notes = $remarksData['notes'] ?? $pr->remarks;
 
             $pr->update([
                 'status_id'   => 2,
                 'approved_by' => auth()->id(),
                 'approved_at' => now(),
-                'remarks'     => $validated['remarks'] ?? null,
             ]);
 
             $grandTotal = $pr->items->sum('subtotal');
@@ -302,10 +310,10 @@ class PurchaseRequestController extends Controller
                 'supplier_id'          => $pr->supplier_id,
                 'approved_by'          => auth()->id(),
                 'requested_by'         => $pr->user_id,
-                'order_date'           => $validated['order_date'] ?? now(),
-                'delivery_date'        => $validated['estimated_delivery_date'] ?? now()->addDays(7),
-                'payment_terms'        => $validated['payment_terms'] ?? 'cash_on_delivery',
-                'remarks'              => $validated['remarks'] ?? null,
+                'order_date'           => $pr->order_date ?? now(),
+                'delivery_date'        => $pr->estimated_delivery_date ?? now()->addDays(7),
+                'payment_terms'        => $paymentTerms,
+                'remarks'              => $notes,
                 'status'               => 'pending_scan',
                 'grand_total'          => $grandTotal,
             ]);

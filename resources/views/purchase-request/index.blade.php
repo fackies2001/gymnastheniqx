@@ -146,6 +146,39 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="col-12 mt-4">
+                                <h6 class="font-weight-bold text-warning mb-3 border-bottom pb-2">
+                                    <i class="fas fa-clipboard-list mr-2"></i> 4. Purchase Request Details
+                                </h6>
+                                <div class="row">
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label class="small font-weight-bold text-muted">Order Date <span class="text-danger">*</span></label>
+                                            <input type="date" name="order_date" id="create_order_date" class="form-control form-control-sm" required>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label class="small font-weight-bold text-muted">Est. Delivery Date</label>
+                                            <input type="date" name="estimated_delivery_date" class="form-control form-control-sm">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label class="small font-weight-bold text-muted">Payment Terms <span class="text-danger">*</span></label>
+                                            <select name="payment_terms" class="form-control form-control-sm" required>
+                                                <option value="">-- Select Payment Term --</option>
+                                                <option value="cash_on_delivery">Cash on Delivery</option>
+                                                <option value="bank_transfer">Bank Transfer</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="form-group">
+                                    <label class="small font-weight-bold text-muted">Remarks / Notes</label>
+                                    <textarea name="remarks" class="form-control form-control-sm" rows="2" placeholder="Enter any additional notes or instructions..."></textarea>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -318,175 +351,18 @@
                     </div>
                 </div>
 
-                {{-- ✅ FIX: Footer - FIXED double modal-footer, Close button lang (view-only) --}}
-                <div class="modal-footer bg-light">
+                <div class="modal-footer bg-light" id="viewPRModalFooter">
                     <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">
                         <i class="fas fa-times mr-1"></i> Close
                     </button>
+                    <!-- Admin action buttons will be injected here via JS -->
                 </div>
 
             </div>
         </div>
     </div>
 
-    {{-- ========================================================================== --}}
-    {{-- APPROVE MODAL --}}
-    {{-- ========================================================================== --}}
-    <div class="modal fade" id="approvePRModal" tabindex="-1" role="dialog">
-        <div class="modal-dialog modal-lg">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title"><i class="fas fa-clipboard-check mr-2"></i> Review Purchase Request</h5>
-                    <button type="button" class="close text-white" data-dismiss="modal">&times;</button>
-                </div>
-                <form id="approvePRForm">
-                    @csrf
-                    <div class="modal-body">
-                        <input type="hidden" id="approve_pr_id">
-
-                        <div class="row mb-3">
-                            <div class="col-md-6">
-                                <h6 class="font-weight-bold text-primary">
-                                    <i class="fas fa-file-alt mr-2"></i> REQUEST DETAILS
-                                </h6>
-                                <table class="table table-sm table-borderless">
-                                    <tr>
-                                        <td class="text-muted" width="140">PR Number:</td>
-                                        <td class="font-weight-bold text-primary" id="approve_pr_number"></td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-muted">Requested By:</td>
-                                        <td class="font-weight-bold" id="approve_requestor"></td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-muted">Department:</td>
-                                        <td id="approve_department"></td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-muted">Date Created:</td>
-                                        <td id="approve_date_created"></td>
-                                    </tr>
-                                </table>
-                            </div>
-                            <div class="col-md-6">
-                                <h6 class="font-weight-bold text-success">
-                                    <i class="fas fa-truck mr-2"></i> SUPPLIER DETAILS
-                                </h6>
-                                <table class="table table-sm table-borderless">
-                                    <tr>
-                                        <td class="text-muted" width="100">Supplier:</td>
-                                        <td class="font-weight-bold" id="approve_supplier"></td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-muted">Contact:</td>
-                                        <td id="approve_contact"></td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-muted">Email:</td>
-                                        <td id="approve_email"></td>
-                                    </tr>
-                                    <tr>
-                                        <td class="text-muted">Address:</td>
-                                        <td id="approve_address"></td>
-                                    </tr>
-                                </table>
-                            </div>
-                        </div>
-
-                        <h6 class="font-weight-bold text-info mb-2">
-                            <i class="fas fa-boxes mr-2"></i> PRODUCTS REQUESTED
-                        </h6>
-                        <div class="table-responsive mb-3">
-                            <table class="table table-sm table-bordered">
-                                <thead class="bg-light">
-                                    <tr>
-                                        <th width="50">#</th>
-                                        <th>Product Name</th>
-                                        <th class="text-center" width="100">Quantity</th>
-                                        <th class="text-center" width="120">Unit Cost</th>
-                                        <th class="text-center" width="120">Subtotal</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="approve_items_list"></tbody>
-                                <tfoot>
-                                    <tr class="bg-light">
-                                        <td colspan="4" class="text-right">Subtotal (excl. VAT)</td>
-                                        <td class="text-right text-primary" id="approve_subtotal_excl">₱0.00</td>
-                                    </tr>
-                                    <tr class="bg-light">
-                                        <td colspan="4" class="text-right">VAT (12%)</td>
-                                        <td class="text-right" id="approve_vat">₱0.00</td>
-                                    </tr>
-                                    <tr class="bg-light font-weight-bold">
-                                        <td colspan="4" class="text-right">Total (incl. VAT)</td>
-                                        <td class="text-right text-success" id="approve_total_incl">₱0.00</td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-
-                        <h6 class="font-weight-bold text-warning mb-3">
-                            <i class="fas fa-clipboard-check mr-2"></i> APPROVAL DETAILS
-                        </h6>
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>Order Date <span class="text-danger">*</span></label>
-                                    <input type="date" name="order_date" id="approve_order_date" 
-                                        class="form-control bg-light" readonly>
-                                     </div>
-                                </div>
-
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>Estimated Delivery Date</label>
-                                    <input type="date" name="estimated_delivery_date"
-                                        id="approve_estimated_delivery_date" 
-                                        class="form-control bg-light" readonly>
-                                </div>
-                            </div>
-
-                            <div class="col-md-4">
-                                <div class="form-group">
-                                    <label>Payment Terms</label>
-                                    <input type="text" id="approve_payment_terms_display"
-                                        class="form-control bg-light" readonly>
-                                    {{-- hidden field para sa actual value --}}
-                                    <input type="hidden" name="payment_terms" id="approve_payment_terms_hidden">
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Remarks / Notes</label>
-                            <textarea name="remarks" id="approve_remarks" class="form-control" rows="3"
-                                placeholder="Enter any additional notes..."></textarea>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Approved By</label>
-                            <input type="text" class="form-control bg-light"
-                                value="{{ auth()->user()->full_name ?? 'N/A' }}" readonly>
-                        </div>
-                    </div>
-
-                    <div class="modal-footer bg-light">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
-                            <i class="fas fa-times mr-1"></i> Cancel
-                        </button>
-                        @if (auth()->user()->hasPrivilegedAccess())
-                            <button type="button" class="btn btn-danger" id="confirmRejectBtn">
-                                <i class="fas fa-times-circle mr-1"></i> Reject Request
-                            </button>
-                            <button type="submit" class="btn btn-success" id="confirmApproveBtn">
-                                <i class="fas fa-check-circle mr-1"></i> Approve Request
-                            </button>
-                        @endif
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
+    {{-- APPROVE MODAL HAS BEEN REMOVED --}}
 
     {{-- ========================================================================== --}}
     {{-- REJECT CONFIRMATION MODAL --}}
@@ -780,6 +656,25 @@
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2
                         }));
+
+                        // FOOTER BUTTONS LOGIC
+                        let footerHtml = `
+                            <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">
+                                <i class="fas fa-times mr-1"></i> Close
+                            </button>
+                        `;
+
+                        if (res.status_id == 1 && canApprovePurchaseRequest) {
+                            footerHtml += `
+                            <button type="button" class="btn btn-danger btn-sm" id="confirmRejectBtn" data-id="${res.id}" data-number="${res.request_number}">
+                                <i class="fas fa-times-circle mr-1"></i> Reject Request
+                            </button>
+                            <button type="button" class="btn btn-success btn-sm" id="confirmApproveBtn" data-id="${res.id}">
+                                <i class="fas fa-check-circle mr-1"></i> Approve Request
+                            </button>
+                            `;
+                        }
+                        $('#viewPRModalFooter').html(footerHtml);
                     },
                     error: function(xhr) {
                         console.error('❌ Error loading PR:', xhr.responseText);
@@ -801,16 +696,7 @@
                 }
                 let data = table.row(this).data();
                 if (!data || !data.id) return;
-
-                if (data.status_id == 1) {
-                    if (canApprovePurchaseRequest) {
-                        openApprovalModal(data.id);
-                    } else {
-                        openPRDetailsModal(data.id);
-                    }
-                } else {
-                    openPRDetailsModal(data.id);
-                }
+                openPRDetailsModal(data.id);
             });
 
             // ============================================
@@ -821,11 +707,7 @@
                 e.stopPropagation();
                 let prId = $(this).data('id');
                 if (prId) {
-                    if (canApprovePurchaseRequest) {
-                        openApprovalModal(prId);
-                    } else {
-                        openPRDetailsModal(prId);
-                    }
+                    openPRDetailsModal(prId);
                 }
             });
 
@@ -848,101 +730,11 @@
             });
 
             // ============================================
-            // OPEN APPROVAL MODAL
+            // APPROVE BUTTON CLICK
             // ============================================
-            function openApprovalModal(prId) {
-                $.ajax({
-                    url: `/purchase-request/${prId}`,
-                    type: 'GET',
-                    success: function(res) {
-                        // ✅ Clear fields
-                        $('#approve_order_date').val('');
-                        $('#approve_estimated_delivery_date').val('');
-                        $('#approve_payment_terms_display').val('');
-                        $('#approve_payment_terms_hidden').val('');
-
-                        // ✅ Pre-fill approval details kung may existing data
-if (res.po_delivery_date) {
-    $('#approve_estimated_delivery_date').val(res.po_delivery_date);
-}
-if (res.po_payment_terms) {
-    let display = res.po_payment_terms === 'cash_on_delivery' 
-        ? 'Cash on Delivery' 
-        : 'Bank Transfer';
-    $('#approve_payment_terms_display').val(display);
-    $('#approve_payment_terms_hidden').val(res.po_payment_terms);
-}    
-
-
-
-
-                        $('#approve_pr_number').text(res.request_number || 'N/A');
-                        $('#approve_requestor').text(res.user?.full_name || 'N/A');
-                        $('#approve_department').text(res.department_name || res.department?.name ||
-                            'N/A');
-                        $('#approve_date_created').text(
-                            res.created_at ? new Date(res.created_at).toLocaleDateString() : 'N/A'
-                        );
-
-                        $('#approve_supplier').text(res.supplier?.name || 'N/A');
-                        $('#approve_contact').text(res.supplier?.contact_number || 'N/A');
-                        $('#approve_email').text(res.supplier_email || res.supplier?.email || 'N/A');
-                        $('#approve_address').text(res.supplier_address || res.supplier?.address ||
-                            'N/A');
-
-                        let itemsHtml = '';
-                        let grandTotal = 0;
-                        if (res.items && res.items.length > 0) {
-                            res.items.forEach((item, index) => {
-                                let subtotal = parseFloat(item.subtotal || 0);
-                                grandTotal += subtotal;
-                                let productName = item.product_name || item.supplier_product
-                                    ?.name || 'Unknown';
-                                let sku = item.sku || item.supplier_product?.system_sku ||
-                                    'N/A';
-                                itemsHtml += `
-                                    <tr>
-                                        <td class="text-center">${index + 1}</td>
-                                        <td>
-                                            <strong>${productName}</strong>
-                                            <br><small class="text-muted">SKU: ${sku}</small>
-                                        </td>
-                                        <td class="text-center">
-                                            <span class="badge badge-info">${item.quantity}</span>
-                                        </td>
-                                        <td class="text-right">₱${parseFloat(item.unit_cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                                        <td class="text-right font-weight-bold">₱${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                                    </tr>`;
-                            });
-                        }
-                        $('#approve_items_list').html(itemsHtml);
-                        let approveVat = grandTotal * 0.12;
-                        let approveIncl = grandTotal + approveVat;
-                        $('#approve_subtotal_excl').text('₱' + grandTotal.toLocaleString(undefined, {
-                            minimumFractionDigits: 2
-                        }));
-                        $('#approve_vat').text('₱' + approveVat.toLocaleString(undefined, {
-                            minimumFractionDigits: 2
-                        }));
-                        $('#approve_total_incl').text('₱' + approveIncl.toLocaleString(undefined, {
-                            minimumFractionDigits: 2
-                        }));
-
-                        $('#approvePRModal').modal('show');
-                    },
-                    error: function() {
-                        Swal.fire('Error', 'Failed to load PR details', 'error');
-                    }
-                });
-            }
-
-            // ============================================
-            // APPROVE FORM SUBMIT
-            // ============================================
-            $('#approvePRForm').off('submit').on('submit', function(e) {
-                e.preventDefault();
-                let prId = $('#approve_pr_id').val();
-                let btn = $('#confirmApproveBtn');
+            $(document).off('click', '#confirmApproveBtn').on('click', '#confirmApproveBtn', function(e) {
+                let prId = $(this).data('id');
+                let btn = $(this);
                 if (btn.prop('disabled')) return false;
 
                 btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Processing...');
@@ -950,9 +742,11 @@ if (res.po_payment_terms) {
                 $.ajax({
                     url: `/purchase-request/approve/${prId}`,
                     type: 'POST',
-                    data: $(this).serialize(),
+                    data: {
+                        _token: $('input[name="_token"]').val()
+                    },
                     success: function(res) {
-                        $('#approvePRModal').modal('hide');
+                        $('#viewPRModal').modal('hide');
                         Swal.fire({
                             icon: 'success',
                             title: 'Approved!',
@@ -960,30 +754,26 @@ if (res.po_payment_terms) {
                             timer: 1500,
                             showConfirmButton: false
                         }).then(function() {
-                            // ✅ After approve, ipakita ang receipt modal (view-only)
                             table.ajax.reload();
                             openPRDetailsModal(prId);
                         });
                     },
                     error: function(xhr) {
-                        Swal.fire('Error', xhr.responseJSON?.message || 'Failed to approve PR',
-                            'error');
+                        Swal.fire('Error', xhr.responseJSON?.message || 'Failed to approve PR', 'error');
                     },
                     complete: function() {
-                        btn.prop('disabled', false).html(
-                            '<i class="fas fa-check-circle mr-1"></i> Approve Request'
-                        );
+                        btn.prop('disabled', false).html('<i class="fas fa-check-circle mr-1"></i> Approve Request');
                     }
                 });
             });
 
             // ============================================
-            // REJECT BUTTON inside Approve Modal
+            // REJECT BUTTON CLICK
             // ============================================
-            $('#confirmRejectBtn').off('click').on('click', function() {
-                let prId = $('#approve_pr_id').val();
-                let prNumber = $('#approve_pr_number').text();
-                $('#approvePRModal').modal('hide');
+            $(document).off('click', '#confirmRejectBtn').on('click', '#confirmRejectBtn', function() {
+                let prId = $(this).data('id');
+                let prNumber = $(this).data('number');
+                $('#viewPRModal').modal('hide');
                 setTimeout(function() {
                     $('#reject_pr_id_confirm').val(prId);
                     $('#reject_pr_number_confirm').text(prNumber);
@@ -991,6 +781,8 @@ if (res.po_payment_terms) {
                     $('#rejectConfirmModal').modal('show');
                 }, 300);
             });
+
+
 
             // ============================================
             // REJECT FORM SUBMIT
@@ -1033,6 +825,10 @@ if (res.po_payment_terms) {
                 selectedItems = [];
                 supplierProducts = [];
                 $('#supplierSelect').val('');
+                $('input[name="order_date"]').val('');
+                $('input[name="estimated_delivery_date"]').val('');
+                $('select[name="payment_terms"]').val('');
+                $('textarea[name="remarks"]').val('');
                 $('#availableProductsTable tbody').html(
                     '<tr><td colspan="3" class="text-center py-4">Please select a supplier</td></tr>'
                 );
@@ -1202,6 +998,10 @@ if (res.po_payment_terms) {
                 let formData = new FormData();
                 formData.append('_token', $('input[name="_token"]').val());
                 formData.append('supplier_id', $('#supplierSelect').val());
+                formData.append('order_date', $('input[name="order_date"]').val());
+                formData.append('estimated_delivery_date', $('input[name="estimated_delivery_date"]').val());
+                formData.append('payment_terms', $('select[name="payment_terms"]').val());
+                formData.append('remarks', $('textarea[name="remarks"]').val());
                 selectedItems.forEach(item => {
                     formData.append(`products[${item.id}][quantity]`, item.quantity);
                     formData.append(`products[${item.id}][unit_cost]`, item.price);
