@@ -496,11 +496,11 @@
                     <i class="fas fa-boxes stat-bg-icon"></i>
                     <div>
                         <div class="stat-number">{{ $small_boxes['serial_number_counts'] }}</div>
-                        <div class="stat-label">Total Stock</div>
+                        <div class="stat-label">Serialized Products</div>
                     </div>
                     <div class="stat-footer">
-                        <span><i class="fas fa-boxes mr-1"></i> Available Units</span>
-                        <a href="{{ route('consumables.index') }}">More info <i
+                        <span><i class="fas fa-barcode mr-1"></i> Status: available</span>
+                        <a href="{{ route('serialized_products.index') }}">More info <i
                                 class="fas fa-arrow-circle-right"></i></a>
                     </div>
                 </div>

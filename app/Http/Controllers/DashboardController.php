@@ -21,6 +21,14 @@ class DashboardController extends Controller
     // ============================================================
     public function index(Request $request)
     {
+        // ✅ NEW: Automatic Sanitizer for Railway
+        // Zeroes out any negative quantities in the new quantity-based system (ConsumableStock)
+        try {
+            \App\Models\ConsumableStock::where('current_qty', '<', 0)->update(['current_qty' => 0]);
+        } catch (\Exception $e) {
+            \Log::error('Sanitizer Error: ' . $e->getMessage());
+        }
+
         $user = auth()->user();
 
         // ============================================================
@@ -220,7 +228,8 @@ class DashboardController extends Controller
     private function getAvailableProductCount()
     {
         try {
-            // ✅ Sum all current quantities in the new system (ensuring non-negative)
+            // ✅ Sum all current quantities (ensuring non-negative)
+            // Note: We keep the method name the same to support the "Serialized Products" card
             $total = \App\Models\ConsumableStock::sum('current_qty') ?? 0;
             return max(0, $total);
         } catch (\Exception $e) {

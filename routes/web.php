@@ -307,36 +307,6 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session', 'view.only.st
         Route::put('/gym-equipments/{id}', 'update')->name('gym.update');
         Route::delete('/gym-equipments/{id}', 'destroy')->name('gym.delete');
     });
-
-    // =========================================================
-    // ✅ CONSUMABLES INVENTORY — Stock Movement System
-    // =========================================================
-    Route::controller(ConsumableController::class)->group(function () {
-
-        // ⚠️ IMPORTANTENG AYOS NG ORDER:
-        // Ang mga static/specific routes (table, daily-summary, stock-in, etc.)
-        // ay DAPAT nauna bago ang dynamic {id} routes.
-        // Kung hindi, mako-confuse ng Laravel si /consumables/table
-        // bilang /consumables/{id} at mag-eerror.
-
-        // Stock Level Overview
-        Route::get('/consumables', 'index')->name('consumables.index');
-
-        // ✅ Static routes MUNA bago ang {id}
-        Route::get('/consumables/table', 'table')->name('consumables.table');
-        Route::get('/consumables/daily-summary', 'dailySummary')->name('consumables.daily-summary');
-
-        // ✅ Stock Operations (POST — walang conflict sa GET {id})
-        Route::post('/consumables/stock-in', 'stockIn')->name('consumables.stock-in');
-        Route::post('/consumables/stock-out', 'stockOut')->name('consumables.stock-out');
-        Route::post('/consumables/report-incident', 'reportIncident')->name('consumables.report-incident');
-        Route::post('/consumables/adjust', 'adjust')->name('consumables.adjust');
-
-        // ✅ Dynamic {id} routes — LAGING HULI
-        Route::get('/consumables/{id}', 'show')->name('consumables.show');
-        Route::get('/consumables/{id}/movements', 'movements')->name('consumables.movements');
-        Route::post('/consumables/{id}/set-min-stock', 'setMinStock')->name('consumables.set-min-stock');
-    });
 }); // END AUTH ROUTES
 
 require __DIR__ . '/auth.php';
