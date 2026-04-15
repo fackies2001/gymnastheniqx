@@ -508,6 +508,67 @@
 
         </div>
     @endif
+    @if ($isManager)
+        <div class="row mb-3">
+
+            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
+                <div class="stat-box stat-box-stock shadow-sm">
+                    <i class="fas fa-boxes stat-bg-icon"></i>
+                    <div>
+                        <div class="stat-number">{{ $small_boxes['serial_number_counts'] }}</div>
+                        <div class="stat-label">Serialized Products</div>
+                    </div>
+                    <div class="stat-footer">
+                        <span><i class="fas fa-barcode mr-1"></i> Status: available</span>
+                        <a href="{{ route('serialized_products.index') }}">More info <i
+                                class="fas fa-arrow-circle-right"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
+                <div class="stat-box stat-box-sales-today shadow-sm">
+                    <i class="fas fa-coins stat-bg-icon"></i>
+                    <div>
+                        <div class="stat-number">₱{{ number_format($small_boxes['total_sales_today'], 2) }}</div>
+                        <div class="stat-label">
+                            {{ request('filter_type') ? 'Filtered Sales' : 'Sales Today' }}
+                        </div>
+                    </div>
+                    <div class="stat-footer">
+                        <span><i class="fas fa-calendar-day mr-1"></i>
+                            {{ request('filter_type') ? ucfirst(str_replace('_', ' ', request('filter_type'))) : 'Today only' }}
+                        </span>
+                        <span>Completed orders</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
+                <div class="stat-box stat-box-sales-total shadow-sm">
+                    <i class="fas fa-chart-line stat-bg-icon"></i>
+                    <div>
+                        <div class="stat-number">₱{{ number_format($small_boxes['total_sales_alltime'], 2) }}</div>
+                        <div class="stat-label">Total Sales (All Time)</div>
+                    </div>
+                    <div class="stat-footer">
+                        <span><i class="fas fa-infinity mr-1"></i> All time</span>
+                        <a href="{{ route('retailer.orders.index') }}">View Orders <i
+                                class="fas fa-arrow-circle-right"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
+                <a href="{{ route('reports.daily') }}" class="report-shortcut-card shortcut-yearly shadow-sm d-block">
+                    <i class="fas fa-file-export shortcut-bg-icon"></i>
+                    <div>
+                        <div class="shortcut-label"><i class="fas fa-file-export mr-1"></i> View Reports</div>
+                        <div class="shortcut-sub">Daily, Weekly, Monthly & Yearly reports available</div>
+                    </div>
+                    <div class="shortcut-arrow">Go to Reports <i class="fas fa-arrow-right"></i></div>
+                </a>
+            </div>
 
         </div>
     @endif
