@@ -130,11 +130,7 @@ class DashboardController extends Controller
     private function getLowStockCount()
     {
         try {
-            return SupplierProduct::select(
-                DB::raw("(SELECT COUNT(*) FROM serialized_product WHERE serialized_product.product_id = supplier_product.id AND serialized_product.status = 1) as available_count")
-            )
-                ->having('available_count', '<', 20)
-                ->count();
+            return \App\Models\ConsumableStock::where('current_qty', '<', 20)->count();
         } catch (\Exception $e) {
             \Log::error('Error getting low stock count: ' . $e->getMessage());
             return 0;
@@ -224,14 +220,8 @@ class DashboardController extends Controller
     private function getAvailableProductCount()
     {
         try {
-            if (Schema::hasColumn('serialized_product', 'product_status_id')) {
-                return SerializedProduct::where('product_status_id', 1)->count();
-            } elseif (Schema::hasColumn('serialized_product', 'status_id')) {
-                return SerializedProduct::where('status_id', 1)->count();
-            } elseif (Schema::hasColumn('serialized_product', 'status')) {
-                return SerializedProduct::where('status', 1)->count();
-            }
-            return SerializedProduct::count();
+            // ✅ Sum all current quantities in the new system
+            return \App\Models\ConsumableStock::sum('current_qty') ?? 0;
         } catch (\Exception $e) {
             \Log::error('Error counting available products: ' . $e->getMessage());
             return 0;

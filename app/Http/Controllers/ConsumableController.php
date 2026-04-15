@@ -180,6 +180,7 @@ class ConsumableController extends Controller
             'quantity' => 'required|integer|min:1',
             'reason_type' => 'required|in:defective_on_arrival,damaged_in_storage,leaked,expired,lost_in_transit,missing_in_count,other',
             'remarks' => 'nullable|string|max:500',
+            'purchase_order_id' => 'nullable|exists:purchase_order,id', // ✅ NEW
         ]);
 
         $warehouseId = auth()->user()->assigned_at;
@@ -200,6 +201,7 @@ class ConsumableController extends Controller
             'quantity' => $request->quantity,
             'reason_type' => $request->reason_type,
             'remarks' => $request->remarks,
+            'purchase_order_id' => $request->purchase_order_id, // ✅ NEW
             'created_by' => auth()->id(),
         ]);
 
