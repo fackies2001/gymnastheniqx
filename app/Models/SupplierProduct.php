@@ -54,6 +54,7 @@ class SupplierProduct extends Model implements Auditable
         'images',
         'source_id',
         'pieces_per_box',
+        'min_stock_level', // ✅ ADDED: Phase 3 Color-coded stock
     ];
 
     protected $casts = [
@@ -63,7 +64,42 @@ class SupplierProduct extends Model implements Auditable
         'cost_price'    => 'decimal:2',
         'selling_price' => 'decimal:2',
         'pieces_per_box' => 'integer',
+        'min_stock_level' => 'integer',
     ];
+
+    /**
+     * ✅ ADDED: Phase 3 - Generic 4-tier stock status
+     */
+    public function getStockStatus()
+    {
+        $qty = $this->available_stock;
+        
+        if ($qty <= 5) {
+            return (object)[
+                'label' => 'Critical',
+                'color' => 'danger',
+                'icon'  => 'exclamation-circle'
+            ];
+        } elseif ($qty <= 15) {
+            return (object)[
+                'label' => 'Low Stock',
+                'color' => 'orange', // handled as warning in basic BS, custom in CSS
+                'icon'  => 'exclamation-triangle'
+            ];
+        } elseif ($qty <= 25) {
+            return (object)[
+                'label' => 'Warning',
+                'color' => 'warning',
+                'icon'  => 'clock'
+            ];
+        } else {
+            return (object)[
+                'label' => 'Healthy',
+                'color' => 'success',
+                'icon'  => 'check-circle'
+            ];
+        }
+    }
 
     /* ========================================
         SCOPES

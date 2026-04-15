@@ -460,12 +460,24 @@ class DatatableServices
             ->editColumn('barcode', function ($row) {
                 return $row->barcode ?? 'N/A';
             })
+            ->addColumn('stock_status', function ($row) {
+                $status = $row->getStockStatus();
+                $qty = $row->available_stock;
+                $color = ($status->color === 'orange') ? 'orange' : $status->color;
+                
+                return '<div class="text-center">
+                    <span class="badge ' . ($color === 'orange' ? 'bg-orange text-white' : 'badge-'.$color) . ' px-2 py-1" style="min-width: 80px;">
+                        <i class="fas fa-'.$status->icon.' mr-1"></i> ' . $qty . ' Units
+                    </span>
+                </div>';
+            })
             // ✅ FIX: Dagdag na filterColumn para ma-search ang supplier name
             ->filterColumn('supplier_name', function ($query, $keyword) {
                 $query->whereHas('supplier', function ($q) use ($keyword) {
                     $q->where('name', 'like', "%{$keyword}%");
                 });
             })
+            ->rawColumns(['stock_status'])
             ->make(true);
     }
 }

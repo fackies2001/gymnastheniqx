@@ -423,62 +423,50 @@ class DashboardController extends Controller
     private function getLowStockProducts()
     {
         try {
-            // Dashboard UI says: "Below 20"
-            $threshold = 20;
-
-            // ✅ Consumables: use min_stock_level when set, otherwise fallback to threshold
+            // ✅ Consumables
             $consumables = \App\Models\ConsumableStock::with(['product'])
-                ->where(function ($q) use ($threshold) {
-                    $q->whereNotNull('min_stock_level')
-                        ->whereColumn('current_qty', '<=', 'min_stock_level')
-                        ->orWhereNull('min_stock_level')
-                        ->where('current_qty', '<', $threshold);
-                })
-                // include 0 qty so out-of-stock also appears
                 ->orderBy('current_qty', 'asc')
-                ->limit(50)
                 ->get()
                 ->map(function ($stock) {
+                    $status = $stock->getStockStatus();
                     return (object)[
                         'id'              => $stock->product_id,
                         'name'            => $stock->product->name ?? 'Unknown',
                         'system_sku'      => $stock->product->system_sku ?? 'N/A',
                         'available_count' => (int) ($stock->current_qty ?? 0),
-                        'min_stock_level' => $stock->min_stock_level,
+                        'status_label'    => $status->label,
+                        'status_color'    => $status->color,
+                        'status_icon'     => $status->icon,
                     ];
                 });
 
-            // ✅ Non-consumables: count AVAILABLE serialized products per supplier product
-            $serializedLow = \App\Models\SupplierProduct::query()
+            // ✅ Non-consumables
+            $serialized = \App\Models\SupplierProduct::query()
                 ->where(function ($q) {
                     $q->whereNull('is_consumable')->orWhere('is_consumable', 0);
                 })
-                ->withCount([
-                    'serializedProducts as available_count' => function ($q) {
-                        $q->where('status', 1);
-                    },
-                ])
-                ->having('available_count', '<', $threshold)
-                ->orderBy('available_count', 'asc')
-                ->limit(50)
                 ->get()
                 ->map(function ($p) {
+                    $status = $p->getStockStatus();
                     return (object)[
                         'id'              => $p->id,
                         'name'            => $p->name ?? 'Unknown',
                         'system_sku'      => $p->system_sku ?? 'N/A',
-                        'available_count' => (int) ($p->available_count ?? 0),
-                        'min_stock_level' => null,
+                        'available_count' => (int) ($p->available_stock ?? 0),
+                        'status_label'    => $status->label,
+                        'status_color'    => $status->color,
+                        'status_icon'     => $status->icon,
                     ];
                 });
 
+            // Combine and sort by available count (Priority to lowest)
             return $consumables
-                ->concat($serializedLow)
+                ->concat($serialized)
                 ->sortBy('available_count')
-                ->take(10)
+                ->take(15) // Show top 15 most urgent items (Red to Green)
                 ->values();
         } catch (\Exception $e) {
-            \Log::error('LOW STOCK ERROR: ' . $e->getMessage());
+            \Log::error('STOCK STATUS ERROR: ' . $e->getMessage());
             return collect();
         }
     }

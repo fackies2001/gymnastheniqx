@@ -32,6 +32,7 @@
                                     <th>SKU</th>
                                     <th>Price</th>
                                     <th>Barcode</th>
+                                    <th class="text-center">Stock</th>
                                 </tr>
                             </thead>
                         </table>
@@ -126,6 +127,13 @@
                         data: 'barcode',
                         name: 'supplier_product.barcode',
                         title: 'Barcode'
+                    },
+                    {
+                        data: 'stock_status',
+                        name: 'stock_status',
+                        title: 'Health Status',
+                        orderable: false,
+                        searchable: false
                     }
                 ],
                 order: [

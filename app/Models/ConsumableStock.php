@@ -48,4 +48,38 @@ class ConsumableStock extends Model
     {
         return $this->current_qty < $this->min_stock_level;
     }
+
+    /**
+     * ✅ ADDED: Phase 3 Stock Health
+     */
+    public function getStockStatus()
+    {
+        $qty = $this->current_qty;
+        
+        if ($qty <= 5) {
+            return (object)[
+                'label' => 'Critical',
+                'color' => 'danger',
+                'icon'  => 'exclamation-circle'
+            ];
+        } elseif ($qty <= 15) {
+            return (object)[
+                'label' => 'Low Stock',
+                'color' => 'orange',
+                'icon'  => 'exclamation-triangle'
+            ];
+        } elseif ($qty <= 25) {
+            return (object)[
+                'label' => 'Warning',
+                'color' => 'warning',
+                'icon'  => 'clock'
+            ];
+        } else {
+            return (object)[
+                'label' => 'Healthy',
+                'color' => 'success',
+                'icon'  => 'check-circle'
+            ];
+        }
+    }
 }

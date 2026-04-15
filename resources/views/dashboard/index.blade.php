@@ -509,75 +509,43 @@
         </div>
     @endif
 
-    {{-- ============================================
-         STAT BOXES + REPORTS — MANAGER ONLY
-         4 cards sa iisang row, same size lahat
-    ============================================ --}}
-    @if ($isManager)
-        <div class="row mb-3">
-
-            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                <div class="stat-box stat-box-stock shadow-sm">
-                    <i class="fas fa-boxes stat-bg-icon"></i>
-                    <div>
-                        <div class="stat-number">{{ $small_boxes['serial_number_counts'] }}</div>
-                        <div class="stat-label">Serialized Products</div>
-                    </div>
-                    <div class="stat-footer">
-                        <span><i class="fas fa-barcode mr-1"></i> Status: available</span>
-                        <a href="{{ route('serialized_products.index') }}">More info <i
-                                class="fas fa-arrow-circle-right"></i></a>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                <div class="stat-box stat-box-sales-today shadow-sm">
-                    <i class="fas fa-coins stat-bg-icon"></i>
-                    <div>
-                        <div class="stat-number">₱{{ number_format($small_boxes['total_sales_today'], 2) }}</div>
-                        <div class="stat-label">
-                            {{ request('filter_type') ? 'Filtered Sales' : 'Sales Today' }}
-                        </div>
-                    </div>
-                    <div class="stat-footer">
-                        <span><i class="fas fa-calendar-day mr-1"></i>
-                            {{ request('filter_type') ? ucfirst(str_replace('_', ' ', request('filter_type'))) : 'Today only' }}
-                        </span>
-                        <span>Completed orders</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                <div class="stat-box stat-box-sales-total shadow-sm">
-                    <i class="fas fa-chart-line stat-bg-icon"></i>
-                    <div>
-                        <div class="stat-number">₱{{ number_format($small_boxes['total_sales_alltime'], 2) }}</div>
-                        <div class="stat-label">Total Sales (All Time)</div>
-                    </div>
-                    <div class="stat-footer">
-                        <span><i class="fas fa-infinity mr-1"></i> All time</span>
-                        <a href="{{ route('retailer.orders.index') }}">View Orders <i
-                                class="fas fa-arrow-circle-right"></i></a>
-                    </div>
-                </div>
-            </div>
-
-            {{-- Reports Card — same size --}}
-            <div class="col-lg-3 col-md-6 col-sm-6 mb-3">
-                <a href="{{ route('reports.daily') }}" class="report-shortcut-card shortcut-yearly shadow-sm d-block">
-                    <i class="fas fa-file-export shortcut-bg-icon"></i>
-                    <div>
-                        <div class="shortcut-label"><i class="fas fa-file-export mr-1"></i> View Reports</div>
-                        <div class="shortcut-sub">Daily, Weekly, Monthly & Yearly reports available</div>
-                    </div>
-                    <div class="shortcut-arrow">Go to Reports <i class="fas fa-arrow-right"></i></div>
-                </a>
-            </div>
-
         </div>
     @endif
+
+    {{-- ✅ ADDED: Phase 3 Stock Status Legend (Under Summary Boxes) --}}
+    <div class="row mb-4 no-print">
+        <div class="col-12">
+            <div class="card shadow-sm border-0" style="background: #f8f9fa;">
+                <div class="card-body py-2 px-3">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap">
+                        <div class="small font-weight-bold text-uppercase text-muted mr-3">
+                            <i class="fas fa-info-circle mr-1"></i> Stock Health Guide:
+                        </div>
+                        <div class="d-flex flex-wrap">
+                            <div class="mr-4 small">
+                                <span class="badge badge-danger mr-1"><i class="fas fa-exclamation-circle"></i></span> 
+                                <span class="font-weight-bold">Critical (0-5)</span>
+                            </div>
+                            <div class="mr-4 small">
+                                <span class="badge bg-orange text-white mr-1"><i class="fas fa-exclamation-triangle"></i></span> 
+                                <span class="font-weight-bold">Low (6-15)</span>
+                            </div>
+                            <div class="mr-4 small">
+                                <span class="badge badge-warning mr-1"><i class="fas fa-clock"></i></span> 
+                                <span class="font-weight-bold">Warning (16-25)</span>
+                            </div>
+                            <div class="small">
+                                <span class="badge badge-success mr-1"><i class="fas fa-check-circle"></i></span> 
+                                <span class="font-weight-bold">Healthy (>25)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    {{-- ============================================
 
     {{-- ============================================
          CHARTS + SIDEBAR — LAHAT NG ROLES
@@ -707,25 +675,10 @@
                                         <small class="text-muted">{{ $item->system_sku ?? 'N/A' }}</small>
                                     </td>
                                     <td class="text-center align-middle">
-                                        @php
-                                            $qty = $item->available_count ?? 0;
-                                            $badgeClass =
-                                                $qty <= 5
-                                                    ? 'badge-danger'
-                                                    : ($qty <= 10
-                                                        ? 'badge-warning'
-                                                        : 'badge-info');
-                                            $icon =
-                                                $qty <= 5
-                                                    ? 'fas fa-exclamation-circle'
-                                                    : ($qty <= 10
-                                                        ? 'fas fa-exclamation-triangle'
-                                                        : 'fas fa-info-circle');
-                                        @endphp
-                                        <span class="badge {{ $badgeClass }}"
+                                        <span class="badge {{ $item->status_color === 'orange' ? 'bg-orange text-white' : 'badge-'.$item->status_color }}"
                                             style="font-size:0.9rem; padding:0.35rem 0.55rem;">
-                                            <i class="{{ $icon }}" style="font-size:0.7rem;"></i>
-                                            {{ $qty }}
+                                            <i class="fas fa-{{ $item->status_icon }}" style="font-size:0.7rem;"></i>
+                                            {{ $item->available_count }}
                                         </span>
                                     </td>
                                 </tr>
@@ -743,12 +696,8 @@
                     </table>
                 </div>
                 @if (count($low_stock_products) > 0)
-                    <div class="card-footer text-center small text-muted py-1">
-                        <div class="d-flex justify-content-around">
-                            <span><i class="fas fa-circle text-danger" style="font-size:0.55rem;"></i> ≤5</span>
-                            <span><i class="fas fa-circle text-warning" style="font-size:0.55rem;"></i> 6-10</span>
-                            <span><i class="fas fa-circle text-info" style="font-size:0.55rem;"></i> 11-19</span>
-                        </div>
+                    <div class="card-footer text-center small text-muted py-1 bg-white border-top-0">
+                        <small><i class="fas fa-info-circle mr-1"></i> Top 15 most urgent items shown</small>
                     </div>
                 @endif
             </div>
