@@ -220,8 +220,9 @@ class DashboardController extends Controller
     private function getAvailableProductCount()
     {
         try {
-            // ✅ Sum all current quantities in the new system
-            return \App\Models\ConsumableStock::sum('current_qty') ?? 0;
+            // ✅ Sum all current quantities in the new system (ensuring non-negative)
+            $total = \App\Models\ConsumableStock::sum('current_qty') ?? 0;
+            return max(0, $total);
         } catch (\Exception $e) {
             \Log::error('Error counting available products: ' . $e->getMessage());
             return 0;
