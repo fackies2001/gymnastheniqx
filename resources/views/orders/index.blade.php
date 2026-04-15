@@ -493,12 +493,20 @@
                                 <select name="product_id" id="sel_prod" class="form-control shadow-sm" required>
                                     <option value="">-- Select Product --</option>
                                     @foreach ($warehouse_products as $p)
-                                        @php $displaySku = $p->system_sku ?? ($p->supplier_sku ?? ($p->barcode ?? 'No SKU')); @endphp
-                                        <option value="{{ $p->id }}" data-cost="{{ $p->cost_price ?? 0 }}"
+                                        @php 
+                                            $displaySku = $p->system_sku ?? ($p->supplier_sku ?? ($p->barcode ?? 'No SKU'));
+                                            $std = $p->available_quantity ?? 0;
+                                            $def = $p->defective_quantity ?? 0;
+                                        @endphp
+                                        <option value="{{ $p->id }}" 
+                                            data-cost="{{ $p->cost_price ?? 0 }}"
                                             data-selling="{{ $p->selling_price ?? 0 }}"
                                             data-has-selling="{{ $p->selling_price ? '1' : '0' }}"
-                                            data-sku="{{ $displaySku }}" data-name="{{ $p->name }}">
-                                            {{ $p->name }} (SKU: {{ $displaySku }})
+                                            data-sku="{{ $displaySku }}" 
+                                            data-name="{{ $p->name }}"
+                                            data-std-qty="{{ $std }}"
+                                            data-def-qty="{{ $def }}">
+                                            {{ $p->name }} (Standard: {{ $std }}, Defective: {{ $def }})
                                         </option>
                                     @endforeach
                                 </select>
@@ -510,7 +518,12 @@
                                     <option value="Standard">Standard (New Stock)</option>
                                     <option value="Defective">Defective (Damaged Stock)</option>
                                 </select>
-                                <small class="text-muted">Sell from damaged pool for discounted rates.</small>
+                                <div class="mt-1 d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">Pull from damaged stock.</small>
+                                    <span id="condition_stock_badge" class="badge badge-pill badge-info shadow-sm" style="display:none;">
+                                        Stock: 0
+                                    </span>
+                                </div>
                             </div>
 
                             <div class="col-md-6 mb-3">
@@ -777,39 +790,74 @@
             }
 
             function updateMarkup() {
-                let entered = parseFloat($('#inp_price').val()) || 0;
-                let cost = parseFloat($('#sel_prod').find(':selected').data('cost')) || 0;
-                let selling = parseFloat($('#sel_prod').find(':selected').data('selling')) || 0;
-                let condition = $('#product_condition').val();
+                try {
+                    var entered = parseFloat($('#inp_price').val()) || 0;
+                    var cost = parseFloat($('#sel_prod').find(':selected').data('cost')) || 0;
+                    var selling = parseFloat($('#sel_prod').find(':selected').data('selling')) || 0;
+                    var condition = $('#product_condition').val() || 'Standard';
 
-                if (entered > 0 && selling > 0) {
-                    let diff = entered - selling;
-                    let pct = ((Math.abs(diff) / selling) * 100).toFixed(1);
-                    
-                    if (diff < 0) {
-                        // DISCOUNT case
-                        $('#markup_info').html(`
-                            <small class="text-danger font-weight-bold">
-                                <i class="fas fa-arrow-down"></i> Discount: ₱${Math.abs(diff).toFixed(2)} (${pct}%)
-                            </small>
-                        `).show();
-                    } else if (diff > 0) {
-                        // MARKUP case
-                        $('#markup_info').html(`
-                            <small class="text-success font-weight-bold">
-                                <i class="fas fa-arrow-up"></i> Markup: ₱${diff.toFixed(2)} (${pct}%)
-                            </small>
-                        `).show();
+                    if (entered > 0 && selling > 0) {
+                        var diff = entered - selling;
+                        var pct = 0;
+                        if (selling > 0) {
+                            pct = ((Math.abs(diff) / selling) * 100).toFixed(1);
+                        }
+                        
+                        var htmlContent = '';
+                        if (diff < 0) {
+                            // DISCOUNT case
+                            htmlContent = '<small class="text-danger font-weight-bold">' +
+                                '<i class="fas fa-arrow-down mr-1"></i> Discount: ₱' + Math.abs(diff).toFixed(2) + ' (' + pct + '%)' +
+                                '</small>';
+                        } else if (diff > 0) {
+                            // MARKUP case
+                            htmlContent = '<small class="text-success font-weight-bold">' +
+                                '<i class="fas fa-arrow-up mr-1"></i> Markup: ₱' + diff.toFixed(2) + ' (' + pct + '%)' +
+                                '</small>';
+                        }
+
+                        if (htmlContent !== '') {
+                            $('#markup_info').html(htmlContent).show();
+                        } else {
+                            $('#markup_info').hide();
+                        }
+
+                        // Special Warning for Below Cost (Standard Items Only)
+                        if (entered < cost && condition !== 'Defective') {
+                            $('#below_cost_warn').show();
+                        } else {
+                            $('#below_cost_warn').hide();
+                        }
                     } else {
                         $('#markup_info').hide();
+                        $('#below_cost_warn').hide();
                     }
-
-                    // Special Warning for Below Cost (Standard Items Only)
-                    $('#below_cost_warn').toggle(entered < cost && condition !== 'Defective');
-                } else {
-                    $('#markup_info').hide();
-                    $('#below_cost_warn').hide();
+                } catch (e) {
+                    console.error("Error in updateMarkup:", e);
                 }
+
+                // ✅ NEW: Update Condition Stock Badge
+                try {
+                    var selected = $('#sel_prod').find(':selected');
+                    var condition = $('#product_condition').val();
+                    var stdQty = parseInt(selected.data('std-qty')) || 0;
+                    var defQty = parseInt(selected.data('def-qty')) || 0;
+
+                    if (selected.val()) {
+                        var finalQty = (condition === 'Defective') ? defQty : stdQty;
+                        var colorClass = (finalQty > 0) ? 'badge-success' : 'badge-danger';
+                        
+                        $('#condition_stock_badge')
+                            .attr('class', 'badge badge-pill shadow-sm ' + colorClass)
+                            .html('Available: ' + finalQty + ' units')
+                            .show();
+                    } else {
+                        $('#condition_stock_badge').hide();
+                    }
+                } catch (err) {
+                    console.error("Error in stock badge update:", err);
+                }
+
                 calculate();
             }
 
@@ -832,6 +880,7 @@
             });
 
             $('#inp_price').on('input', updateMarkup);
+            $('#product_condition').on('change', updateMarkup);
             $('#inp_qty').on('input', calculate);
 
             $('#createOrderForm').on('submit', function(e) {

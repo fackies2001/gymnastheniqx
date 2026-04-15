@@ -143,6 +143,9 @@ class RetailerOrderController extends Controller
                 'serializedProducts as available_quantity' => function ($q) {
                     $q->where('status', 1);
                 },
+                'serializedProducts as defective_quantity' => function ($q) {
+                    $q->where('status', 4);
+                },
             ])
             ->orderBy('name')
             ->get();
