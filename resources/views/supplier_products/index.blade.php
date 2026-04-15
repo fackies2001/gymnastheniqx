@@ -32,7 +32,6 @@
                                     <th>SKU</th>
                                     <th>Price</th>
                                     <th>Barcode</th>
-                                    <th class="text-center">Stock</th>
                                 </tr>
                             </thead>
                         </table>
