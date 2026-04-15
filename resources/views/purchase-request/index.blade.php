@@ -432,25 +432,27 @@
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label>Order Date <span class="text-danger">*</span></label>
-                                    <input type="date" name="order_date" id="approve_order_date" class="form-control"
-                                        required>
+                                    <input type="date" name="order_date" id="approve_order_date" 
+                                        class="form-control bg-light" readonly>
+                                     </div>
                                 </div>
-                            </div>
+
                             <div class="col-md-4">
                                 <div class="form-group">
                                     <label>Estimated Delivery Date</label>
                                     <input type="date" name="estimated_delivery_date"
-                                        id="approve_estimated_delivery_date" class="form-control">
+                                        id="approve_estimated_delivery_date" 
+                                        class="form-control bg-light" readonly>
                                 </div>
                             </div>
+
                             <div class="col-md-4">
                                 <div class="form-group">
-                                    <label>Payment Terms <span class="text-danger">*</span></label>
-                                    <select name="payment_terms" class="form-control" required>
-                                        <option value="">-- Select Payment Term --</option>
-                                        <option value="cash_on_delivery">Cash on Delivery</option>
-                                        <option value="bank_transfer">Bank Transfer</option>
-                                    </select>
+                                    <label>Payment Terms</label>
+                                    <input type="text" id="approve_payment_terms_display"
+                                        class="form-control bg-light" readonly>
+                                    {{-- hidden field para sa actual value --}}
+                                    <input type="hidden" name="payment_terms" id="approve_payment_terms_hidden">
                                 </div>
                             </div>
                         </div>
@@ -853,11 +855,26 @@
                     url: `/purchase-request/${prId}`,
                     type: 'GET',
                     success: function(res) {
-                        $('#approve_pr_id').val(prId);
+                        // ✅ Clear fields
                         $('#approve_order_date').val('');
                         $('#approve_estimated_delivery_date').val('');
-                        $('#approve_remarks').val('');
-                        $('select[name="payment_terms"]').val('');
+                        $('#approve_payment_terms_display').val('');
+                        $('#approve_payment_terms_hidden').val('');
+
+                        // ✅ Pre-fill approval details kung may existing data
+if (res.po_delivery_date) {
+    $('#approve_estimated_delivery_date').val(res.po_delivery_date);
+}
+if (res.po_payment_terms) {
+    let display = res.po_payment_terms === 'cash_on_delivery' 
+        ? 'Cash on Delivery' 
+        : 'Bank Transfer';
+    $('#approve_payment_terms_display').val(display);
+    $('#approve_payment_terms_hidden').val(res.po_payment_terms);
+}    
+
+
+
 
                         $('#approve_pr_number').text(res.request_number || 'N/A');
                         $('#approve_requestor').text(res.user?.full_name || 'N/A');
