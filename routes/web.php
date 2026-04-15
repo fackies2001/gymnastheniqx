@@ -218,6 +218,11 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session', 'view.only.st
             Route::get('/supplier_products/initial_table', 'initial_table')->name('supplier_products.api_initial_table');
             Route::get('/supplier_products/list/{supplier_id}', 'getProductsBySupplier');
             Route::delete('/supplier_products/{id}', 'destroy')->name('supplier_products.destroy');
+
+            // ✅ NEW: Phase 4 Defective Inventory
+            Route::get('/inventory/defective', 'defectiveIndex')->name('inventory.defective');
+            Route::get('/inventory/defective/data', 'defectiveDatatable')->name('inventory.defective.data');
+            Route::post('/inventory/defective/{id}/restore', 'restoreDefective')->name('inventory.defective.restore');
         });
 
         // REPORTS

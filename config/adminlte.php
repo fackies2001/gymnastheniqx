@@ -349,6 +349,13 @@ return [
                     'active' => ['serialized_products*'],
                     'icon' => 'far fa-circle',
                 ],
+                [
+                    'text' => 'Defective Inventory',
+                    'url' => 'inventory/defective',
+                    'active' => ['inventory/defective*'],
+                    'icon' => 'fas fa-exclamation-triangle',
+                    'role' => ['admin', 'manager', 'account staff'],
+                ],
             ],
         ],
 

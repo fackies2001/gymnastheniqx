@@ -176,10 +176,10 @@ class RetailerOrderController extends Controller
         }
 
         $request->validate([
-            'retailer_name' => 'required',
-            'product_id'    => 'required|exists:supplier_product,id',
-            'quantity'      => 'required|integer|min:1',
-            'unit_price'    => 'required|numeric|min:0',
+            'product_id'        => 'required|exists:supplier_product,id',
+            'quantity'          => 'required|integer|min:1',
+            'unit_price'        => 'required|numeric|min:0',
+            'product_condition' => 'nullable|string|in:Standard,Defective',
         ]);
 
         $product = SupplierProduct::findOrFail($request->product_id);
@@ -190,8 +190,12 @@ class RetailerOrderController extends Controller
             $availableStock = \App\Models\ConsumableStock::where('product_id', $product->id)
                 ->value('current_qty') ?? 0;
         } else {
+            // ✅ Phase 4: Filter based on condition
+            $condition = $request->input('product_condition', 'Standard');
+            $statusToSearch = ($condition === 'Defective') ? 4 : 1;
+            
             $availableStock = SerializedProduct::where('product_id', $product->id)
-                ->where('status', 1)
+                ->where('status', $statusToSearch)
                 ->count();
         }
 
@@ -210,6 +214,7 @@ class RetailerOrderController extends Controller
             'quantity'           => $request->quantity,
             'unit_price'         => $request->unit_price,
             'total_amount'       => $request->quantity * $request->unit_price,
+            'product_condition'  => $request->input('product_condition', 'Standard'), // ✅ NEW
             'status'             => 'Pending',
             'sku'                => $product->supplier_sku ?? $product->system_sku ?? 'N/A',
             'created_by'         => Auth::user()->full_name ?? 'Unknown User',
@@ -248,11 +253,13 @@ class RetailerOrderController extends Controller
             return back()->with('info', 'This order has already been approved.');
         }
 
-        // ✅ Block approve kung below cost
+        // ✅ Block approve kung below cost (EXCEPT for Defective items)
         $product = SupplierProduct::find($order->product_id);
         if ($product && $product->cost_price > 0 && $order->unit_price < $product->cost_price) {
-            return back()->with('error', '❌ Cannot approve! The selling price. (₱' . number_format($order->unit_price, 2) . ') 
-            is lower than supplier cost (₱' . number_format($product->cost_price, 2) . '). Change the price first.');
+            if ($order->product_condition !== 'Defective') {
+                return back()->with('error', '❌ Cannot approve! The selling price (₱' . number_format($order->unit_price, 2) . ') 
+                is lower than supplier cost (₱' . number_format($product->cost_price, 2) . '). Only Defective items can be sold below cost.');
+            }
         }
 
         $product = null;
@@ -270,8 +277,11 @@ class RetailerOrderController extends Controller
 
         DB::beginTransaction();
         try {
+            // ✅ Phase 4: Pull from the correct stock pool
+            $statusToPull = ($order->product_condition === 'Defective') ? 4 : 1;
+
             $serializedProducts = SerializedProduct::where('product_id', $product->id)
-                ->where('status', 1)
+                ->where('status', $statusToPull)
                 ->orderBy('created_at', 'asc')
                 ->limit($order->quantity)
                 ->get();
@@ -404,8 +414,11 @@ class RetailerOrderController extends Controller
                     throw new \Exception("Product '{$order->product_name}' not found in inventory");
                 }
 
+                // ✅ Phase 4: Respect condition in fallback query
+                $statusToPull = ($order->product_condition === 'Defective') ? 4 : 1;
+
                 $serialNumbers = SerializedProduct::where('product_id', $product->id)
-                    ->where('status', 1)
+                    ->where('status', $statusToPull)
                     ->orderBy('created_at', 'asc')
                     ->limit($order->quantity)
                     ->pluck('serial_number')

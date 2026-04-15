@@ -792,13 +792,13 @@ class ReportsController extends Controller
     public function reportDamage(Request $request)
     {
         $request->validate([
-            'serial_number_id' => 'required|exists:serialized_products,id',
+            'serial_number_id' => 'required|exists:serialized_product,id',
             'remarks'          => 'nullable|string',
         ]);
 
         $serialNumber = SerializedProduct::findOrFail($request->serial_number_id);
         $serialNumber->update([
-            'status'  => 5,
+            'status'  => 4, // 4 = Damaged (Defective)
             'remarks' => $request->remarks,
         ]);
 

@@ -235,4 +235,43 @@ class SupplierProductsController extends Controller
             ], 500);
         }
     }
+    /**
+     * ✅ NEW: Phase 4 Defective Inventory Index
+     */
+    public function defectiveIndex()
+    {
+        return view('supplier_products.defective');
+    }
+
+    /**
+     * ✅ NEW: Phase 4 Defective Inventory Datatable
+     */
+    public function defectiveDatatable()
+    {
+        return $this->datatableService->get_defective_inventory_table();
+    }
+
+    /**
+     * ✅ NEW: Phase 4 Restore Defective Item to Available
+     */
+    public function restoreDefective($id)
+    {
+        try {
+            $item = \App\Models\SerializedProduct::findOrFail($id);
+            $item->update([
+                'status'  => 1, // Available
+                'remarks' => "Restored from defective on " . now()->format('Y-m-d') . ". Previous remarks: " . ($item->remarks ?? 'None')
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Item [{$item->serial_number}] has been restored to available stock."
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error restoring item: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }

@@ -167,6 +167,7 @@
                         <th>Order #</th>
                         <th>Retailer Name</th>
                         <th>Product</th>
+                        <th>Condition</th>
                         <th>Qty</th>
                         <th>Unit Price</th>
                         <th>Total Amount</th>
@@ -182,6 +183,13 @@
                             </td>
                             <td>{{ $order->retailer_name }}</td>
                             <td>{{ $order->product_name }}</td>
+                            <td class="text-center">
+                                @if($order->product_condition === 'Defective')
+                                    <span class="badge badge-danger px-2"><i class="fas fa-exclamation-triangle mr-1"></i> DEFECTIVE</span>
+                                @else
+                                    <span class="badge badge-secondary px-2">STANDARD</span>
+                                @endif
+                            </td>
                             <td class="text-center">{{ $order->quantity }}</td>
                             <td>₱ {{ number_format($order->unit_price ?? 0, 2) }}</td>
                             <td class="text-primary font-weight-bold">₱ {{ number_format($order->total_amount, 2) }}</td>
@@ -479,7 +487,7 @@
                                     placeholder="Enter Retailer's Full Name" required>
                             </div>
 
-                            <div class="col-md-6 mb-3">
+                             <div class="col-md-6 mb-3">
                                 <label class="font-weight-bold">Select Product</label>
                                 <select name="product_id" id="sel_prod" class="form-control shadow-sm" required>
                                     <option value="">-- Select Product --</option>
@@ -493,6 +501,15 @@
                                         </option>
                                     @endforeach
                                 </select>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label class="font-weight-bold text-danger">Item Condition</label>
+                                <select name="product_condition" id="product_condition" class="form-control shadow-sm border-danger" required>
+                                    <option value="Standard">Standard (New Stock)</option>
+                                    <option value="Defective">Defective (Damaged Stock)</option>
+                                </select>
+                                <small class="text-muted">Sell from damaged pool for discounted rates.</small>
                             </div>
 
                             <div class="col-md-6 mb-3">

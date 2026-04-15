@@ -27,7 +27,8 @@ class RetailerOrder extends Model
         'shipped_by',
         'shipped_at',
         'received_at',
-        'created_by_user_id',  // ✅ Nandito ba ito?
+        'created_by_user_id',
+        'product_condition', // ✅ NEW: Standard or Defective
     ];
 
     protected $casts = [

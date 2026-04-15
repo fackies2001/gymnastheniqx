@@ -480,4 +480,48 @@ class DatatableServices
             ->rawColumns(['stock_status'])
             ->make(true);
     }
+    /**
+     * ✅ NEW: Phase 4 Defective Inventory Table
+     * Shows all items with status 4 (Damaged) plus traceability info
+     */
+    public function get_defective_inventory_table()
+    {
+        $query = \App\Models\SerializedProduct::with([
+            'supplierProducts.supplier',
+            'purchaseOrder.supplier',
+            'productStatus'
+        ])->where('status', 4); // 4 = Damaged
+
+        return DataTables::eloquent($query)
+            ->addColumn('product_name', function ($row) {
+                return $row->supplierProducts->name ?? 'N/A';
+            })
+            ->addColumn('supplier_name', function ($row) {
+                // Try to get from PO first, then product
+                return $row->purchaseOrder->supplier->name 
+                    ?? $row->supplierProducts->supplier->name 
+                    ?? 'N/A';
+            })
+            ->addColumn('po_number', function ($row) {
+                return $row->purchaseOrder->po_number ?? 'N/A';
+            })
+            ->addColumn('serial_number', function ($row) {
+                return '<span class="font-weight-bold text-danger">' . $row->serial_number . '</span>';
+            })
+            ->addColumn('remarks', function ($row) {
+                return $row->remarks ?? '<span class="text-muted italic">No remarks</span>';
+            })
+            ->addColumn('reported_at', function ($row) {
+                return $row->updated_at ? $row->updated_at->format('M d, Y h:i A') : 'N/A';
+            })
+            ->addColumn('action', function ($row) {
+                return '<div class="btn-group">
+                    <button class="btn btn-xs btn-success restore-btn" data-id="'.$row->id.'">
+                        <i class="fas fa-undo"></i> Restore
+                    </button>
+                </div>';
+            })
+            ->rawColumns(['serial_number', 'remarks', 'action'])
+            ->make(true);
+    }
 }
