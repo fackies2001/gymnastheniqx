@@ -263,12 +263,16 @@ class ReportsController extends Controller
                             ? number_format((($markup / $originalPrice) * 100), 1)
                             : 'N/A';
 
+                        $conditionBadge = $order->product_condition === 'Defective' 
+                            ? '<span class="badge badge-danger">DEFECTIVE</span>' 
+                            : '<span class="badge badge-secondary">STANDARD</span>';
+
                         $data[] = [
                             'product_name'  => '<strong style="font-size:15px;color:black;">' . e($productName) . '</strong><br>
-                        <span style="font-size:13px;color:#666;">Retailer: ' . e($retailerName) . '</span>',
+                        <span style="font-size:13px;color:#666;">Retailer: ' . e($retailerName) . '</span><br>' . $conditionBadge,
                             'category_name' => '<span class="badge badge-success">Outflow</span>',
                             'traceability'  => '<small>
-                        <strong>Type:</strong> Retailer Order<br>
+                        <strong>Type:</strong> Retailer Order (' . e($order->product_condition) . ')<br>
                         <strong>Order #:</strong> ' . e($order->id) . '<br>
                         <strong>Retailer:</strong> ' . e($retailerName) . '<br>
                         <strong>Original Price:</strong> <span class="text-secondary font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
@@ -800,6 +804,17 @@ class ReportsController extends Controller
         $serialNumber->update([
             'status'  => 4, // 4 = Damaged (Defective)
             'remarks' => $request->remarks,
+        ]);
+
+        // ✅ RECORD STOCK MOVEMENT — para lumabas sa Reports
+        StockMovement::create([
+            'product_id'   => $serialNumber->product_id,
+            'type'         => 'damage',
+            'quantity'     => 1,
+            'reason_type'  => 'reported_damage',
+            'remarks'      => $request->remarks ?? 'Marked as damaged via Serialized report',
+            'created_by'   => auth()->id(),
+            'warehouse_id' => $serialNumber->warehouse_id,
         ]);
 
         return redirect()->back()->with('success', 'Product reported as damaged successfully.');

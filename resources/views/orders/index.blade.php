@@ -649,7 +649,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         // ✅ Declared only ONCE — fixes the "already been declared" SyntaxError
-        const CAN_MANAGE_RETAILER_ORDERS = {{ $canManageRetailerOrders ? 'true' : 'false' }};
+        window.CAN_MANAGE_RETAILER_ORDERS = {{ $canManageRetailerOrders ? 'true' : 'false' }};
 
         // ✅ PRINT FUNCTION
         function handleOrderPrint() {
