@@ -215,7 +215,8 @@
                                             data-price="{{ number_format($order->unit_price, 2) }}"
                                             data-total="{{ number_format($order->total_amount, 2) }}"
                                             data-total-raw="{{ $order->total_amount }}"
-                                            data-cost="{{ $order->product->cost_price ?? 0 }}">
+                                            data-cost="{{ $order->product->cost_price ?? 0 }}"
+                                            data-condition="{{ $order->product_condition }}">
                                             <i class="fas fa-hourglass-half"></i> PENDING (Click to Review)
                                         </span>
                                     @else
@@ -778,14 +779,33 @@
             function updateMarkup() {
                 let entered = parseFloat($('#inp_price').val()) || 0;
                 let cost = parseFloat($('#sel_prod').find(':selected').data('cost')) || 0;
+                let selling = parseFloat($('#sel_prod').find(':selected').data('selling')) || 0;
+                let condition = $('#product_condition').val();
 
-                if (entered > 0 && cost > 0) {
-                    let markup = entered - cost;
-                    let markupPct = ((markup / cost) * 100).toFixed(1);
-                    $('#markup_amount').text(markup.toFixed(2));
-                    $('#markup_pct').text(markupPct);
-                    $('#markup_info').show();
-                    $('#below_cost_warn').toggle(entered < cost);
+                if (entered > 0 && selling > 0) {
+                    let diff = entered - selling;
+                    let pct = ((Math.abs(diff) / selling) * 100).toFixed(1);
+                    
+                    if (diff < 0) {
+                        // DISCOUNT case
+                        $('#markup_info').html(`
+                            <small class="text-danger font-weight-bold">
+                                <i class="fas fa-arrow-down"></i> Discount: ₱${Math.abs(diff).toFixed(2)} (${pct}%)
+                            </small>
+                        `).show();
+                    } else if (diff > 0) {
+                        // MARKUP case
+                        $('#markup_info').html(`
+                            <small class="text-success font-weight-bold">
+                                <i class="fas fa-arrow-up"></i> Markup: ₱${diff.toFixed(2)} (${pct}%)
+                            </small>
+                        `).show();
+                    } else {
+                        $('#markup_info').hide();
+                    }
+
+                    // Special Warning for Below Cost (Standard Items Only)
+                    $('#below_cost_warn').toggle(entered < cost && condition !== 'Defective');
                 } else {
                     $('#markup_info').hide();
                     $('#below_cost_warn').hide();
@@ -834,7 +854,9 @@
                     });
                 };
 
-                if (costPrice > 0 && enteredPrice < costPrice) {
+                const condition = $('#product_condition').val();
+                
+                if (costPrice > 0 && enteredPrice < costPrice && condition !== 'Defective') {
                     Swal.fire({
                         icon: 'warning',
                         title: 'Price Below Cost!',
@@ -860,10 +882,12 @@
                 $('#modal-qty').text($(this).data('qty'));
                 $('#modal-price').text($(this).data('price'));
 
-                // ✅ Below cost check
+                // ✅ Below cost check (Allowed for Defective items)
                 let unitPrice = parseFloat(String($(this).data('price')).replace(/,/g, '')) || 0;
                 let costPrice = parseFloat($(this).data('cost') || 0);
-                if (costPrice > 0 && unitPrice < costPrice) {
+                let condition = $(this).data('condition');
+
+                if (costPrice > 0 && unitPrice < costPrice && condition !== 'Defective') {
                     $('#btn-approve-order')
                         .prop('disabled', true)
                         .removeClass('btn-success')

@@ -55,6 +55,7 @@
             var tableId = '#defectiveTable';
 
             var table = $(tableId).DataTable({
+                destroy: true,
                 processing: true,
                 serverSide: true,
                 ajax: "{{ route('inventory.defective.data') }}",
