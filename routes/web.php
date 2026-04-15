@@ -148,6 +148,7 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session', 'view.only.st
             Route::post('/{id}/scan-item', [PurchaseOrderController::class, 'scanItem'])->name('purchase-order.scan-item');
             Route::post('/{id}/complete-scan', [PurchaseOrderController::class, 'completeScan'])->name('purchase-order.complete-scan');
             Route::post('/receive', [PurchaseOrderController::class, 'receiveItems'])->name('purchase-order.receive');
+            Route::post('/{id}/mark-paid', [PurchaseOrderController::class, 'markAsPaid'])->name('purchase-order.mark-paid');
             Route::get('/{id}', [PurchaseOrderController::class, 'show'])->name('purchase-order.show');
         });
 

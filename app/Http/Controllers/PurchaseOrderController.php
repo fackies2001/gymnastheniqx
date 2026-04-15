@@ -75,6 +75,7 @@ class PurchaseOrderController extends Controller
                 'remarks' => $pr->remarks,
                 'grand_total' => $grandTotal,
                 'status' => 'pending_scan',
+                'payment_status' => 'Unpaid',
             ]);
 
             // Create PO Items
@@ -133,6 +134,39 @@ class PurchaseOrderController extends Controller
                 'success' => false,
                 'message' => 'Purchase order not found'
             ], 404);
+        }
+    }
+
+    /**
+     * ✅ ADDED: Phase 2 - Mark PO as Paid
+     */
+    public function markAsPaid($id)
+    {
+        try {
+            $po = PurchaseOrder::findOrFail($id);
+            if ($po->payment_status === 'Paid') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This Purchase Order is already marked as Paid.'
+                ], 400);
+            }
+
+            $po->update([
+                'payment_status' => 'Paid',
+                'paid_at' => now(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Purchase Order successfully marked as Paid.',
+                'paid_at' => now()->format('M d, Y h:i A')
+            ]);
+        } catch (\Exception $e) {
+            Log::error('PO Mark Paid Error:', ['id' => $id, 'error' => $e->getMessage()]);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to mark as Paid.'
+            ], 500);
         }
     }
 

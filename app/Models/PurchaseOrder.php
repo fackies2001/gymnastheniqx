@@ -25,12 +25,15 @@ class PurchaseOrder extends Model
         'status',               // ✅ Para sa status tracking
         'grand_total',          // ✅ Para sa total amount
         'warehouse_id',         // ✅ ADDED: Para sa warehouse filtering
+        'payment_status',       // ✅ ADDED: Phase 2 Liability tracking
+        'paid_at',
     ];
 
     protected $casts = [
         'order_date' => 'date',
         'delivery_date' => 'date',
         'grand_total' => 'decimal:2',
+        'paid_at' => 'datetime',
     ];
 
     /* ========================================

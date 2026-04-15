@@ -26,6 +26,7 @@
                                         <th>Approved By</th>
                                         <th>Order Date</th>
                                         <th>Status</th>
+                                        <th>Payment</th>
                                         <th class="text-center no-print">Action</th>
                                     </tr>
                                 </thead>
@@ -50,11 +51,26 @@
                                                 <span
                                                     class="badge {{ $statusClass }}">{{ strtoupper(str_replace('_', ' ', $po->status)) }}</span>
                                             </td>
+                                            <td>
+                                                @php
+                                                    $payStatusClass = $po->payment_status === 'Paid' ? 'badge-success' : 'badge-danger';
+                                                @endphp
+                                                <span class="badge {{ $payStatusClass }}">{{ strtoupper($po->payment_status ?? 'UNPAID') }}</span>
+                                                @if($po->paid_at)
+                                                    <br><small class="text-muted" style="font-size: 0.7rem;">{{ $po->paid_at->format('M d, Y') }}</small>
+                                                @endif
+                                            </td>
                                             <td class="text-center">
                                                 <button class="btn btn-info btn-xs shadow-sm view-po-details"
                                                     data-id="{{ $po->id }}" title="View Details">
                                                     <i class="fas fa-eye"></i> View
                                                 </button>
+                                                @if($po->payment_status !== 'Paid')
+                                                    <button class="btn btn-success btn-xs shadow-sm mark-paid-btn"
+                                                        data-id="{{ $po->id }}" data-po="{{ $po->po_number }}" title="Mark as Paid">
+                                                        <i class="fas fa-money-bill-wave"></i> Pay
+                                                    </button>
+                                                @endif
                                             </td>
                                         </tr>
                                     @endforeach
@@ -220,7 +236,7 @@
                     ],
                     "columnDefs": [{
                         "orderable": false,
-                        "targets": 5 // ✅ ACTION column (0-indexed)
+                        "targets": 6 // ✅ ACTION column (0-indexed)
                     }],
                     "language": {
                         "paginate": {
@@ -331,6 +347,49 @@
                 if (currentPOId) {
                     window.location.href = `/purchase-order/scan/${currentPOId}`;
                 }
+            });
+
+            // ✅ MARK AS PAID AJAX ACTION
+            $(document).on('click', '.mark-paid-btn', function() {
+                let poId = $(this).data('id');
+                let poNum = $(this).data('po');
+
+                Swal.fire({
+                    title: 'Mark as Paid?',
+                    html: `Are you sure you want to mark <b>${poNum}</b> as <b class="text-success">PAID</b>?<br><small>This will record the payment timestamp.</small>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#28a745',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, Mark as Paid!'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/purchase-order/${poId}/mark-paid`,
+                            type: 'POST',
+                            data: {
+                                _token: '{{ csrf_token() }}'
+                            },
+                            success: function(res) {
+                                if (res.success) {
+                                    Swal.fire({
+                                        icon: 'success',
+                                        title: 'Payment Recorded!',
+                                        text: res.message,
+                                        timer: 2000,
+                                        showConfirmButton: false
+                                    }).then(() => location.reload());
+                                } else {
+                                    Swal.fire('Error', res.message, 'error');
+                                }
+                            },
+                            error: function(xhr) {
+                                let msg = xhr.responseJSON?.message || 'Action failed';
+                                Swal.fire('Error', msg, 'error');
+                            }
+                        });
+                    }
+                });
             });
         });
     </script>
