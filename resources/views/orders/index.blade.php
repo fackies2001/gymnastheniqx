@@ -239,9 +239,24 @@
                                     <br><small class="text-muted">Shipped & Sold</small>
                                     @if ($order->shipped_at)
                                         <br><small class="text-info">
-                                            <i class="fas fa-clock mr-1"></i>
-                                            {{ \Carbon\Carbon::parse($order->shipped_at)->format('M d, Y h:i A') }}
+                                            <i class="fas fa-truck mr-1"></i>
+                                            Shipped: {{ \Carbon\Carbon::parse($order->shipped_at)->format('M d, Y h:i A') }}
                                         </small>
+                                    @endif
+                                    @if ($order->received_at)
+                                        <br><small class="text-success" style="font-weight: 500;">
+                                            <i class="fas fa-hands-helping mr-1"></i>
+                                            Received: {{ \Carbon\Carbon::parse($order->received_at)->format('M d, Y h:i A') }}
+                                        </small>
+                                    @else
+                                        @if ($order->shipped_at && $canManageRetailerOrders)
+                                            <br>
+                                            <button class="btn btn-sm btn-outline-success mt-1 receive-order-btn"
+                                                data-order-id="{{ $order->id }}"
+                                                data-retailer="{{ $order->retailer_name }}">
+                                                <i class="fas fa-check"></i> Mark Received
+                                            </button>
+                                        @endif
                                     @endif
                                 @endif
                             </td>
@@ -937,6 +952,47 @@
                                     title: 'Shipping Failed',
                                     text: xhr.responseJSON?.message ||
                                         'Failed to ship order',
+                                    confirmButtonColor: '#d33'
+                                });
+                            }
+                        });
+                    }
+                });
+            });
+
+            $(document).on('click', '.receive-order-btn', function() {
+                let orderId = $(this).data('order-id');
+                let retailer = $(this).data('retailer');
+                Swal.fire({
+                    title: 'Mark as Received?',
+                    html: `Confirm that <b>${retailer}</b> has successfully received this shipment.`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: '<i class="fas fa-check"></i> Yes, Mark Received!',
+                    confirmButtonColor: '#28a745',
+                    cancelButtonColor: '#6c757d'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        $.ajax({
+                            url: `/retailer-orders/${orderId}/received`,
+                            method: 'POST',
+                            data: {
+                                _token: '{{ csrf_token() }}'
+                            },
+                            success: function(response) {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Received!',
+                                    text: response.message,
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                }).then(() => location.reload());
+                            },
+                            error: function(xhr) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Action Failed',
+                                    text: xhr.responseJSON?.message || 'Failed to update order status',
                                     confirmButtonColor: '#d33'
                                 });
                             }

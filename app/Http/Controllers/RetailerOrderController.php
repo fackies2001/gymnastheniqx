@@ -485,4 +485,49 @@ class RetailerOrderController extends Controller
             return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
         }
     }
+
+    public function markReceived($id)
+    {
+        if (!Auth::user()->hasPrivilegedAccess()) {
+            return response()->json(['success' => false, 'message' => 'Access Denied!'], 403);
+        }
+
+        DB::beginTransaction();
+        try {
+            $order = RetailerOrder::findOrFail($id);
+
+            if ($order->status !== 'Completed') {
+                throw new \Exception('Order must be marked as shipped (Completed) before it can be received!');
+            }
+
+            if ($order->received_at) {
+                throw new \Exception('Order was already marked as received!');
+            }
+
+            $order->update([
+                'received_at' => now(),
+            ]);
+
+            DB::commit();
+
+            try {
+                $creator = User::find($order->created_by_user_id);
+                if ($creator) {
+                    $creator->notify(new RetailerOrderNotification(
+                        'delivered', // You can handle 'delivered' in the Notification class if you want
+                        'ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT),
+                        $order->retailer_name,
+                        (int) $order->id
+                    ));
+                }
+            } catch (\Exception $e) {
+                Log::warning('Retailer order delivered notification failed: ' . $e->getMessage());
+            }
+
+            return response()->json(['success' => true, 'message' => 'Shipment marked as Received by the Retailer!'], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 500);
+        }
+    }
 }

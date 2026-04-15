@@ -6,11 +6,16 @@ use App\Models\PurchaseRequest;
 use App\Models\PurchaseRequestItem;
 use App\Models\PurchaseOrder;
 use App\Models\PurchaseOrderItem;
+use App\Models\Sale;
+use App\Models\StockMovement;
+use App\Models\ConsumableStock;
 use App\Models\Supplier;
 use App\Models\SupplierProduct;
 use App\Models\User;
 use App\Notifications\PurchaseRequestNotification;
 use App\Notifications\PurchaseOrderNotification;
+use App\Mail\PurchaseOrderMail;
+use Illuminate\Support\Facades\Mail;
 use App\Services\DatatableServices;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -266,8 +271,14 @@ class PurchaseRequestController extends Controller
 
             // Extract remarks/payment terms JSON
             $remarksData = is_string($pr->remarks) && str_starts_with($pr->remarks, '{') ? json_decode($pr->remarks, true) : null;
-            $pr->pr_payment_terms = $remarksData['payment_terms'] ?? 'N/A';
-            $pr->pr_notes         = $remarksData['notes'] ?? $pr->remarks ?? 'N/A';
+            if (is_array($remarksData)) {
+                $pr->pr_payment_terms = $remarksData['payment_terms'] ?? 'N/A';
+                $pr->pr_notes         = array_key_exists('notes', $remarksData) ? $remarksData['notes'] : $pr->remarks;
+            } else {
+                $pr->pr_payment_terms = 'N/A';
+                $pr->pr_notes         = $pr->remarks ?? 'N/A';
+            }
+            $pr->remarks = $pr->pr_notes; // Override to fix frontend display
 
 
             $po = \App\Models\PurchaseOrder::where('purchase_request_id', $pr->id)->first();
@@ -291,8 +302,13 @@ class PurchaseRequestController extends Controller
             $pr = PurchaseRequest::with('items.supplierProduct')->findOrFail($id);
 
             $remarksData = is_string($pr->remarks) && str_starts_with($pr->remarks, '{') ? json_decode($pr->remarks, true) : null;
-            $paymentTerms = $remarksData['payment_terms'] ?? 'cash_on_delivery';
-            $notes = $remarksData['notes'] ?? $pr->remarks;
+            if (is_array($remarksData)) {
+                $paymentTerms = $remarksData['payment_terms'] ?? 'cash_on_delivery';
+                $notes = array_key_exists('notes', $remarksData) ? $remarksData['notes'] : $pr->remarks;
+            } else {
+                $paymentTerms = 'cash_on_delivery';
+                $notes = $pr->remarks;
+            }
 
             $pr->update([
                 'status_id'   => 2,
@@ -356,6 +372,20 @@ class PurchaseRequestController extends Controller
                 }
             } catch (\Exception $e) {
                 Log::warning('PR approval notification failed: ' . $e->getMessage());
+            }
+
+            // ============================================================
+            // ✅ SEND EMAIL TO SUPPLIER
+            // ============================================================
+            try {
+                if ($po->supplier && !empty($po->supplier->email)) {
+                    Mail::to($po->supplier->email)->send(new PurchaseOrderMail($po));
+                    Log::info('Purchase Order Email sent to supplier: ' . $po->supplier->email);
+                } else {
+                    Log::warning('Cannot send PO email. Supplier email is empty or null for PO ' . $po->po_number);
+                }
+            } catch (\Exception $e) {
+                Log::warning('Supplier Email Dispatch failed: ' . $e->getMessage());
             }
 
             return response()->json([

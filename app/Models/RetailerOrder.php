@@ -26,6 +26,7 @@ class RetailerOrder extends Model
         'allocated_serial_numbers', // ✅ Was "alocated_serial_numbers" in DB (now fixed via migration)
         'shipped_by',
         'shipped_at',
+        'received_at',
         'created_by_user_id',  // ✅ Nandito ba ito?
     ];
 
@@ -33,6 +34,7 @@ class RetailerOrder extends Model
         'approved_at' => 'datetime',
         'rejected_at' => 'datetime',
         'shipped_at' => 'datetime',
+        'received_at' => 'datetime',
         'quantity' => 'integer',
         'unit_price' => 'decimal:2',
         'total_amount' => 'decimal:2',
