@@ -158,7 +158,6 @@ class PurchaseRequestController extends Controller
                 'status_id'               => 1,
                 'order_date'              => $request->input('order_date') ?: now(),
                 'estimated_delivery_date' => $request->input('estimated_delivery_date'),
-                'payment_term_id'         => null, // Not used strictly if we save to remarks or if we alter DB later. Let's adapt as string.
                 'remarks'                 => json_encode([
                     'payment_terms' => $request->input('payment_terms'),
                     'notes'         => $request->input('remarks')
