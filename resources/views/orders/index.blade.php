@@ -184,8 +184,9 @@
                             <td>{{ $order->retailer_name }}</td>
                             <td>{{ $order->product_name }}</td>
                             <td class="text-center">
-                                @if($order->product_condition === 'Defective')
-                                    <span class="badge badge-danger px-2"><i class="fas fa-exclamation-triangle mr-1"></i> DEFECTIVE</span>
+                                @if ($order->product_condition === 'Defective')
+                                    <span class="badge badge-danger px-2"><i class="fas fa-exclamation-triangle mr-1"></i>
+                                        DEFECTIVE</span>
                                 @else
                                     <span class="badge badge-secondary px-2">STANDARD</span>
                                 @endif
@@ -249,13 +250,15 @@
                                     @if ($order->shipped_at)
                                         <br><small class="text-info">
                                             <i class="fas fa-truck mr-1"></i>
-                                            Shipped: {{ \Carbon\Carbon::parse($order->shipped_at)->format('M d, Y h:i A') }}
+                                            Shipped:
+                                            {{ \Carbon\Carbon::parse($order->shipped_at)->format('M d, Y h:i A') }}
                                         </small>
                                     @endif
                                     @if ($order->received_at)
                                         <br><small class="text-success" style="font-weight: 500;">
                                             <i class="fas fa-hands-helping mr-1"></i>
-                                            Received: {{ \Carbon\Carbon::parse($order->received_at)->format('M d, Y h:i A') }}
+                                            Received:
+                                            {{ \Carbon\Carbon::parse($order->received_at)->format('M d, Y h:i A') }}
                                         </small>
                                     @else
                                         @if ($order->shipped_at && $canManageRetailerOrders)
@@ -488,25 +491,24 @@
                                     placeholder="Enter Retailer's Full Name" required>
                             </div>
 
-                             <div class="col-md-6 mb-3">
+                            <div class="col-md-6 mb-3">
                                 <label class="font-weight-bold">Select Product</label>
                                 <select name="product_id" id="sel_prod" class="form-control shadow-sm" required>
                                     <option value="">-- Select Product --</option>
                                     @foreach ($warehouse_products as $p)
-                                        @php 
-                                            $displaySku = $p->system_sku ?? ($p->supplier_sku ?? ($p->barcode ?? 'No SKU'));
+                                        @php
+                                            $displaySku =
+                                                $p->system_sku ?? ($p->supplier_sku ?? ($p->barcode ?? 'No SKU'));
                                             $std = $p->available_quantity ?? 0;
                                             $def = $p->defective_quantity ?? 0;
                                         @endphp
-                                        <option value="{{ $p->id }}" 
-                                            data-cost="{{ $p->cost_price ?? 0 }}"
+                                        <option value="{{ $p->id }}" data-cost="{{ $p->cost_price ?? 0 }}"
                                             data-selling="{{ $p->selling_price ?? 0 }}"
                                             data-has-selling="{{ $p->selling_price ? '1' : '0' }}"
-                                            data-sku="{{ $displaySku }}" 
-                                            data-name="{{ $p->name }}"
-                                            data-std-qty="{{ $std }}"
-                                            data-def-qty="{{ $def }}">
-                                            {{ $p->name }} (Standard: {{ $std }}, Defective: {{ $def }})
+                                            data-sku="{{ $displaySku }}" data-name="{{ $p->name }}"
+                                            data-std-qty="{{ $std }}" data-def-qty="{{ $def }}">
+                                            {{ $p->name }} (Standard: {{ $std }}, Defective:
+                                            {{ $def }})
                                         </option>
                                     @endforeach
                                 </select>
@@ -514,13 +516,15 @@
 
                             <div class="col-md-6 mb-3">
                                 <label class="font-weight-bold text-danger">Item Condition</label>
-                                <select name="product_condition" id="product_condition" class="form-control shadow-sm border-danger" required>
+                                <select name="product_condition" id="product_condition"
+                                    class="form-control shadow-sm border-danger" required>
                                     <option value="Standard">Standard (New Stock)</option>
                                     <option value="Defective">Defective (Damaged Stock)</option>
                                 </select>
                                 <div class="mt-1 d-flex justify-content-between align-items-center">
                                     <small class="text-muted">Pull from damaged stock.</small>
-                                    <span id="condition_stock_badge" class="badge badge-pill badge-info shadow-sm" style="display:none;">
+                                    <span id="condition_stock_badge" class="badge badge-pill badge-info shadow-sm"
+                                        style="display:none;">
                                         Stock: 0
                                     </span>
                                 </div>
@@ -795,24 +799,25 @@
                     var cost = parseFloat($('#sel_prod').find(':selected').data('cost')) || 0;
                     var selling = parseFloat($('#sel_prod').find(':selected').data('selling')) || 0;
                     var condition = $('#product_condition').val() || 'Standard';
+                    var baseline = selling > 0 ? selling : cost; // fallback to cost kung walang selling price
 
-                    if (entered > 0 && selling > 0) {
-                        var diff = entered - selling;
+                    if (entered > 0 && baseline > 0) {
+                        var diff = entered - baseline;
                         var pct = 0;
-                        if (selling > 0) {
-                            pct = ((Math.abs(diff) / selling) * 100).toFixed(1);
+                        if (baseline > 0) {
+                            pct = ((Math.abs(diff) / baseline) * 100).toFixed(1);
                         }
-                        
+
                         var htmlContent = '';
                         if (diff < 0) {
-                            // DISCOUNT case
                             htmlContent = '<small class="text-danger font-weight-bold">' +
-                                '<i class="fas fa-arrow-down mr-1"></i> Discount: ₱' + Math.abs(diff).toFixed(2) + ' (' + pct + '%)' +
+                                '<i class="fas fa-arrow-down mr-1"></i> Discount: ₱' + Math.abs(diff).toFixed(2) +
+                                ' (' + pct + '%)' +
                                 '</small>';
                         } else if (diff > 0) {
-                            // MARKUP case
                             htmlContent = '<small class="text-success font-weight-bold">' +
-                                '<i class="fas fa-arrow-up mr-1"></i> Markup: ₱' + diff.toFixed(2) + ' (' + pct + '%)' +
+                                '<i class="fas fa-arrow-up mr-1"></i> Markup: ₱' + diff.toFixed(2) + ' (' + pct +
+                                '%)' +
                                 '</small>';
                         }
 
@@ -822,7 +827,7 @@
                             $('#markup_info').hide();
                         }
 
-                        // Special Warning for Below Cost (Standard Items Only)
+                        // Below cost warning (Standard Items Only)
                         if (entered < cost && condition !== 'Defective') {
                             $('#below_cost_warn').show();
                         } else {
@@ -846,7 +851,7 @@
                     if (selected.val()) {
                         var finalQty = (condition === 'Defective') ? defQty : stdQty;
                         var colorClass = (finalQty > 0) ? 'badge-success' : 'badge-danger';
-                        
+
                         $('#condition_stock_badge')
                             .attr('class', 'badge badge-pill shadow-sm ' + colorClass)
                             .html('Available: ' + finalQty + ' units')
@@ -904,7 +909,7 @@
                 };
 
                 const condition = $('#product_condition').val();
-                
+
                 if (costPrice > 0 && enteredPrice < costPrice && condition !== 'Defective') {
                     Swal.fire({
                         icon: 'warning',
@@ -1082,7 +1087,8 @@
                                 Swal.fire({
                                     icon: 'error',
                                     title: 'Action Failed',
-                                    text: xhr.responseJSON?.message || 'Failed to update order status',
+                                    text: xhr.responseJSON?.message ||
+                                        'Failed to update order status',
                                     confirmButtonColor: '#d33'
                                 });
                             }
