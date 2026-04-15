@@ -13,8 +13,8 @@ use App\Models\SupplierProduct;
 use App\Models\ProductStatus;
 use App\Models\Sale;
 use App\Models\InventoryAudit;
-use App\Models\StockMovement;      // ✅ DAGDAG — para sa consumables
-use App\Models\ConsumableStock;   // ✅ DAGDAG — para sa low stock ng consumables
+use App\Models\StockMovement;     
+use App\Models\ConsumableStock;   
 use Illuminate\Http\Request;
 use Carbon\Carbon;
 use Maatwebsite\Excel\Facades\Excel;

@@ -263,16 +263,9 @@ class DatatableServices
                 return '<span class="font-monospace text-muted">' . ($row->system_sku ?? 'N/A') . '</span>';
             })
             ->addColumn('quantity', function ($row) {
-                if ($row->is_consumable) {
-                    // ✅ FIX — direkta na, walang employee->warehouse_id
-                    // Kuhanin ang record na may pinakamataas na current_qty
-                    $available = \App\Models\ConsumableStock::where('product_id', $row->id)
-                        ->where('current_qty', '>', 0)
-                        ->orderBy('current_qty', 'desc')
-                        ->value('current_qty') ?? 0;
-                } else {
-                    $available = $row->available_count ?? 0;
-                }
+                // ✅ ALL products now use quantity-based tracking
+                $available = \App\Models\ConsumableStock::where('product_id', $row->id)
+                    ->sum('current_qty') ?? 0;
 
                 $color = $available <= 0 ? 'danger' : ($available < 20 ? 'warning' : 'primary');
 
@@ -486,42 +479,51 @@ class DatatableServices
      */
     public function get_defective_inventory_table()
     {
-        $query = \App\Models\SerializedProduct::with([
-            'supplierProducts.supplier',
-            'purchaseOrder.supplier',
-            'productStatus'
-        ])->where('status', 4); // 4 = Damaged
+        // ✅ NEW: Source data from StockMovement (type: damage)
+        // Group by product and warehouse to show total damaged quantity
+        $query = \App\Models\StockMovement::with(['product.supplier', 'purchaseOrder'])
+            ->where('type', \App\Models\StockMovement::TYPE_DAMAGE)
+            ->select(
+                'product_id', 
+                'purchase_order_id',
+                \DB::raw('SUM(quantity) as total_defective'),
+                \DB::raw('MAX(created_at) as last_reported'),
+                \DB::raw('MAX(id) as latest_movement_id') // Para sa action link if needed
+            )
+            ->groupBy('product_id', 'purchase_order_id');
 
         return DataTables::eloquent($query)
             ->addColumn('product_name', function ($row) {
-                return $row->supplierProducts->name ?? 'N/A';
+                return $row->product->name ?? 'N/A';
             })
             ->addColumn('supplier_name', function ($row) {
-                // Try to get from PO first, then product
-                return $row->purchaseOrder->supplier->name 
-                    ?? $row->supplierProducts->supplier->name 
-                    ?? 'N/A';
+                return $row->product->supplier->name ?? 'N/A';
             })
             ->addColumn('po_number', function ($row) {
                 return $row->purchaseOrder->po_number ?? 'N/A';
             })
-            ->addColumn('serial_number', function ($row) {
-                return '<span class="font-weight-bold text-danger">' . $row->serial_number . '</span>';
+            ->addColumn('defective_quantity', function ($row) {
+                return '<span class="badge badge-danger px-3 py-1" style="font-size: 0.9rem;">' 
+                    . abs($row->total_defective) . ' Units</span>';
             })
             ->addColumn('remarks', function ($row) {
-                return $row->remarks ?? '<span class="text-muted italic">No remarks</span>';
+                // Get most recent remarks for this specific damage entry
+                return \App\Models\StockMovement::where('product_id', $row->product_id)
+                    ->where('purchase_order_id', $row->purchase_order_id)
+                    ->where('type', \App\Models\StockMovement::TYPE_DAMAGE)
+                    ->latest()
+                    ->value('remarks') ?? 'No remarks';
             })
             ->addColumn('reported_at', function ($row) {
-                return $row->updated_at ? $row->updated_at->format('M d, Y h:i A') : 'N/A';
+                return \Carbon\Carbon::parse($row->last_reported)->format('M d, Y h:i A');
             })
             ->addColumn('action', function ($row) {
-                return '<div class="btn-group">
-                    <button class="btn btn-xs btn-success restore-btn" data-id="'.$row->id.'">
-                        <i class="fas fa-undo"></i> Restore
-                    </button>
-                </div>';
+                // Return the latest movement ID for restore/adjustment
+                return '<button class="btn btn-xs btn-success restore-btn" data-id="' . $row->latest_movement_id . '">
+                            <i class="fas fa-undo"></i> Restore
+                        </button>';
             })
-            ->rawColumns(['serial_number', 'remarks', 'action'])
+            ->rawColumns(['defective_quantity', 'action'])
             ->make(true);
     }
 }

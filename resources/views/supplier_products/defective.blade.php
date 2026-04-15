@@ -31,8 +31,8 @@
                             <table id="defectiveTable" class="table table-bordered table-hover w-100">
                                 <thead class="bg-dark text-white">
                                     <tr>
-                                        <th>Serial Number</th>
                                         <th>Product Name</th>
+                                        <th class="text-center">Defective Qty</th>
                                         <th>Supplier Source</th>
                                         <th>PO Number</th>
                                         <th>Damage Remarks</th>
@@ -60,8 +60,8 @@
                 serverSide: true,
                 ajax: "{{ route('inventory.defective.data') }}",
                 columns: [
-                    { data: 'serial_number', name: 'serial_number' },
                     { data: 'product_name', name: 'product_name' },
+                    { data: 'defective_quantity', name: 'defective_quantity', className: 'text-center' },
                     { data: 'supplier_name', name: 'supplier_name' },
                     { data: 'po_number', name: 'po_number', className: 'text-center' },
                     { data: 'remarks', name: 'remarks' },

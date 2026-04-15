@@ -315,103 +315,36 @@ class PurchaseOrderController extends Controller
             }
 
             // ─────────────────────────────────────────────────────
-            // 6. Gumawa ng serialized product records
-            //    PERO: CONSUMABLE products = WALANG serialization!
-            //    Consumables (food, supplies, etc.) ay quantity-based lang.
-            //    Non-consumable (gym equipment, etc.) = may serial number.
+            // 6. ✅ Record the scan (No more SRN generation)
+            //    All products are now quantity-based.
             // ─────────────────────────────────────────────────────
-            if (!$product->is_consumable) {
-                // ✅ NON-CONSUMABLE ONLY — gumawa ng SerializedProduct records
-                $scannedBy   = auth()->user()->employee->id ?? null;
-                $warehouseId = auth()->user()->employee->assigned_at ?? null;
-                $scannedAt   = now();
-
-                if ($scanType === 'box') {
-                    // ✅ BOX: Generate IISANG serial number para sa buong box
-                    $boxSerialNumber = 'SN-BOX-' . strtoupper(uniqid('', true));
-
-                    for ($i = 0; $i < $qtyToAdd; $i++) {
-                        SerializedProduct::create([
-                            'product_id'        => $product->id,
-                            'purchase_order_id' => $po->id,
-                            'barcode'           => $product->barcode,
-                            'serial_number'     => $boxSerialNumber,
-                            'status'            => 1,
-                            'scanned_at'        => $scannedAt,
-                            'scanned_by'        => $scannedBy,
-                            'warehouse_id'      => $warehouseId,
-                        ]);
-                    }
-
-                    Log::info('BOX scanned (non-consumable):', [
-                        'product'       => $product->name,
-                        'serial_number' => $boxSerialNumber,
-                        'qty_added'     => $qtyToAdd,
-                    ]);
-                } else {
-                    // ✅ PIECE: Generate UNIQUE serial number
-                    $pieceSerialNumber = 'SN-PC-' . strtoupper(uniqid('', true));
-
-                    SerializedProduct::create([
-                        'product_id'        => $product->id,
-                        'purchase_order_id' => $po->id,
-                        'barcode'           => $product->barcode,
-                        'serial_number'     => $pieceSerialNumber,
-                        'status'            => 1,
-                        'scanned_at'        => $scannedAt,
-                        'scanned_by'        => $scannedBy,
-                        'warehouse_id'      => $warehouseId,
-                    ]);
-
-                    Log::info('PIECE scanned (non-consumable):', [
-                        'product'       => $product->name,
-                        'serial_number' => $pieceSerialNumber,
-                    ]);
-                }
-            } else {
-                // ✅ CONSUMABLE — skip serialization, quantity tracking lang
-                // ConsumableStock ay ma-u-update sa StockMovement::record() sa baba
-                Log::info('CONSUMABLE scanned (no serialization):', [
-                    'product'   => $product->name,
-                    'qty_added' => $qtyToAdd,
-                    'scan_type' => $scanType,
-                ]);
-            }
+            $scannedAt   = now();
+            
+            Log::info("Product scanned (No SRN):", [
+                'product'   => $product->name,
+                'qty_added' => $qtyToAdd,
+                'scan_type' => $scanType,
+            ]);
 
             // ─────────────────────────────────────────────────────
-            // 6.5 ✅ I-record ang StockMovement (type = 'in')
-            // Para lumabas sa Daily Received ng Reports
+            // 6.5 ✅ Record StockMovement (type = 'in')
+            // This updates the ConsumableStock table automatically
             // ─────────────────────────────────────────────────────
             $employeeWarehouseId = $po->warehouse_id
                 ?? \App\Models\ConsumableStock::where('product_id', $product->id)
                 ->value('warehouse_id')
-                ?? 9; // ← fallback sa warehouse 9 (default mo based sa DB)
+                ?? 9; 
 
-            if ($product->is_consumable) {
-                // Consumable — i-record sa StockMovement
-                \App\Models\StockMovement::record([
-                    'product_id'        => $product->id,
-                    'warehouse_id'      => $employeeWarehouseId,
-                    'type'              => \App\Models\StockMovement::TYPE_IN,
-                    'quantity'          => $qtyToAdd,
-                    'reason_type'       => \App\Models\StockMovement::REASON_RECEIVED,
-                    'remarks'           => 'Received via PO scan - ' . $po->po_number,
-                    'purchase_order_id' => $po->id,
-                    'created_by'        => auth()->id(),
-                ]);
-            } else {
-                // Non-consumable — record lang sa StockMovement, hindi mag-a-update ng ConsumableStock
-                \App\Models\StockMovement::create([
-                    'product_id'        => $product->id,
-                    'warehouse_id'      => $employeeWarehouseId,
-                    'type'              => \App\Models\StockMovement::TYPE_IN,
-                    'quantity'          => $qtyToAdd,
-                    'reason_type'       => \App\Models\StockMovement::REASON_RECEIVED,
-                    'remarks'           => 'Received via PO scan - ' . $po->po_number,
-                    'purchase_order_id' => $po->id,
-                    'created_by'        => auth()->id(),
-                ]);
-            }
+            \App\Models\StockMovement::record([
+                'product_id'        => $product->id,
+                'warehouse_id'      => $employeeWarehouseId,
+                'type'              => \App\Models\StockMovement::TYPE_IN,
+                'quantity'          => $qtyToAdd,
+                'reason_type'       => \App\Models\StockMovement::REASON_RECEIVED,
+                'remarks'           => 'Received via PO scan - ' . $po->po_number,
+                'purchase_order_id' => $po->id,
+                'created_by'        => auth()->id(),
+            ]);
 
             // ─────────────────────────────────────────────────────
             // 7. I-update ang quantity_scanned ng PO item

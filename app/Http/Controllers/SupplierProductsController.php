@@ -252,22 +252,31 @@ class SupplierProductsController extends Controller
     }
 
     /**
-     * ✅ NEW: Phase 4 Restore Defective Item to Available
+     * ✅ NEW: Phase 4 Restore Defective Item to Available (Quantity-based)
      */
     public function restoreDefective($id)
     {
         try {
-            $item = \App\Models\SerializedProduct::findOrFail($id);
-            $item->update([
-                'status'  => 1, // Available
-                'remarks' => "Restored from defective on " . now()->format('Y-m-d') . ". Previous remarks: " . ($item->remarks ?? 'None')
+            $movement = \App\Models\StockMovement::findOrFail($id);
+            $qty = abs($movement->quantity);
+            
+            // "Restoring" in a quantity world means adding back to available stock
+            \App\Models\StockMovement::record([
+                'product_id'   => $movement->product_id,
+                'warehouse_id' => $movement->warehouse_id,
+                'type'         => \App\Models\StockMovement::TYPE_IN, // Increment stock
+                'quantity'     => $qty,
+                'reason_type'  => \App\Models\StockMovement::REASON_CORRECTION,
+                'remarks'      => "Restored from defective. Original Ref: movement #{$id}",
+                'created_by'   => auth()->id(),
             ]);
 
             return response()->json([
                 'success' => true,
-                'message' => "Item [{$item->serial_number}] has been restored to available stock."
+                'message' => "Successfully restored {$qty} units to available stock."
             ]);
         } catch (\Exception $e) {
+            \Log::error('Restore Defective Error: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error restoring item: ' . $e->getMessage()

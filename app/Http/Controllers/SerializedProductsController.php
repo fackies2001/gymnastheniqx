@@ -47,25 +47,8 @@ class SerializedProductsController extends Controller
 
     public function indexTable()
     {
-        $query = SupplierProduct::with(['supplier'])
-            ->where('is_consumable', false)  // ← DAGDAG LANG ITO
-            ->withCount([
-                'serializedProducts as available_count' => function ($query) {
-                    $query->where('status', 1);
-                },
-                'serializedProducts as reserved_count' => function ($query) {
-                    $query->where('status', 2);
-                },
-                'serializedProducts as sold_count' => function ($query) {
-                    $query->where('status', 3);
-                },
-                'serializedProducts as damaged_count' => function ($query) {
-                    $query->where('status', 4);
-                },
-                'serializedProducts as lost_count' => function ($query) {
-                    $query->where('status', 5);
-                }
-            ]);
+        // ✅ NEW: Show ALL products in the inventory summary
+        $query = SupplierProduct::with(['supplier']);
 
         return $this->datatableServices->get_serialized_products_summary_table($query);
     }

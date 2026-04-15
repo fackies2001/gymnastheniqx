@@ -196,7 +196,7 @@ class RetailerOrderController extends Controller
             // ✅ Phase 4: Filter based on condition
             $condition = $request->input('product_condition', 'Standard');
             $statusToSearch = ($condition === 'Defective') ? 4 : 1;
-            
+
             $availableStock = SerializedProduct::where('product_id', $product->id)
                 ->where('status', $statusToSearch)
                 ->count();

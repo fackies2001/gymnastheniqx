@@ -173,6 +173,11 @@ class SupplierProduct extends Model implements Auditable
         return $this->hasMany(SerializedProduct::class, 'product_id');
     }
 
+    public function consumableStocks()
+    {
+        return $this->hasMany(ConsumableStock::class, 'product_id');
+    }
+
     public function source()
     {
         return $this->belongsTo(Source::class, 'source_id');
@@ -184,9 +189,8 @@ class SupplierProduct extends Model implements Auditable
 
     public function getAvailableStockAttribute()
     {
-        return $this->serializedProducts()
-            ->where('status', 1)
-            ->count();
+        // ✅ ALL products now use quantity-based tracking (ConsumableStock)
+        return $this->consumableStocks()->sum('current_qty') ?? 0;
     }
 
     public function getIsLowStockAttribute()
