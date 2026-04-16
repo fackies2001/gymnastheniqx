@@ -499,10 +499,10 @@
                                         @php
                                             $displaySku =
                                                 $p->system_sku ?? ($p->supplier_sku ?? ($p->barcode ?? 'No SKU'));
-                                           $std = $p->is_consumable 
-    ? ($p->consumableStocks?->current_qty ?? 0)
-    : ($p->available_quantity ?? 0);
-$def = $p->is_consumable ? 0 : ($p->defective_quantity ?? 0);
+                                            $std = $p->is_consumable
+                                                ? ($p->consumableStocks?->current_qty ?? 0)
+                                                : ($p->available_quantity ?? 0);
+                                            $def = $p->defective_quantity ?? 0;
                                         @endphp
                                         <option value="{{ $p->id }}" data-cost="{{ $p->cost_price ?? 0 }}"
                                             data-selling="{{ $p->selling_price ?? 0 }}"
