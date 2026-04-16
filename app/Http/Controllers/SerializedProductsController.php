@@ -427,62 +427,60 @@ class SerializedProductsController extends Controller
     // ✅ NEW: reportIncident()
     // Restored logic to report damage, loss, or theft
     // =========================================================
-    public function reportIncident(Request $request)
+        public function reportIncident(Request $request)
     {
-        $request->validate([
-            'id'           => 'required|exists:supplier_product,id',
-            'qty'          => 'required|integer|min:1',
-            'incident_type'=> 'required|in:damage,loss,theft,others',
-            'remarks'      => 'nullable|string',
-        ]);
+    $request->validate([
+        'id'            => 'required|exists:supplier_product,id',
+        'qty'           => 'required|integer|min:1',
+        'incident_type' => 'required|in:damage,loss,theft,others',
+        'remarks'       => 'nullable|string',
+    ]);
 
-        $productId   = $request->id;
-        $qty         = $request->qty;
-        $type        = $request->incident_type;
-        $warehouseId = auth()->user()->assigned_at ?? 9;
+    $productId   = $request->id;
+    $qty         = $request->qty;
+    $type        = $request->incident_type;
+    $warehouseId = auth()->user()->assigned_at ?? 9;
 
-        try {
-            DB::beginTransaction();
+    try {
+        DB::beginTransaction();
 
-            // 1. Update stock
-            $stock = ConsumableStock::where('product_id', $productId)
-                ->where('warehouse_id', $warehouseId)
-                ->first();
+        // ✅ Check lang kung may sapat na stock
+        $stock = ConsumableStock::where('product_id', $productId)
+            ->where('warehouse_id', $warehouseId)
+            ->first();
 
-            if (!$stock || $stock->current_qty < $qty) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Insufficient stock to report incident.'
-                ], 400);
-            }
-
-            $stock->decrement('current_qty', $qty);
-
-            // 2. Record movement
-            StockMovement::record([
-                'product_id'   => $productId,
-                'warehouse_id' => $warehouseId,
-                'type'         => $type, // damage, loss, etc.
-                'quantity'     => $qty,
-                'reason_type'  => $type,
-                'remarks'      => $request->remarks ?? "Reported as $type",
-                'created_by'   => auth()->id(),
-            ]);
-
-            DB::commit();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'Incident reported successfully!'
-            ]);
-        } catch (\Exception $e) {
-            DB::rollBack();
+        if (!$stock || $stock->current_qty < $qty) {
             return response()->json([
                 'success' => false,
-                'message' => 'Error: ' . $e->getMessage()
-            ], 500);
+                'message' => 'Insufficient stock to report incident.'
+            ], 400);
         }
+
+        // ✅ StockMovement::record() na ang mag-de-deduct ng current_qty
+        StockMovement::record([
+            'product_id'   => $productId,
+            'warehouse_id' => $warehouseId,
+            'type'         => $type,
+            'quantity'     => $qty,
+            'reason_type'  => $type,
+            'remarks'      => $request->remarks ?? "Reported as $type",
+            'created_by'   => auth()->id(),
+        ]);
+
+        DB::commit();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Incident reported successfully!'
+        ]);
+    } catch (\Exception $e) {
+        DB::rollBack();
+        return response()->json([
+            'success' => false,
+            'message' => 'Error: ' . $e->getMessage()
+        ], 500);
     }
+}
 
     // =========================================================
     // ✅ NEW: adjust()
