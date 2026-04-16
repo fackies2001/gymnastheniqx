@@ -302,6 +302,7 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session', 'view.only.st
         Route::put('/serialized_products/update_status/{id}', 'updateStatus')->name('serialized_products.update_status');
 
         // ✅ Restored Operations (Redirected from deleted ConsumableController)
+        Route::get('/inventory', 'index')->name('consumables.index'); // ✅ FIX: ginagamit sa manager dashboard
         Route::post('/inventory/report-incident', 'reportIncident')->name('consumables.report-incident');
         Route::post('/inventory/adjust', 'adjust')->name('consumables.adjust');
         Route::post('/inventory/set-min-stock', 'setMinStock')->name('consumables.set-min-stock');
