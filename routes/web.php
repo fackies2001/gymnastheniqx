@@ -280,7 +280,12 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session', 'view.only.st
     // RETAILER ORDERS
     Route::controller(RetailerOrderController::class)->group(function () {
         Route::get('/orders', 'index')->name('retailer.orders.index');
+        Route::get('/orders/all', 'indexAll')->name('retailer.orders.all');
         Route::post('/retailer-orders/store', 'store')->name('retailer.orders.store');
+        Route::post('/retailer-orders/{id}/approve', 'approve')->name('retailer.orders.approve');
+        Route::post('/retailer-orders/{id}/reject', 'reject')->name('retailer.orders.reject');
+        Route::post('/retailer-orders/{id}/complete', 'complete')->name('retailer.orders.complete');
+        Route::post('/retailer-orders/{id}/received', 'markReceived')->name('retailer.orders.received');
     });
 
     // SERIALIZED PRODUCTS (Unified Inventory)
