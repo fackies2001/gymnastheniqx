@@ -422,4 +422,142 @@ class SerializedProductsController extends Controller
             ], 500);
         }
     }
+
+    // =========================================================
+    // ✅ NEW: reportIncident()
+    // Restored logic to report damage, loss, or theft
+    // =========================================================
+    public function reportIncident(Request $request)
+    {
+        $request->validate([
+            'id'           => 'required|exists:supplier_product,id',
+            'qty'          => 'required|integer|min:1',
+            'incident_type'=> 'required|in:damage,loss,theft,others',
+            'remarks'      => 'nullable|string',
+        ]);
+
+        $productId   = $request->id;
+        $qty         = $request->qty;
+        $type        = $request->incident_type;
+        $warehouseId = auth()->user()->assigned_at ?? 9;
+
+        try {
+            DB::beginTransaction();
+
+            // 1. Update stock
+            $stock = ConsumableStock::where('product_id', $productId)
+                ->where('warehouse_id', $warehouseId)
+                ->first();
+
+            if (!$stock || $stock->current_qty < $qty) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Insufficient stock to report incident.'
+                ], 400);
+            }
+
+            $stock->decrement('current_qty', $qty);
+
+            // 2. Record movement
+            StockMovement::record([
+                'product_id'   => $productId,
+                'warehouse_id' => $warehouseId,
+                'type'         => $type, // damage, loss, etc.
+                'quantity'     => $qty,
+                'reason_type'  => $type,
+                'remarks'      => $request->remarks ?? "Reported as $type",
+                'created_by'   => auth()->id(),
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Incident reported successfully!'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    // =========================================================
+    // ✅ NEW: adjust()
+    // Restored logic for manual inventory adjustments
+    // =========================================================
+    public function adjust(Request $request)
+    {
+        $request->validate([
+            'id'      => 'required|exists:supplier_product,id',
+            'new_qty' => 'required|integer|min:0',
+            'remarks' => 'nullable|string',
+        ]);
+
+        $productId   = $request->id;
+        $newQty      = $request->new_qty;
+        $warehouseId = auth()->user()->assigned_at ?? 9;
+
+        try {
+            DB::beginTransaction();
+
+            $stock = ConsumableStock::firstOrCreate(
+                ['product_id' => $productId, 'warehouse_id' => $warehouseId],
+                ['current_qty' => 0]
+            );
+
+            $oldQty = $stock->current_qty;
+            $diff   = $newQty - $oldQty;
+
+            if ($diff == 0) {
+                return response()->json(['success' => true, 'message' => 'No changes made.']);
+            }
+
+            $stock->update(['current_qty' => $newQty]);
+
+            // Record movement
+            StockMovement::record([
+                'product_id'   => $productId,
+                'warehouse_id' => $warehouseId,
+                'type'         => 'adjustment',
+                'quantity'     => $diff,
+                'reason_type'  => 'manual_adjustment',
+                'remarks'      => $request->remarks ?? "Manual adjustment from $oldQty to $newQty",
+                'created_by'   => auth()->id(),
+            ]);
+
+            DB::commit();
+
+            return response()->json(['success' => true, 'message' => 'Stock adjusted successfully!']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
+        }
+    }
+
+    // =========================================================
+    // ✅ NEW: setMinStock()
+    // Restored logic to set low-stock alert thresholds
+    // =========================================================
+    public function setMinStock(Request $request)
+    {
+        $request->validate([
+            'id'        => 'required|exists:supplier_product,id',
+            'min_level' => 'required|integer|min:0',
+        ]);
+
+        try {
+            $warehouseId = auth()->user()->assigned_at ?? 9;
+            ConsumableStock::updateOrCreate(
+                ['product_id' => $request->id, 'warehouse_id' => $warehouseId],
+                ['min_stock_level' => $request->min_level]
+            );
+
+            return response()->json(['success' => true, 'message' => 'Alert level updated!']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Error: ' . $e->getMessage()], 500);
+        }
+    }
 }

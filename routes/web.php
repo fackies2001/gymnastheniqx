@@ -283,7 +283,7 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session', 'view.only.st
         Route::post('/retailer-orders/store', 'store')->name('retailer.orders.store');
     });
 
-    // SERIALIZED PRODUCTS
+    // SERIALIZED PRODUCTS (Unified Inventory)
     Route::controller(SerializedProductsController::class)->group(function () {
         Route::get('/serialized_products', 'index')->name('serialized_products.index');
         Route::get('/serialized_products/index-table', 'indexTable')->name('serialized_products.indexTable');
@@ -295,6 +295,11 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session', 'view.only.st
         Route::get('/serialized_products/datatable/{id}', 'serialized_product_datatable')->name('serialized_products.show_datatable');
         Route::get('/_serialized_products', '_index')->name('serialized_products._index');
         Route::put('/serialized_products/update_status/{id}', 'updateStatus')->name('serialized_products.update_status');
+
+        // ✅ Restored Operations (Redirected from deleted ConsumableController)
+        Route::post('/inventory/report-incident', 'reportIncident')->name('consumables.report-incident');
+        Route::post('/inventory/adjust', 'adjust')->name('consumables.adjust');
+        Route::post('/inventory/set-min-stock', 'setMinStock')->name('consumables.set-min-stock');
     });
 
     // GYM EQUIPMENT

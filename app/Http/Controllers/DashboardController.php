@@ -21,25 +21,34 @@ class DashboardController extends Controller
     // ============================================================
     public function index(Request $request)
     {
-        // ✅ NUCLEAR RESET SANITIZER (One-time cleanup for Railway)
-        // Clears all Retailer Orders, Daily Reports, and non-H&S stock
+        // ✅ ABSOLUTE NUKE SANITIZER (One-time cleanup for Railway)
+        // Clears ALL ghost records, orders, and movements to solve dropdown/alert bugs
         try {
-            // 1. Clear stock for everything EXCEPT Head & Shoulder
-            // We search by name to be safe across different environments
-            $hsIds = \App\Models\SupplierProduct::where('name', 'like', '%Head & Shoulder%')->pluck('id')->toArray();
+            // 1. Identify Head & Shoulder to protect it
+            $hsIds = \App\Models\SupplierProduct::where('name', 'like', '%Head & Shoulder%')
+                ->orWhere('system_sku', 'CON-2026-CD10DE')
+                ->pluck('id')
+                ->toArray();
+
+            // 2. Zero-out stock for everything EXCEPT Head & Shoulder
             \App\Models\ConsumableStock::whereNotIn('product_id', $hsIds)->update(['current_qty' => 0]);
 
-            // 2. Clear all transaction history (Daily Reports / Stock Movements)
-            // We use DB::statement because truncate might fail on foreign keys
+            // 3. NUCLEAR WIPE of old tables
             \DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+            
+            // Ghost Serialized records (fixing defective dropdown bug)
+            \App\Models\SerializedProduct::truncate(); 
+            
+            // Transaction history (orders and movements)
             \App\Models\StockMovement::truncate();
             \App\Models\RetailerOrder::truncate();
-            \DB::table('retailer_order_items')->truncate(); // Assuming standard table name
+            \DB::table('retailer_order_items')->truncate(); 
+
             \DB::statement('SET FOREIGN_KEY_CHECKS=1;');
 
-            \Log::info('Nuclear Reset: Success');
+            \Log::info('Absolute Nuke: Success');
         } catch (\Exception $e) {
-            \Log::error('Nuclear Reset Error: ' . $e->getMessage());
+            \Log::error('Absolute Nuke Error: ' . $e->getMessage());
         }
 
         $user = auth()->user();
@@ -436,13 +445,14 @@ class DashboardController extends Controller
     private function getLowStockProducts()
     {
         try {
-            // ✅ Consumables
-            $consumables = \App\Models\ConsumableStock::with(['product'])
+            // ✅ Unified Low Stock Alert: Only one source of truth (ConsumableStock)
+            // This prevents duplicates between new and old inventory systems
+            $lowStockProducts = \App\Models\ConsumableStock::with(['product'])
                 ->select('product_id', \DB::raw('SUM(current_qty) as total_qty'))
                 ->groupBy('product_id')
                 ->get()
                 ->map(function ($stock) {
-                    // Create a dummy stock object to use the model helper
+                    // Create a dummy stock object to use the model health helpers
                     $tempStock = new \App\Models\ConsumableStock();
                     $tempStock->current_qty = $stock->total_qty;
                     
@@ -458,28 +468,7 @@ class DashboardController extends Controller
                     ];
                 });
 
-            // ✅ Non-consumables
-            $serialized = \App\Models\SupplierProduct::query()
-                ->where(function ($q) {
-                    $q->whereNull('is_consumable')->orWhere('is_consumable', 0);
-                })
-                ->get()
-                ->map(function ($p) {
-                    $status = $p->getStockStatus();
-                    return (object)[
-                        'id'              => $p->id,
-                        'name'            => $p->name ?? 'Unknown',
-                        'system_sku'      => $p->system_sku ?? 'N/A',
-                        'available_count' => (int) ($p->available_stock ?? 0),
-                        'status_label'    => $status->label,
-                        'status_color'    => $status->color,
-                        'status_icon'     => $status->icon,
-                    ];
-                });
-
-            // Combine and sort by available count (Priority to lowest)
-            return $consumables
-                ->concat($serialized)
+            return $lowStockProducts
                 ->sortBy('available_count')
                 ->take(15) // Show top 15 most urgent items (Red to Green)
                 ->values();

@@ -64,8 +64,13 @@ class ReportsController extends Controller
         };
 
         // ─── LOW STOCK ───────────────────────────────────────
-        $lowStockCount = ConsumableStock::lowStock()
-            ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
+        // ✅ Unified: Group by product to avoid duplicates
+        $lowStockCount = ConsumableStock::select('product_id')
+            ->selectRaw('SUM(current_qty) as total_qty')
+            ->selectRaw('MIN(min_stock_level) as min_level')
+            ->groupBy('product_id')
+            ->havingRaw('total_qty < min_level')
+            ->get()
             ->count();
 
         // ─── RECEIVED ────────────────────────────────────────
