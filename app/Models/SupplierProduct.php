@@ -175,7 +175,7 @@ class SupplierProduct extends Model implements Auditable
 
     public function consumableStocks()
     {
-        return $this->hasMany(ConsumableStock::class, 'product_id');
+        return $this->hasOne(\App\Models\ConsumableStock::class, 'product_id');
     }
 
     public function source()

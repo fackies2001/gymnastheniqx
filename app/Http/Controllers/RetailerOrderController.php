@@ -147,8 +147,15 @@ class RetailerOrderController extends Controller
                     $q->where('status', 4);
                 },
             ])
+            ->with(['consumableStocks']) 
             ->orderBy('name')
-            ->get();
+            ->get()
+            ->map(function ($product) {
+                if ($product->is_consumable) {
+                    $product->available_quantity = $product->consumableStocks?->current_qty ?? 0;
+                }
+                return $product;
+            });
 
         $canManageRetailerOrders = Auth::user()->hasPrivilegedAccess();
 
