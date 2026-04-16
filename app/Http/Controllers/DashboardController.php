@@ -21,35 +21,8 @@ class DashboardController extends Controller
     // ============================================================
     public function index(Request $request)
     {
-        // ✅ ABSOLUTE NUKE SANITIZER (One-time cleanup for Railway)
-        // Clears ALL ghost records, orders, and movements to solve dropdown/alert bugs
-        try {
-            // 1. Identify Head & Shoulder to protect it
-            $hsIds = \App\Models\SupplierProduct::where('name', 'like', '%Head & Shoulder%')
-                ->orWhere('system_sku', 'CON-2026-CD10DE')
-                ->pluck('id')
-                ->toArray();
-
-            // 2. Zero-out stock for everything EXCEPT Head & Shoulder
-            \App\Models\ConsumableStock::whereNotIn('product_id', $hsIds)->update(['current_qty' => 0]);
-
-            // 3. NUCLEAR WIPE of old tables
-            \DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-            
-            // Ghost Serialized records (fixing defective dropdown bug)
-            \App\Models\SerializedProduct::truncate(); 
-            
-            // Transaction history (orders and movements)
-            \App\Models\StockMovement::truncate();
-            \App\Models\RetailerOrder::truncate();
-            \DB::table('retailer_order_items')->truncate(); 
-
-            \DB::statement('SET FOREIGN_KEY_CHECKS=1;');
-
-            \Log::info('Absolute Nuke: Success');
-        } catch (\Exception $e) {
-            \Log::error('Absolute Nuke Error: ' . $e->getMessage());
-        }
+        // ✅ NUKE REMOVED — One-time cleanup already executed.
+        // Records are now safe and persistent.
 
         $user = auth()->user();
 

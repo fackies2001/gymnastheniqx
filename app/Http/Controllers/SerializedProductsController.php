@@ -427,60 +427,61 @@ class SerializedProductsController extends Controller
     // ✅ NEW: reportIncident()
     // Restored logic to report damage, loss, or theft
     // =========================================================
-        public function reportIncident(Request $request)
+    public function reportIncident(Request $request)
     {
-    $request->validate([
-        'id'            => 'required|exists:supplier_product,id',
-        'qty'           => 'required|integer|min:1',
-        'incident_type' => 'required|in:damage,loss,theft,others',
-        'remarks'       => 'nullable|string',
-    ]);
+        $request->validate([
+            'product_id'    => 'required|exists:supplier_product,id',
+            'quantity'      => 'required|integer|min:1',
+            'type'          => 'required|in:damage,loss,theft,others',
+            'remarks'       => 'nullable|string',
+        ]);
 
-    $productId   = $request->id;
-    $qty         = $request->qty;
-    $type        = $request->incident_type;
-    $warehouseId = auth()->user()->assigned_at ?? 9;
+        $productId   = $request->product_id;
+        $qty         = $request->quantity;
+        $type        = $request->type;
+        $warehouseId = auth()->user()->assigned_at ?? 9;
 
-    try {
-        DB::beginTransaction();
+        try {
+            DB::beginTransaction();
 
-        // ✅ Check lang kung may sapat na stock
-        $stock = ConsumableStock::where('product_id', $productId)
-            ->where('warehouse_id', $warehouseId)
-            ->first();
+            // ✅ Check kung may sapat na stock
+            $stock = ConsumableStock::where('product_id', $productId)
+                ->where('warehouse_id', $warehouseId)
+                ->first();
 
-        if (!$stock || $stock->current_qty < $qty) {
+            if (!$stock || $stock->current_qty < $qty) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Insufficient stock to report incident.'
+                ], 400);
+            }
+
+            // ✅ StockMovement::record() na ang mag-de-deduct ng current_qty
+            StockMovement::record([
+                'product_id'   => $productId,
+                'warehouse_id' => $warehouseId,
+                'type'         => $type,
+                'quantity'     => $qty,
+                'reason_type'  => $request->reason_type ?? $type,
+                'remarks'      => $request->remarks ?? "Reported as $type",
+                'created_by'   => auth()->id(),
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Incident reported successfully!'
+            ]);
+        } catch (\Exception $e) {
+            DB::rollBack();
             return response()->json([
                 'success' => false,
-                'message' => 'Insufficient stock to report incident.'
-            ], 400);
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
         }
-
-        // ✅ StockMovement::record() na ang mag-de-deduct ng current_qty
-        StockMovement::record([
-            'product_id'   => $productId,
-            'warehouse_id' => $warehouseId,
-            'type'         => $type,
-            'quantity'     => $qty,
-            'reason_type'  => $type,
-            'remarks'      => $request->remarks ?? "Reported as $type",
-            'created_by'   => auth()->id(),
-        ]);
-
-        DB::commit();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Incident reported successfully!'
-        ]);
-    } catch (\Exception $e) {
-        DB::rollBack();
-        return response()->json([
-            'success' => false,
-            'message' => 'Error: ' . $e->getMessage()
-        ], 500);
     }
-}
+
 
     // =========================================================
     // ✅ NEW: adjust()
@@ -489,13 +490,13 @@ class SerializedProductsController extends Controller
     public function adjust(Request $request)
     {
         $request->validate([
-            'id'      => 'required|exists:supplier_product,id',
-            'new_qty' => 'required|integer|min:0',
-            'remarks' => 'nullable|string',
+            'product_id' => 'required|exists:supplier_product,id',
+            'actual_qty' => 'required|integer|min:0',
+            'remarks'    => 'nullable|string',
         ]);
 
-        $productId   = $request->id;
-        $newQty      = $request->new_qty;
+        $productId   = $request->product_id;
+        $newQty      = $request->actual_qty;
         $warehouseId = auth()->user()->assigned_at ?? 9;
 
         try {
@@ -542,14 +543,14 @@ class SerializedProductsController extends Controller
     public function setMinStock(Request $request)
     {
         $request->validate([
-            'id'        => 'required|exists:supplier_product,id',
-            'min_level' => 'required|integer|min:0',
+            'product_id' => 'required|exists:supplier_product,id',
+            'min_level'  => 'required|integer|min:0',
         ]);
 
         try {
             $warehouseId = auth()->user()->assigned_at ?? 9;
             ConsumableStock::updateOrCreate(
-                ['product_id' => $request->id, 'warehouse_id' => $warehouseId],
+                ['product_id' => $request->product_id, 'warehouse_id' => $warehouseId],
                 ['min_stock_level' => $request->min_level]
             );
 
