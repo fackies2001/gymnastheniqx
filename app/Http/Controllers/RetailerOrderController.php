@@ -138,6 +138,24 @@ class RetailerOrderController extends Controller
             ->where('status', 'Completed')
             ->count();
 
+        // ✅ Pre-compute NET defective quantities for consumables:
+        // = total damaged - already sold as defective
+        $rawDamageQtys = \App\Models\StockMovement::where('type', \App\Models\StockMovement::TYPE_DAMAGE)
+            ->selectRaw('product_id, SUM(quantity) as total_damaged')
+            ->groupBy('product_id')
+            ->pluck('total_damaged', 'product_id');
+
+        $soldDefectiveQtys = \App\Models\StockMovement::where('reason_type', 'sold_defective')
+            ->selectRaw('product_id, SUM(quantity) as total_sold')
+            ->groupBy('product_id')
+            ->pluck('total_sold', 'product_id');
+
+        $consumableDamageQtys = $rawDamageQtys->mapWithKeys(function ($damaged, $productId) use ($soldDefectiveQtys) {
+            $sold = $soldDefectiveQtys[$productId] ?? 0;
+            return [$productId => max(0, abs($damaged) - $sold)];
+        });
+
+
         $warehouse_products = SupplierProduct::query()
             ->withCount([
                 'serializedProducts as available_quantity' => function ($q) {
@@ -147,12 +165,15 @@ class RetailerOrderController extends Controller
                     $q->where('status', 4);
                 },
             ])
-            ->with(['consumableStocks']) 
+            ->with(['consumableStocks'])
             ->orderBy('name')
             ->get()
-            ->map(function ($product) {
+            ->map(function ($product) use ($consumableDamageQtys) {
                 if ($product->is_consumable) {
+                    // For consumables: available stock from consumable_stocks table
                     $product->available_quantity = $product->consumableStocks?->current_qty ?? 0;
+                    // For consumables: defective stock from StockMovement type=damage
+                    $product->defective_quantity = abs($consumableDamageQtys[$product->id] ?? 0);
                 }
                 return $product;
             });
@@ -194,27 +215,34 @@ class RetailerOrderController extends Controller
 
         $product = SupplierProduct::findOrFail($request->product_id);
 
-        // ✅ FIX — Kung consumable, kuhanin sa consumable_stocks
-        // Kung non-consumable, kuhanin sa serialized_product
-        if ($product->is_consumable) {
-            $availableStock = \App\Models\ConsumableStock::where('product_id', $product->id)
-                ->value('current_qty') ?? 0;
-        } else {
-            // ✅ Phase 4: Filter based on condition
-            $condition = $request->input('product_condition', 'Standard');
-            $statusToSearch = ($condition === 'Defective') ? 4 : 1;
+        $condition = $request->input('product_condition', 'Standard');
 
+        // ✅ FIX — Stock validation based on product type AND condition
+        if ($product->is_consumable) {
+            if ($condition === 'Defective') {
+                // Defective stock for consumables = net damage movements (total damage - restored items)
+                $totalDamaged = \App\Models\StockMovement::where('product_id', $product->id)
+                    ->where('type', \App\Models\StockMovement::TYPE_DAMAGE)
+                    ->sum('quantity');
+                $availableStock = abs($totalDamaged);
+            } else {
+                $availableStock = \App\Models\ConsumableStock::where('product_id', $product->id)
+                    ->value('current_qty') ?? 0;
+            }
+        } else {
+            // Non-consumable: count from SerializedProduct by status
+            $statusToSearch = ($condition === 'Defective') ? 4 : 1;
             $availableStock = SerializedProduct::where('product_id', $product->id)
                 ->where('status', $statusToSearch)
                 ->count();
         }
 
         if ($availableStock === 0) {
-            return back()->with('error', '❌ Order failed! No available stock for this product.');
+            return back()->with('error', '❌ Order failed! No available ' . strtolower($condition) . ' stock for this product.');
         }
 
         if ($request->quantity > $availableStock) {
-            return back()->with('error', "❌ Insufficient stock! Available: {$availableStock} units only. You ordered: {$request->quantity} units.");
+            return back()->with('error', "❌ Insufficient stock! Available: {$availableStock} {$condition} units only. You ordered: {$request->quantity} units.");
         }
 
         $order = RetailerOrder::create([
@@ -312,21 +340,38 @@ class RetailerOrderController extends Controller
                 'allocated_serial_numbers' => json_encode($serialNumbers),
             ]);
 
-            //  DAGDAG — i-record ang stock movement para sa consumable products
+            // ✅ Record stock movement for consumable products
             if ($product && $product->is_consumable) {
                 $warehouseId = \App\Models\ConsumableStock::where('product_id', $product->id)
                     ->value('warehouse_id') ?? 9;
 
-                \App\Models\StockMovement::record([
-                    'product_id'        => $product->id,
-                    'warehouse_id'      => $warehouseId,
-                    'type'              => \App\Models\StockMovement::TYPE_OUT,
-                    'quantity'          => $order->quantity,
-                    'reason_type'       => \App\Models\StockMovement::REASON_SOLD,
-                    'remarks'           => "Sold to Retailer: {$order->retailer_name} (Order ID: {$order->id})",
-                    'retailer_order_id' => $order->id,
-                    'created_by'        => auth()->id(),
-                ]);
+                if ($order->product_condition === 'Defective') {
+                    // ✅ Defective stock is already deducted from current_qty when damage was reported.
+                    // We only log the sale as a movement for reporting — no double deduction.
+                    // Use negative adjustment to decrement the damage pool without touching current_qty again.
+                    \App\Models\StockMovement::create([
+                        'product_id'        => $product->id,
+                        'warehouse_id'      => $warehouseId,
+                        'type'              => \App\Models\StockMovement::TYPE_OUT,
+                        'quantity'          => $order->quantity,
+                        'reason_type'       => 'sold_defective',
+                        'remarks'           => "Sold Defective to Retailer: {$order->retailer_name} (Order ID: {$order->id})",
+                        'retailer_order_id' => $order->id,
+                        'created_by'        => auth()->id(),
+                    ]);
+                } else {
+                    // ✅ Standard stock — deduct from current_qty via StockMovement::record()
+                    \App\Models\StockMovement::record([
+                        'product_id'        => $product->id,
+                        'warehouse_id'      => $warehouseId,
+                        'type'              => \App\Models\StockMovement::TYPE_OUT,
+                        'quantity'          => $order->quantity,
+                        'reason_type'       => \App\Models\StockMovement::REASON_SOLD,
+                        'remarks'           => "Sold to Retailer: {$order->retailer_name} (Order ID: {$order->id})",
+                        'retailer_order_id' => $order->id,
+                        'created_by'        => auth()->id(),
+                    ]);
+                }
             }
 
             DB::commit();

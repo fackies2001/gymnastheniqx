@@ -486,18 +486,25 @@ class DatatableServices
      */
     public function get_defective_inventory_table()
     {
-        // ✅ NEW: Source data from StockMovement (type: damage)
-        // Group by product and warehouse to show total damaged quantity
+        // ✅ Source: StockMovement type=damage, group by product
+        // Net defective = total damaged - already sold as defective
         $query = \App\Models\StockMovement::with(['product.supplier', 'purchaseOrder'])
             ->where('type', \App\Models\StockMovement::TYPE_DAMAGE)
             ->select(
-                'product_id', 
+                'product_id',
                 'purchase_order_id',
                 \DB::raw('SUM(quantity) as total_defective'),
                 \DB::raw('MAX(created_at) as last_reported'),
-                \DB::raw('MAX(id) as latest_movement_id') // Para sa action link if needed
+                \DB::raw('MAX(id) as latest_movement_id')
             )
             ->groupBy('product_id', 'purchase_order_id');
+
+        // Pre-compute how many defective units have already been sold
+        $soldDefectiveQtys = \App\Models\StockMovement::where('reason_type', 'sold_defective')
+            ->selectRaw('product_id, SUM(quantity) as total_sold')
+            ->groupBy('product_id')
+            ->pluck('total_sold', 'product_id');
+
 
         return DataTables::eloquent($query)
             ->addColumn('product_name', function ($row) {
@@ -509,9 +516,13 @@ class DatatableServices
             ->addColumn('po_number', function ($row) {
                 return $row->purchaseOrder->po_number ?? 'N/A';
             })
-            ->addColumn('defective_quantity', function ($row) {
-                return '<span class="badge badge-danger px-3 py-1" style="font-size: 0.9rem;">' 
-                    . abs($row->total_defective) . ' Units</span>';
+            ->addColumn('defective_quantity', function ($row) use ($soldDefectiveQtys) {
+                $grossDamaged = abs($row->total_defective);
+                $sold = $soldDefectiveQtys[$row->product_id] ?? 0;
+                $net = max(0, $grossDamaged - $sold);
+                $color = $net > 0 ? 'badge-danger' : 'badge-success';
+                $label = $net > 0 ? "{$net} Units" : 'Cleared';
+                return '<span class="badge ' . $color . ' px-3 py-1" style="font-size: 0.9rem;">' . $label . '</span>';
             })
             ->addColumn('remarks', function ($row) {
                 // Get most recent remarks for this specific damage entry
