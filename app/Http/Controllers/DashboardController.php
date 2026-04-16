@@ -234,84 +234,44 @@ class DashboardController extends Controller
     }
 
     // ============================================================
-    // ✅ HELPER: Get serialized product status counts
+    // ✅ HELPER: Get product status counts (Consumable Stock Health)
+    // Replaces the old SerializedProduct-based pie chart which returned
+    // empty after migration to ConsumableStock
     // ============================================================
     private function getSerializedProductStatusCounts(Request $request)
     {
         try {
-            $query = SerializedProduct::select(
-                'product_status.name as status_name',
-                DB::raw('count(serialized_product.id) as count')
-            )
-                ->join('product_status', 'serialized_product.status', '=', 'product_status.id');
+            $stocks = \App\Models\ConsumableStock::with('product')
+                ->select('product_id', DB::raw('SUM(current_qty) as total_qty'), DB::raw('MIN(min_stock_level) as min_level'))
+                ->groupBy('product_id')
+                ->get();
 
-            // ✅ GAMIT ang updated_at — para makita yung mga na-UPDATE na status ngayon
-            // Hindi created_at — kasi yung created_at ay kung kailan na-scan, hindi kung kailan nag-bago ang status
-            if ($request->filled('filter_type')) {
-                $this->applyDateFilter($query, $request, 'serialized_product');
+            $counts = [
+                'In Stock'    => 0,
+                'Low Stock'   => 0,
+                'Critical'    => 0,
+                'Out of Stock'=> 0,
+            ];
 
-                // ✅ Override — gamitin updated_at instead of created_at
-                $filterType = $request->filter_type;
-                $today = Carbon::today()->startOfDay();
+            foreach ($stocks as $stock) {
+                $qty   = (int) $stock->total_qty;
+                $min   = (int) ($stock->min_level ?? 20);
 
-                // Reset yung query filter at gamitin updated_at
-                $query = SerializedProduct::select(
-                    'product_status.name as status_name',
-                    DB::raw('count(serialized_product.id) as count')
-                )
-                    ->join('product_status', 'serialized_product.status', '=', 'product_status.id');
-
-                switch ($filterType) {
-                    case 'today':
-                        $query->whereDate('serialized_product.updated_at', $today);
-                        break;
-                    case 'yesterday':
-                        $query->whereDate('serialized_product.updated_at', $today->copy()->subDay());
-                        break;
-                    case 'last_7_days':
-                        $query->whereBetween('serialized_product.updated_at', [
-                            $today->copy()->subDays(6)->startOfDay(),
-                            Carbon::now()->endOfDay()
-                        ]);
-                        break;
-                    case 'last_30_days':
-                        $query->whereBetween('serialized_product.updated_at', [
-                            $today->copy()->subDays(29)->startOfDay(),
-                            Carbon::now()->endOfDay()
-                        ]);
-                        break;
-                    case 'this_month':
-                        $query->whereMonth('serialized_product.updated_at', Carbon::now()->month)
-                            ->whereYear('serialized_product.updated_at', Carbon::now()->year);
-                        break;
-                    case 'last_month':
-                        $lastMonth = Carbon::now()->subMonth();
-                        $query->whereMonth('serialized_product.updated_at', $lastMonth->month)
-                            ->whereYear('serialized_product.updated_at', $lastMonth->year);
-                        break;
-                    case 'this_year':
-                        $query->whereYear('serialized_product.updated_at', Carbon::now()->year);
-                        break;
-                    case 'custom':
-                        if ($request->filled('start_date') && $request->filled('end_date')) {
-                            $query->whereBetween('serialized_product.updated_at', [
-                                $request->start_date . ' 00:00:00',
-                                $request->end_date . ' 23:59:59'
-                            ]);
-                        }
-                        break;
+                if ($qty <= 0) {
+                    $counts['Out of Stock']++;
+                } elseif ($qty <= ($min * 0.25)) {
+                    $counts['Critical']++;
+                } elseif ($qty < $min) {
+                    $counts['Low Stock']++;
+                } else {
+                    $counts['In Stock']++;
                 }
             }
-            // ✅ Kung walang filter (All Time) — lahat ng current status
-            // Walang date filter — show all
 
-            $results = $query->groupBy('product_status.name', 'product_status.id')
-                ->pluck('count', 'status_name')
-                ->toArray();
-
-            return $results;
+            // Remove zero-count categories to keep pie clean
+            return array_filter($counts, fn($v) => $v > 0);
         } catch (\Exception $e) {
-            \Log::error('Error getting serialized product status counts: ' . $e->getMessage());
+            \Log::error('Error getting product status counts: ' . $e->getMessage());
             return [];
         }
     }

@@ -221,6 +221,21 @@ class ReportsController extends Controller
                         $originalPrice = $movement->product->cost_price      ?? 0;
                         $totalAmount   = $totalQty * $originalPrice;
 
+                        // Tax from PO item (supplier tax paid when buying)
+                        $taxAmount = 0;
+                        if ($movement->purchase_order_id) {
+                            $poItem = \App\Models\PurchaseOrderItem::where('purchase_order_id', $movement->purchase_order_id)
+                                ->where('product_id', $movement->product_id)
+                                ->first();
+                            if ($poItem) {
+                                $taxAmount = $poItem->tax_amount ?? ($totalAmount * 0.12);
+                            } else {
+                                $taxAmount = $totalAmount * 0.12;
+                            }
+                        } else {
+                            $taxAmount = $totalAmount * 0.12;
+                        }
+
                         $reasonLabel = 'Received from Supplier';
 
                         $data[] = [
@@ -229,8 +244,9 @@ class ReportsController extends Controller
                             'traceability'  => '<small>
                                 <strong>Type:</strong> ' . $reasonLabel . '<br>
                                 <strong>PO Number:</strong> ' . e($poNumber) . '<br>
-                                <strong>Original Price:</strong> <span class="text-danger font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
-                                <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span>
+                                <strong>Unit Cost:</strong> <span class="text-danger font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
+                                <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span><br>
+                                <strong>Tax (supplier):</strong> <span class="text-warning font-weight-bold">₱' . number_format($taxAmount, 2) . '</span>
                             </small>',
                             'quantity' => $totalQty,
                             'status'   => 'Received',
@@ -268,8 +284,12 @@ class ReportsController extends Controller
                             ? number_format((($markup / $originalPrice) * 100), 1)
                             : 'N/A';
 
-                        $conditionBadge = $order->product_condition === 'Defective' 
-                            ? '<span class="badge badge-danger">DEFECTIVE</span>' 
+                        // VAT = 12% of the selling total (charged to retailer)
+                        $vatAmount    = $totalAmount * 0.12;
+                        $priceExclVat = $totalAmount / 1.12;
+
+                        $conditionBadge = $order->product_condition === 'Defective'
+                            ? '<span class="badge badge-danger">DEFECTIVE</span>'
                             : '<span class="badge badge-secondary">STANDARD</span>';
 
                         $data[] = [
@@ -278,12 +298,13 @@ class ReportsController extends Controller
                             'category_name' => '<span class="badge badge-success">Outflow</span>',
                             'traceability'  => '<small>
                         <strong>Type:</strong> Retailer Order (' . e($order->product_condition) . ')<br>
-                        <strong>Order #:</strong> ' . e($order->id) . '<br>
+                        <strong>Order #:</strong> ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT) . '<br>
                         <strong>Retailer:</strong> ' . e($retailerName) . '<br>
-                        <strong>Original Price:</strong> <span class="text-secondary font-weight-bold">₱' . number_format($originalPrice, 2) . '</span><br>
                         <strong>Selling Price:</strong> <span class="text-success font-weight-bold">₱' . number_format($sellingPrice, 2) . '</span><br>
-                        <strong>Markup:</strong> <span class="text-info font-weight-bold">₱' . number_format($markup, 2) . ' (' . $markupPct . '%)</span><br>
-                        <strong>Total Amount:</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span>
+                        <strong>Amount (excl. VAT):</strong> <span class="text-secondary">₱' . number_format($priceExclVat, 2) . '</span><br>
+                        <strong>VAT (12%):</strong> <span class="text-warning font-weight-bold">₱' . number_format($vatAmount, 2) . '</span><br>
+                        <strong>Total (incl. VAT):</strong> <span class="text-primary font-weight-bold">₱' . number_format($totalAmount, 2) . '</span><br>
+                        <strong>Markup:</strong> <span class="text-info font-weight-bold">₱' . number_format($markup, 2) . ' (' . $markupPct . '%)</span>
                     </small>',
                             'quantity' => $order->quantity,
                             'status'   => 'Outflow',
