@@ -156,7 +156,7 @@ if (barcodeInput) {
         if (mode === 'box') {
             indicator.style.background = '#fff8e1';
             indicator.style.color      = '#e65100';
-            indicator.innerHTML = '<i class="fas fa-box mr-1"></i> BOX MODE — Same serial number para sa lahat ng pieces';
+            indicator.innerHTML = '<i class="fas fa-box mr-1"></i> BOX MODE — Same serial number for all pieces';
         } else {
             indicator.style.background = '#e3f2fd';
             indicator.style.color      = '#1565c0';

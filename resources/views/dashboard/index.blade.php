@@ -724,7 +724,7 @@
                                 <th class="pl-3" style="width:60%">Product</th>
                                 <th class="text-center" style="width:40%">
                                     Qty <small class="text-muted d-block"
-                                        style="font-size:0.68rem; font-weight:normal;">(Below 20)</small>
+                                        style="font-size:0.68rem; font-weight:normal;">(Below 25)</small>
                                 </th>
                             </tr>
                         </thead>
@@ -749,7 +749,7 @@
                                         <i class="fas fa-check-circle text-success mb-2"
                                             style="font-size:2rem; display:block;"></i>
                                         <div class="font-weight-bold">All stocks are good!</div>
-                                        <small>No items below 20 units</small>
+                                        <small>No items below 25 units</small>
                                     </td>
                                 </tr>
                             @endforelse

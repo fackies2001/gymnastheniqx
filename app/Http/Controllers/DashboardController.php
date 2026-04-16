@@ -383,6 +383,7 @@ class DashboardController extends Controller
             $lowStockProducts = \App\Models\ConsumableStock::with(['product'])
                 ->select('product_id', \DB::raw('SUM(current_qty) as total_qty'))
                 ->groupBy('product_id')
+                ->havingRaw('SUM(current_qty) < 25')
                 ->get()
                 ->map(function ($stock) {
                     // Create a dummy stock object to use the model health helpers

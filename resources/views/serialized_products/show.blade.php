@@ -144,14 +144,14 @@
                         <div class="form-group">
                             <label>Incident Type</label>
                             <select name="type" class="form-control" required>
-                                <option value="damage">❌ Damage (Nasira)</option>
-                                <option value="loss">⚠️ Loss (Nawala)</option>
+                                <option value="damage">❌ Damage</option>
+                                <option value="loss">⚠️ Loss</option>
                             </select>
                         </div>
                         <div class="form-group">
                             <label>Quantity (pcs)</label>
                             <input type="number" name="quantity" class="form-control" min="1" required
-                                placeholder="Ilang piraso ang nasira/nawala?">
+                                placeholder="How many pieces were damaged/lost?">
                         </div>
                         <div class="form-group">
                             <label>Reason</label>
@@ -194,7 +194,7 @@
                 <div class="modal-body">
                     <div class="alert alert-info py-2" style="font-size:13px;">
                         <i class="fas fa-info-circle"></i>
-                        Gamitin ito kung hindi match ang actual count vs system count.
+                        Use this if the actual count does not match the system count.
                     </div>
                     <form id="adjustForm">
                         @csrf
@@ -289,6 +289,10 @@
 
             // ✅ Submit Damage / Loss Report
             $('#submitIncident').on('click', function() {
+                if (!$('#reportIncidentForm')[0].checkValidity()) {
+                    $('#reportIncidentForm')[0].reportValidity();
+                    return;
+                }
                 let btn = $(this).prop('disabled', true).html(
                     '<i class="fas fa-spinner fa-spin"></i> Saving...');
 
@@ -304,7 +308,7 @@
                         }
                     },
                     error: function(xhr) {
-                        Swal.fire('Error!', 'Something went wrong.', 'error');
+                        Swal.fire('Error!', xhr.responseJSON?.message ?? 'Something went wrong.', 'error');
                     }, // ← COMMA!
                     complete: function() {
                         $('#submitIncident').prop('disabled', false)
@@ -315,6 +319,10 @@
 
             // ✅ Submit Stock Adjustment
             $('#submitAdjust').on('click', function() {
+                if (!$('#adjustForm')[0].checkValidity()) {
+                    $('#adjustForm')[0].reportValidity();
+                    return;
+                }
                 $(this).prop('disabled', true).html('<i class="fas fa-spinner fa-spin"></i> Saving...');
 
                 $.ajax({
