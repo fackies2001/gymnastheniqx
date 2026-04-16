@@ -139,17 +139,20 @@ class RetailerOrderController extends Controller
             ->count();
 
         // ✅ Pre-compute NET defective quantities for consumables:
-        // = total damaged - already sold - already reserved in Pending/Approved orders
+        // = total damaged - already sold (Completed defective orders) - already reserved (Pending/Approved)
         $rawDamageQtys = \App\Models\StockMovement::where('type', \App\Models\StockMovement::TYPE_DAMAGE)
             ->selectRaw('product_id, SUM(quantity) as total_damaged')
             ->groupBy('product_id')
             ->pluck('total_damaged', 'product_id');
 
-        $soldDefectiveQtys = \App\Models\StockMovement::where('reason_type', 'sold_defective')
+        // Completed defective orders = already sold
+        $soldDefectiveQtys = RetailerOrder::where('product_condition', 'Defective')
+            ->where('status', 'Completed')
             ->selectRaw('product_id, SUM(quantity) as total_sold')
             ->groupBy('product_id')
             ->pluck('total_sold', 'product_id');
 
+        // Pending/Approved defective orders = reserved but not yet processed
         $pendingDefectiveQtys = RetailerOrder::where('product_condition', 'Defective')
             ->whereIn('status', ['Pending', 'Approved'])
             ->selectRaw('product_id, SUM(quantity) as total_pending')
@@ -232,12 +235,13 @@ class RetailerOrderController extends Controller
                     ->where('type', \App\Models\StockMovement::TYPE_DAMAGE)
                     ->sum('quantity'));
 
-                // Already sold (approved defective orders)
-                $totalSoldDefective = abs(\App\Models\StockMovement::where('product_id', $product->id)
-                    ->where('reason_type', 'sold_defective')
-                    ->sum('quantity'));
+                // Already sold (Completed defective orders)
+                $totalSoldDefective = RetailerOrder::where('product_id', $product->id)
+                    ->where('product_condition', 'Defective')
+                    ->where('status', 'Completed')
+                    ->sum('quantity');
 
-                // Already reserved in Pending/Approved defective orders (not yet processed)
+                // Already reserved in Pending/Approved defective orders (not yet completed)
                 $totalPendingDefective = RetailerOrder::where('product_id', $product->id)
                     ->where('product_condition', 'Defective')
                     ->whereIn('status', ['Pending', 'Approved'])
@@ -366,15 +370,14 @@ class RetailerOrderController extends Controller
 
                 if ($order->product_condition === 'Defective') {
                     // ✅ Defective stock is already deducted from current_qty when damage was reported.
-                    // We only log the sale as a movement for reporting — no double deduction.
-                    // Use negative adjustment to decrement the damage pool without touching current_qty again.
+                    // We only log the sale for reporting — no double deduction.
                     \App\Models\StockMovement::create([
                         'product_id'        => $product->id,
                         'warehouse_id'      => $warehouseId,
                         'type'              => \App\Models\StockMovement::TYPE_OUT,
                         'quantity'          => $order->quantity,
-                        'reason_type'       => 'sold_defective',
-                        'remarks'           => "Sold Defective to Retailer: {$order->retailer_name} (Order ID: {$order->id})",
+                        'reason_type'       => \App\Models\StockMovement::REASON_SOLD,
+                        'remarks'           => "[DEFECTIVE SALE] Sold to Retailer: {$order->retailer_name} (Order ID: {$order->id})",
                         'retailer_order_id' => $order->id,
                         'created_by'        => auth()->id(),
                     ]);

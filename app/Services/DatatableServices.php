@@ -499,8 +499,9 @@ class DatatableServices
             )
             ->groupBy('product_id', 'purchase_order_id');
 
-        // Pre-compute how many defective units have already been sold
-        $soldDefectiveQtys = \App\Models\StockMovement::where('reason_type', 'sold_defective')
+        // Completed defective orders = already sold (use RetailerOrder, not StockMovement reason_type)
+        $soldDefectiveQtys = \App\Models\RetailerOrder::where('product_condition', 'Defective')
+            ->where('status', 'Completed')
             ->selectRaw('product_id, SUM(quantity) as total_sold')
             ->groupBy('product_id')
             ->pluck('total_sold', 'product_id');
