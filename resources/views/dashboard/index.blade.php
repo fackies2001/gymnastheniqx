@@ -591,13 +591,9 @@
                                 <span class="badge bg-orange text-white mr-1"><i class="fas fa-exclamation-triangle"></i></span> 
                                 <span class="font-weight-bold">Low (6-15)</span>
                             </div>
-                            <div class="mr-4 small">
+                            <div class="small">
                                 <span class="badge badge-warning mr-1"><i class="fas fa-clock"></i></span> 
                                 <span class="font-weight-bold">Warning (16-25)</span>
-                            </div>
-                            <div class="small">
-                                <span class="badge badge-success mr-1"><i class="fas fa-check-circle"></i></span> 
-                                <span class="font-weight-bold">Healthy (>25)</span>
                             </div>
                         </div>
                     </div>
