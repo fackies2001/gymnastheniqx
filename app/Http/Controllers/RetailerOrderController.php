@@ -139,7 +139,7 @@ class RetailerOrderController extends Controller
             ->count();
 
         // ✅ Pre-compute NET defective quantities for consumables:
-        // = total damaged - already sold as defective
+        // = total damaged - already sold - already reserved in Pending/Approved orders
         $rawDamageQtys = \App\Models\StockMovement::where('type', \App\Models\StockMovement::TYPE_DAMAGE)
             ->selectRaw('product_id, SUM(quantity) as total_damaged')
             ->groupBy('product_id')
@@ -150,9 +150,16 @@ class RetailerOrderController extends Controller
             ->groupBy('product_id')
             ->pluck('total_sold', 'product_id');
 
-        $consumableDamageQtys = $rawDamageQtys->mapWithKeys(function ($damaged, $productId) use ($soldDefectiveQtys) {
-            $sold = $soldDefectiveQtys[$productId] ?? 0;
-            return [$productId => max(0, abs($damaged) - $sold)];
+        $pendingDefectiveQtys = RetailerOrder::where('product_condition', 'Defective')
+            ->whereIn('status', ['Pending', 'Approved'])
+            ->selectRaw('product_id, SUM(quantity) as total_pending')
+            ->groupBy('product_id')
+            ->pluck('total_pending', 'product_id');
+
+        $consumableDamageQtys = $rawDamageQtys->mapWithKeys(function ($damaged, $productId) use ($soldDefectiveQtys, $pendingDefectiveQtys) {
+            $sold    = $soldDefectiveQtys[$productId] ?? 0;
+            $pending = $pendingDefectiveQtys[$productId] ?? 0;
+            return [$productId => max(0, abs($damaged) - $sold - $pending)];
         });
 
 
@@ -220,11 +227,23 @@ class RetailerOrderController extends Controller
         // ✅ FIX — Stock validation based on product type AND condition
         if ($product->is_consumable) {
             if ($condition === 'Defective') {
-                // Defective stock for consumables = net damage movements (total damage - restored items)
-                $totalDamaged = \App\Models\StockMovement::where('product_id', $product->id)
+                // Gross defective = total damage reported
+                $totalDamaged = abs(\App\Models\StockMovement::where('product_id', $product->id)
                     ->where('type', \App\Models\StockMovement::TYPE_DAMAGE)
+                    ->sum('quantity'));
+
+                // Already sold (approved defective orders)
+                $totalSoldDefective = abs(\App\Models\StockMovement::where('product_id', $product->id)
+                    ->where('reason_type', 'sold_defective')
+                    ->sum('quantity'));
+
+                // Already reserved in Pending/Approved defective orders (not yet processed)
+                $totalPendingDefective = RetailerOrder::where('product_id', $product->id)
+                    ->where('product_condition', 'Defective')
+                    ->whereIn('status', ['Pending', 'Approved'])
                     ->sum('quantity');
-                $availableStock = abs($totalDamaged);
+
+                $availableStock = max(0, $totalDamaged - $totalSoldDefective - $totalPendingDefective);
             } else {
                 $availableStock = \App\Models\ConsumableStock::where('product_id', $product->id)
                     ->value('current_qty') ?? 0;
