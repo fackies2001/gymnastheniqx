@@ -332,17 +332,8 @@ class PurchaseOrderController extends Controller
             // ─────────────────────────────────────────────────────
             $employeeWarehouseId = $po->warehouse_id
                 ?? auth()->user()->warehouse_id
-                ?? \App\Models\ConsumableStock::where('product_id', $product->id)
-                ->value('warehouse_id')
-                ?? null;
-
-            if (!$employeeWarehouseId) {
-                DB::rollBack();
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Warehouse not found. Please contact administrator.'
-                ], 400);
-            }
+                ?? auth()->user()->assigned_at
+                ?? 9; // fallback sa warehouse 9
 
             \App\Models\StockMovement::record([
                 'product_id'        => $product->id,
