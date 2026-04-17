@@ -486,7 +486,7 @@ return [
             'url' => 'user-management',
             'icon' => 'fas fa-fw fa-users-cog',
             'active' => ['user-management*'],
-            'role' => ['admin', 'manager'],
+            'role' => ['admin'],
         ],
 
         // MANPOWER - ADMIN & MANAGER ONLY

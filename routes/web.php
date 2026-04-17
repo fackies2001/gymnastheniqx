@@ -125,7 +125,7 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session', 'view.only.st
     // =========================================================
     // ✅ USER MANAGEMENT — Admin & Manager
     // =========================================================
-    Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager')->group(function () {
+    Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin')->group(function () {
         Route::get('/user-management', [UserManagementController::class, 'index'])->name('user.management');
         Route::post('/user-management/store', [UserManagementController::class, 'store'])->name('user.management.store');
         Route::post('/user-management/update', [UserManagementController::class, 'update'])->name('user.management.update');
