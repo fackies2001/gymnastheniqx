@@ -128,7 +128,7 @@ class SupplierProductServices
         }
 
         // ✅ Get is_consumable from request
-        $isConsumable = $request->has('is_consumable') ? 1 : 0;
+        $isConsumable = 1;
 
         // 🟢 Handle Category (Check if it's ID or Name)
         $categoryId = $validated['category_id'] ?? $validated['category']; // ✅ FIXED: Use category_id first
