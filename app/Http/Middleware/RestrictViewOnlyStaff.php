@@ -35,6 +35,10 @@ class RestrictViewOnlyStaff
             'password.update',
             'pr.store',
             'pr.generate-number',
+
+            // ✅ Purchase Order Scan — staff allowed
+            'purchase-order.scan-item',
+            'purchase-order.complete-scan',
         ];
 
         if ($name && in_array($name, $allowedNames, true)) {

@@ -139,7 +139,7 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session', 'view.only.st
     // =========================================================
     // ✅ PURCHASE ORDER + RETAILER APPROVALS — Admin, Manager, Account staff
     // =========================================================
-    Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager,account staff')->group(function () {
+    Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager,account staff,staff')->group(function () {
         Route::prefix('purchase-order')->group(function () {
             Route::get('/', [PurchaseOrderController::class, 'index'])->name('purchase-order.index');
             Route::get('/generate-number', [PurchaseOrderController::class, 'generatePONumber'])->name('purchase-order.generate-number');
@@ -219,9 +219,12 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session', 'view.only.st
             Route::get('/supplier_products/list/{supplier_id}', 'getProductsBySupplier');
             Route::delete('/supplier_products/{id}', 'destroy')->name('supplier_products.destroy');
 
-            // ✅ NEW: Phase 4 Defective Inventory
+            // ✅ Defective Inventory — view only for all roles, restore for admin/manager only
             Route::get('/inventory/defective', 'defectiveIndex')->name('inventory.defective');
             Route::get('/inventory/defective/data', 'defectiveDatatable')->name('inventory.defective.data');
+        });
+
+        Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager')->group(function () {
             Route::post('/inventory/defective/{id}/restore', 'restoreDefective')->name('inventory.defective.restore');
         });
 
