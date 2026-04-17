@@ -319,7 +319,7 @@ class PurchaseOrderController extends Controller
             //    All products are now quantity-based.
             // ─────────────────────────────────────────────────────
             $scannedAt   = now();
-            
+
             Log::info("Product scanned (No SRN):", [
                 'product'   => $product->name,
                 'qty_added' => $qtyToAdd,
@@ -331,9 +331,18 @@ class PurchaseOrderController extends Controller
             // This updates the ConsumableStock table automatically
             // ─────────────────────────────────────────────────────
             $employeeWarehouseId = $po->warehouse_id
+                ?? auth()->user()->warehouse_id
                 ?? \App\Models\ConsumableStock::where('product_id', $product->id)
                 ->value('warehouse_id')
-                ?? 9; 
+                ?? null;
+
+            if (!$employeeWarehouseId) {
+                DB::rollBack();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Warehouse not found. Please contact administrator.'
+                ], 400);
+            }
 
             \App\Models\StockMovement::record([
                 'product_id'        => $product->id,
