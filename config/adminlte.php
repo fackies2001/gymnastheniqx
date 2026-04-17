@@ -416,7 +416,7 @@ return [
                     'text' => 'Purchase Order',
                     'url' => 'purchase-order',
                     'icon' => 'far fa-circle',
-                    'role' => ['admin', 'manager', 'account staff'],
+                    'role' => ['admin', 'manager', 'account staff', 'staff'],
                 ],
             ],
         ],
