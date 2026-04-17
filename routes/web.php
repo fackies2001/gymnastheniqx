@@ -225,7 +225,7 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session', 'view.only.st
         });
 
         Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager')->group(function () {
-            Route::post('/inventory/defective/{id}/restore', 'restoreDefective')->name('inventory.defective.restore');
+            Route::post('/inventory/defective/{id}/restore', [\App\Http\Controllers\SupplierProductsController::class, 'restoreDefective'])->name('inventory.defective.restore');
         });
 
         // REPORTS
