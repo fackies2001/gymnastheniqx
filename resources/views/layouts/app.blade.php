@@ -2,6 +2,9 @@
 
 {{-- ========================= --}}
 @section('adminlte_head')
+    @auth
+        <meta name="user-id" content="{{ auth()->id() }}">
+    @endauth
     @if (session()->has('sanctum_token'))
         <meta name="api-token" content="{{ session('sanctum_token') }}">
     @endif
