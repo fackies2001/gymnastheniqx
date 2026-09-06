@@ -9,23 +9,25 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // ✅ STEP 1: Add column lang — walang foreign key constraint
-        // (Inalis ang foreign key para maiwasan ang engine compatibility issue)
         Schema::table('retailer_orders', function (Blueprint $table) {
-            $table->unsignedBigInteger('created_by_user_id')
-                ->nullable()
-                ->after('created_by');
+            if (!Schema::hasColumn('retailer_orders', 'created_by')) {
+                $table->string('created_by')->nullable();
+            }
+            if (!Schema::hasColumn('retailer_orders', 'created_by_user_id')) {
+                $table->unsignedBigInteger('created_by_user_id')->nullable();
+            }
         });
 
         // ✅ STEP 2: Backfill existing records
-        // I-match ang existing created_by (full_name) sa users table
         $orders = DB::table('retailer_orders')
             ->whereNull('created_by_user_id')
             ->whereNotNull('created_by')
             ->get();
 
+        $userTable = Schema::hasTable('employee') ? 'employee' : (Schema::hasTable('users') ? 'users' : 'user');
+
         foreach ($orders as $order) {
-            $user = DB::table('users')
+            $user = DB::table($userTable)
                 ->where('full_name', $order->created_by)
                 ->first();
 
