@@ -9,14 +9,16 @@
     <script>
         (function() {
             try {
-                if (localStorage.getItem('darkMode') === 'enabled') {
+                if (document.cookie.indexOf('darkMode=enabled') !== -1 || localStorage.getItem('darkMode') === 'enabled') {
                     document.documentElement.classList.add('dark-mode');
+                    document.documentElement.style.backgroundColor = '#18191a';
+                    document.documentElement.style.colorScheme = 'dark';
                 }
             } catch(e) {}
         })();
     </script>
     <style>
-        html.dark-mode {
+        html.dark-mode, html.dark-mode body, html.dark-mode .wrapper {
             background-color: #18191a !important;
             color-scheme: dark;
         }
@@ -812,10 +814,20 @@
             function updateDarkUI(isDark) {
                 if (isDark) {
                     document.documentElement.classList.add('dark-mode');
-                    if (document.body) document.body.classList.add('dark-mode');
+                    document.documentElement.style.backgroundColor = '#18191a';
+                    document.documentElement.style.colorScheme = 'dark';
+                    if (document.body) {
+                        document.body.classList.add('dark-mode');
+                        document.body.style.backgroundColor = '#18191a';
+                    }
                 } else {
                     document.documentElement.classList.remove('dark-mode');
-                    if (document.body) document.body.classList.remove('dark-mode');
+                    document.documentElement.style.backgroundColor = '';
+                    document.documentElement.style.colorScheme = '';
+                    if (document.body) {
+                        document.body.classList.remove('dark-mode');
+                        document.body.style.backgroundColor = '';
+                    }
                 }
                 var icons = document.querySelectorAll('#darkModeIcon, .dark-mode-icon');
                 icons.forEach(function(icon) {
@@ -829,11 +841,24 @@
                 });
             }
 
-            var isDark = localStorage.getItem('darkMode') === 'enabled';
+            function setDarkMode(next) {
+                localStorage.setItem('darkMode', next ? 'enabled' : 'disabled');
+                document.cookie = "darkMode=" + (next ? "enabled" : "disabled") + "; path=/; max-age=31536000; SameSite=Lax";
+                updateDarkUI(next);
+            }
+
+            var isDark = localStorage.getItem('darkMode') === 'enabled' || document.cookie.indexOf('darkMode=enabled') !== -1;
+            if (isDark) {
+                if (localStorage.getItem('darkMode') !== 'enabled') localStorage.setItem('darkMode', 'enabled');
+                if (document.cookie.indexOf('darkMode=enabled') === -1) {
+                    document.cookie = "darkMode=enabled; path=/; max-age=31536000; SameSite=Lax";
+                }
+            }
             updateDarkUI(isDark);
 
             document.addEventListener('DOMContentLoaded', function() {
-                updateDarkUI(localStorage.getItem('darkMode') === 'enabled');
+                var currentDark = localStorage.getItem('darkMode') === 'enabled' || document.cookie.indexOf('darkMode=enabled') !== -1;
+                updateDarkUI(currentDark);
 
                 var btn = document.getElementById('darkModeToggle');
                 if (btn && btn.dataset.bound !== '1') {
@@ -841,10 +866,8 @@
                     btn.addEventListener('click', function(e) {
                         e.preventDefault();
                         e.stopPropagation();
-                        var current = localStorage.getItem('darkMode') === 'enabled';
-                        var next = !current;
-                        localStorage.setItem('darkMode', next ? 'enabled' : 'disabled');
-                        updateDarkUI(next);
+                        var current = localStorage.getItem('darkMode') === 'enabled' || document.cookie.indexOf('darkMode=enabled') !== -1;
+                        setDarkMode(!current);
                     });
                 }
             });

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GYMNASTHENIOX — Gym Inventory System</title>
+    <title>GYMNASTHENIQX — Gym Inventory System</title>
 
     <link
         href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
@@ -15,18 +15,19 @@
 
     <style>
         :root {
-            --dark: #0f0f1a;
-            --dark-2: #16162a;
-            --dark-3: #1e1e35;
+            --dark: #0b1120;
+            --dark-2: #111e38;
+            --dark-3: #1e293b;
             --white: #ffffff;
-            --off-white: #f7f8fc;
-            --border: #e8eaf2;
-            --text-dark: #0f0f1a;
-            --text-mid: #4a4a6a;
-            --text-light: #9a9ab0;
-            --lime: #764ba2;
-            --lime-dark: #5a3680;
-            --lime-glow: rgba(118, 75, 162, 0.25);
+            --off-white: #f8fafc;
+            --border: #e2e8f0;
+            --text-dark: #0f172a;
+            --text-mid: #475569;
+            --text-light: #94a3b8;
+            --lime: #0ea5e9;
+            --lime-dark: #0284c7;
+            --lime-glow: rgba(14, 165, 233, 0.25);
+            --gold: #f59e0b;
         }
 
         *,
@@ -75,21 +76,26 @@
         }
 
         .nav-logo {
-            width: 36px;
-            height: 36px;
-            background: var(--dark);
-            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 16px;
-            color: var(--lime);
+            overflow: hidden;
+            background: transparent;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.12);
+        }
+
+        .nav-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
 
         .nav-wordmark {
             font-family: 'Bebas Neue', sans-serif;
-            font-size: 17px;
+            font-size: 18px;
             letter-spacing: 3px;
             color: var(--dark);
         }
@@ -713,16 +719,20 @@
         }
 
         .footer-logo {
-            width: 30px;
-            height: 30px;
-            background: var(--lime);
-            border-radius: 6px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 13px;
-            color: var(--dark);
+            overflow: hidden;
+            background: transparent;
+        }
+
+        .footer-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
 
         .footer-name {
@@ -810,8 +820,10 @@
     {{-- ════ NAV ════ --}}
     <nav id="mainNav">
         <a href="{{ url('/') }}" class="nav-brand">
-            <div class="nav-logo">G</div>
-            <span class="nav-wordmark">GYMNASTHENIOX</span>
+            <div class="nav-logo">
+                <img src="{{ asset('logo.png') }}" alt="Gymnastheniqx Logo">
+            </div>
+            <span class="nav-wordmark">GYMNASTHENIQX</span>
         </a>
 
         <ul class="nav-links">
@@ -848,7 +860,7 @@
             </h1>
 
             <p class="hero-sub">
-                GYMNASTHENIOX is a complete inventory management platform built for gyms and fitness centers — from
+                GYMNASTHENIQX is a complete inventory management platform built for gyms and fitness centers — from
                 equipment tracking to purchase orders, all in one place.
             </p>
 
@@ -897,7 +909,7 @@
                 <div class="section-tag">Core Features</div>
                 <h2 class="section-title">EVERYTHING YOU NEED TO RUN YOUR GYM</h2>
             </div>
-            <p class="section-sub">From serialized product tracking to supplier management — GYMNASTHENIOX handles every
+            <p class="section-sub">From serialized product tracking to supplier management — GYMNASTHENIQX handles every
                 layer of your gym operations.</p>
         </div>
 
@@ -1046,7 +1058,7 @@
     {{-- ════ CTA ════ --}}
     <section class="cta-section">
         <h2>READY TO TAKE CONTROL?</h2>
-        <p>Sign in to your GYMNASTHENIOX account and manage your gym inventory today.</p>
+        <p>Sign in to your GYMNASTHENIQX account and manage your gym inventory today.</p>
         <a href="{{ url('login') }}" class="cta-btn">
             <i class="fas fa-sign-in-alt"></i>
             ACCESS THE SYSTEM
@@ -1057,10 +1069,12 @@
     {{-- ════ FOOTER ════ --}}
     <footer>
         <div class="footer-brand">
-            <div class="footer-logo">G</div>
-            <span class="footer-name">GYMNASTHENIOX</span>
+            <div class="footer-logo">
+                <img src="{{ asset('logo.png') }}" alt="Gymnastheniqx Logo">
+            </div>
+            <span class="footer-name">GYMNASTHENIQX</span>
         </div>
-        <span class="footer-copy">&copy; {{ date('Y') }} Gymnastheniox. All rights reserved.</span>
+        <span class="footer-copy">&copy; {{ date('Y') }} Gymnastheniqx. All rights reserved.</span>
         <a href="{{ url('login') }}" class="footer-link">Sign In →</a>
     </footer>
 

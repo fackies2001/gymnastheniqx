@@ -469,6 +469,149 @@
                 padding: 1.5rem;
             }
         }
+
+        /* ══════════════════════════════════════════════════════
+           FACEBOOK DARK MODE OVERRIDES FOR PROFILE
+           ══════════════════════════════════════════════════════ */
+        body.dark-mode .profile-page {
+            background: #18191a !important;
+            color: #e4e6eb !important;
+        }
+
+        body.dark-mode .profile-card,
+        body.dark-mode .security-card,
+        body.dark-mode .help-card {
+            background: #242526 !important;
+            border: 1px solid #393a3b !important;
+            box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45) !important;
+        }
+
+        body.dark-mode .profile-hero {
+            background: linear-gradient(135deg, #18191a 0%, #242526 60%, #1e3a5f 100%) !important;
+            border: 1px solid #393a3b !important;
+        }
+
+        body.dark-mode .avatar-section {
+            border-bottom: 1px solid #393a3b !important;
+        }
+
+        body.dark-mode .avatar-wrapper img,
+        body.dark-mode .avatar-initials {
+            border-color: #393a3b !important;
+        }
+
+        body.dark-mode .avatar-info h4 {
+            color: #ffffff !important;
+            font-weight: 700;
+        }
+
+        body.dark-mode .avatar-info p {
+            color: #b0b3b8 !important;
+        }
+
+        body.dark-mode .section-label {
+            color: #b0b3b8 !important;
+        }
+
+        body.dark-mode .section-label::after {
+            background: #393a3b !important;
+        }
+
+        body.dark-mode .field-group label,
+        body.dark-mode .security-field label,
+        body.dark-mode .form-group label {
+            color: #b0b3b8 !important;
+        }
+
+        body.dark-mode .field-input-wrap input,
+        body.dark-mode .security-input-wrap input,
+        body.dark-mode .form-control {
+            background: #3a3b3c !important;
+            border: 1px solid #393a3b !important;
+            color: #e4e6eb !important;
+        }
+
+        body.dark-mode .field-input-wrap input:focus,
+        body.dark-mode .security-input-wrap input:focus,
+        body.dark-mode .form-control:focus {
+            border-color: #2e89ff !important;
+            background: #3a3b3c !important;
+            box-shadow: 0 0 0 3px rgba(46, 137, 255, 0.25) !important;
+            color: #ffffff !important;
+        }
+
+        body.dark-mode .field-input-wrap input:read-only,
+        body.dark-mode .field-input-wrap input[readonly],
+        body.dark-mode .form-control:read-only,
+        body.dark-mode .form-control[readonly] {
+            background: #242526 !important;
+            border-color: #393a3b !important;
+            color: #8a8d91 !important;
+        }
+
+        body.dark-mode .field-input-wrap .field-icon,
+        body.dark-mode .security-input-wrap .s-icon {
+            color: #b0b3b8 !important;
+        }
+
+        body.dark-mode .form-divider {
+            border-top-color: #393a3b !important;
+        }
+
+        body.dark-mode .help-card {
+            border-left: 4px solid #2e89ff !important;
+        }
+
+        body.dark-mode .help-card h6 {
+            color: #4599ff !important;
+        }
+
+        body.dark-mode .help-card p {
+            color: #b0b3b8 !important;
+        }
+
+        body.dark-mode .help-card strong {
+            color: #e4e6eb !important;
+        }
+
+        body.dark-mode #passwordRequirements {
+            background: #2b271d !important;
+            border-color: #634b15 !important;
+        }
+
+        body.dark-mode #passwordRequirements small {
+            color: #d2a450 !important;
+        }
+
+        body.dark-mode .input-group,
+        body.dark-mode .input-group.bg-white {
+            background-color: #3a3b3c !important;
+            border-color: #393a3b !important;
+        }
+
+        body.dark-mode .input-group input.form-control {
+            background-color: transparent !important;
+            color: #e4e6eb !important;
+        }
+
+        body.dark-mode .input-group-text {
+            color: #b0b3b8 !important;
+            background-color: transparent !important;
+            border-color: #393a3b !important;
+        }
+
+        body.dark-mode .btn-update-security,
+        body.dark-mode .btn.btn-dark {
+            background: #3a3b3c !important;
+            border: 1px solid #4e4f50 !important;
+            color: #e4e6eb !important;
+        }
+
+        body.dark-mode .btn-update-security:hover,
+        body.dark-mode .btn.btn-dark:hover {
+            background: #4e4f50 !important;
+            color: #ffffff !important;
+        }
     </style>
 
     <div class="profile-page">

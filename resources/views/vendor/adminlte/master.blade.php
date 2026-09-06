@@ -1,7 +1,35 @@
+@php
+    $isDark = request()->cookie('darkMode') === 'enabled';
+@endphp
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="{{ $isDark ? 'dark-mode' : '' }}" style="{{ $isDark ? 'background-color: #18191a; color-scheme: dark;' : '' }}">
 
 <head>
+    {{-- Anti-Blink Early Initialization Script --}}
+    <script>
+        (function() {
+            var isDark = false;
+            try {
+                if (document.cookie.indexOf('darkMode=enabled') !== -1 || localStorage.getItem('darkMode') === 'enabled') {
+                    isDark = true;
+                }
+            } catch(e) {}
+            if (isDark) {
+                document.documentElement.classList.add('dark-mode');
+                document.documentElement.style.backgroundColor = '#18191a';
+                document.documentElement.style.colorScheme = 'dark';
+                if (document.cookie.indexOf('darkMode=') === -1) {
+                    document.cookie = "darkMode=enabled; path=/; max-age=31536000; SameSite=Lax";
+                }
+            }
+        })();
+    </script>
+    <style>
+        html.dark-mode, html.dark-mode body, html.dark-mode .wrapper {
+            background-color: #18191a !important;
+            color-scheme: dark;
+        }
+    </style>
 
     {{-- Base Meta Tags --}}
     <meta charset="utf-8">
@@ -90,7 +118,7 @@
 
 </head>
 
-<body class="@yield('classes_body')" @yield('body_data')>
+<body class="@yield('classes_body') {{ $isDark ? 'dark-mode' : '' }}" @yield('body_data') style="{{ $isDark ? 'background-color: #18191a;' : '' }}">
 
     {{-- Body Content --}}
     @yield('body')

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GYMNASTHENIOX — Forgot Password</title>
+    <title>GYMNASTHENIQX — Forgot Password</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <link
@@ -102,17 +102,22 @@
         }
 
         .logo-badge {
-            width: 44px;
-            height: 44px;
-            background: var(--lime);
-            border-radius: 10px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 20px;
-            color: var(--accent);
-            box-shadow: 0 0 20px rgba(118, 75, 162, 0.4);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1.5px solid rgba(255, 255, 255, 0.15);
+            overflow: hidden;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+        }
+
+        .logo-badge img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
 
         .brand-name-text {
@@ -462,8 +467,10 @@
             <div class="grid-lines"></div>
 
             <div class="brand-top">
-                <div class="logo-badge">G</div>
-                <span class="brand-name-text">GYMNASTHENIOX</span>
+                <div class="logo-badge">
+                    <img src="{{ asset('logo.png') }}" alt="Gymnastheniqx Logo">
+                </div>
+                <span class="brand-name-text">GYMNASTHENIQX</span>
             </div>
 
             <div class="brand-middle">

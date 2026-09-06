@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GYMNASTHENIOX — Sign In</title>
+    <title>GYMNASTHENIQX — Sign In</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <link
@@ -23,14 +23,15 @@
             --text-dark: #0f0f1a;
             --text-mid: #4a4a6a;
             --text-light: #9a9ab0;
-            --accent: #1a1a2e;
-            --accent-lime: #764ba2;
-            --accent-hover: #262640;
-            --danger: #e53e3e;
+            --accent: #0f172a;
+            --accent-cyan: #0ea5e9;
+            --accent-hover: #1e293b;
+            --accent-gold: #f59e0b;
+            --danger: #ef4444;
             --input-bg: #ffffff;
-            --shadow-sm: 0 1px 3px rgba(15, 15, 26, 0.06);
-            --shadow-md: 0 4px 20px rgba(15, 15, 26, 0.08);
-            --shadow-lg: 0 12px 48px rgba(15, 15, 26, 0.12);
+            --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
+            --shadow-md: 0 4px 20px rgba(15, 23, 42, 0.08);
+            --shadow-lg: 0 12px 48px rgba(15, 23, 42, 0.12);
         }
 
         *,
@@ -58,7 +59,7 @@
 
         /* ── LEFT: BRAND PANEL ── */
         .brand-panel {
-            background: var(--accent);
+            background: linear-gradient(150deg, #0b1120 0%, #0f172a 45%, #162444 100%);
             position: relative;
             display: flex;
             flex-direction: column;
@@ -76,7 +77,7 @@
             width: 480px;
             height: 480px;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.03);
+            background: radial-gradient(circle, rgba(14, 165, 233, 0.12) 0%, transparent 70%);
         }
 
         .brand-panel::after {
@@ -87,7 +88,7 @@
             width: 320px;
             height: 320px;
             border-radius: 50%;
-            background: rgba(118, 75, 162, 0.08);
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.1) 0%, transparent 70%);
         }
 
         /* Geometric grid lines */
@@ -111,17 +112,22 @@
         }
 
         .logo-badge {
-            width: 44px;
-            height: 44px;
-            background: var(--accent-lime);
-            border-radius: 10px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: 'Bebas Neue', sans-serif;
-            font-size: 20px;
-            color: var(--accent);
-            background: rgba(118, 75, 162, 0.08);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1.5px solid rgba(255, 255, 255, 0.15);
+            overflow: hidden;
+            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.35);
+        }
+
+        .logo-badge img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
 
         .brand-name-text {
@@ -141,14 +147,14 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: rgba(118, 75, 162, 0.15);
-            border: 1px solid rgba(118, 75, 162, 0.3);
+            background: rgba(14, 165, 233, 0.12);
+            border: 1px solid rgba(14, 165, 233, 0.3);
             border-radius: 100px;
             padding: 6px 14px;
             font-size: 11px;
             letter-spacing: 2px;
             text-transform: uppercase;
-            color: var(--accent-lime);
+            color: #38bdf8;
             margin-bottom: 28px;
         }
 
@@ -163,7 +169,9 @@
 
         .brand-middle h1 em {
             font-style: normal;
-            color: var(--accent-lime);
+            background: linear-gradient(135deg, #38bdf8 0%, #f59e0b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
         .brand-middle p {
@@ -404,7 +412,7 @@
         .btn-submit {
             width: 100%;
             padding: 14px;
-            background: var(--accent);
+            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
             color: #fff;
             font-family: 'Bebas Neue', sans-serif;
             font-size: 18px;
@@ -413,15 +421,15 @@
             border-radius: 10px;
             cursor: pointer;
             transition: background 0.25s, transform 0.15s, box-shadow 0.25s;
-            box-shadow: 0 4px 16px rgba(26, 26, 46, 0.25);
+            box-shadow: 0 4px 16px rgba(2, 132, 199, 0.35);
             position: relative;
             overflow: hidden;
             opacity: 0;
         }
 
         .btn-submit:hover {
-            background: var(--accent-hover);
-            box-shadow: 0 6px 24px rgba(26, 26, 46, 0.35);
+            background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+            box-shadow: 0 6px 22px rgba(2, 132, 199, 0.5);
             transform: translateY(-1px);
         }
 
@@ -521,8 +529,10 @@
             <div class="grid-lines"></div>
 
             <div class="brand-top">
-                <div class="logo-badge">G</div>
-                <span class="brand-name-text">GYMNASTHENIOX</span>
+                <div class="logo-badge">
+                    <img src="{{ asset('logo.png') }}" alt="Gymnastheniqx Logo">
+                </div>
+                <span class="brand-name-text">GYMNASTHENIQX</span>
             </div>
 
             <div class="brand-middle">
@@ -629,7 +639,7 @@
 
                 <div class="form-note">
                     Authorized personnel only &mdash;
-                    <a href="{{ url('/') }}">GYMNASTHENIOX</a>
+                    <a href="{{ url('/') }}">GYMNASTHENIQX</a>
                 </div>
             </div>
         </div>
