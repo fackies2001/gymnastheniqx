@@ -94,7 +94,7 @@ class User extends Authenticatable
         return route('profile.edit');
     }
 
-    // ✅ NEW ROLE HELPER METHODS
+    //  NEW ROLE HELPER METHODS
     /**
      * Check if user is admin
      */

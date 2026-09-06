@@ -85,12 +85,12 @@ class PurchaseRequest extends Model
         return $this->belongsTo(User::class, 'approved_by');
     }
 
-    public function requestedBy(): BelongsTo  // ✅ Added
+    public function requestedBy(): BelongsTo  
     {
         return $this->belongsTo(User::class, 'requested_by');
     }
 
-    // ✅ ADD THIS RELATIONSHIP
+    //  ADD THIS RELATIONSHIP
     public function status(): BelongsTo
     {
         return $this->belongsTo(PurchaseStatusLibrary::class, 'status_id');
@@ -103,7 +103,7 @@ class PurchaseRequest extends Model
 
     public function purchaseOrder()
     {
-        return $this->hasOne(PurchaseOrder::class, 'purchase_request_id'); // ✅ TAMA
+        return $this->hasOne(PurchaseOrder::class, 'purchase_request_id'); 
     }
 
     public function warehouse(): BelongsTo

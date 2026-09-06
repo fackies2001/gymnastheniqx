@@ -9,7 +9,7 @@ class ProfileController extends Controller
 {
     public function edit()
     {
-        // ✅ FIX: Fresh reload para makuha latest status from DB
+        //  FIX: Fresh reload para makuha latest status from DB
         $user = Auth::user()->fresh();
         return view('profile.edit', compact('user'));
     }

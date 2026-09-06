@@ -138,7 +138,7 @@ class PurchaseOrderController extends Controller
     }
 
     /**
-     * ✅ ADDED: Phase 2 - Mark PO as Paid
+     *  ADDED: Phase 2 - Mark PO as Paid
      */
     public function markAsPaid($id)
     {
@@ -189,7 +189,7 @@ class PurchaseOrderController extends Controller
     }
 
     /**
-     * ✅ FIXED: Scan item barcode - PREVENTS DUPLICATES
+     * FIXED: Scan item barcode - PREVENTS DUPLICATES
      */
     public function scanItem(Request $request, $id)
     {
@@ -223,7 +223,7 @@ class PurchaseOrderController extends Controller
                     ->orWhere('barcode', 'LIKE', $scannedBarcode . '%');
             })->first();
 
-            // ✅ Fresh query para masigurado ang pieces_per_box value
+            //  Fresh query para masigurado ang pieces_per_box value
             if ($product) {
                 $product = \App\Models\SupplierProduct::find($product->id);
             }
@@ -255,7 +255,7 @@ class PurchaseOrderController extends Controller
             //    BOX   → pieces_per_box (e.g. 10)
             //    PIECE → 1
             // ─────────────────────────────────────────────────────
-            // ✅ Force fresh read mula sa DB
+            //  Force fresh read mula sa DB
             $freshProduct = \App\Models\SupplierProduct::find($product->id);
             $piecesPerBox = (int) ($freshProduct->pieces_per_box ?? 1);
             \Log::info('pieces_per_box value:', [
@@ -315,7 +315,7 @@ class PurchaseOrderController extends Controller
             }
 
             // ─────────────────────────────────────────────────────
-            // 6. ✅ Record the scan (No more SRN generation)
+            // 6.  Record the scan (No more SRN generation)
             //    All products are now quantity-based.
             // ─────────────────────────────────────────────────────
             $scannedAt   = now();
@@ -327,7 +327,7 @@ class PurchaseOrderController extends Controller
             ]);
 
             // ─────────────────────────────────────────────────────
-            // 6.5 ✅ Record StockMovement (type = 'in')
+            // 6.5  Record StockMovement (type = 'in')
             // This updates the ConsumableStock table automatically
             // ─────────────────────────────────────────────────────
             $employeeWarehouseId = $po->warehouse_id
@@ -373,8 +373,8 @@ class PurchaseOrderController extends Controller
             // 9. Response
             // ─────────────────────────────────────────────────────
             $message = $scanType === 'box'
-                ? "📦 Box scanned! {$qtyToAdd} pieces added (1 box = {$piecesPerBox} pcs)"
-                : '✅ Piece scanned successfully!';
+                ? " Box scanned! {$qtyToAdd} pieces added (1 box = {$piecesPerBox} pcs)"
+                : ' Piece scanned successfully!';
 
             return response()->json([
                 'success' => true,
@@ -429,7 +429,7 @@ class PurchaseOrderController extends Controller
             // Update PO status
             $po->update(['status' => 'completed']);
 
-            // ✅ KEEP AS AVAILABLE - remove the status update
+            //  KEEP AS AVAILABLE - remove the status update
             // SerializedProduct::where('purchase_order_id', $po->id)
             //     ->update(['status' => 2]);
 
@@ -478,7 +478,7 @@ class PurchaseOrderController extends Controller
     }
 
     /**
-     * ⭐ ENHANCED: Get PO details with COMPLETE supplier information
+     *  ENHANCED: Get PO details with COMPLETE supplier information
      */
     public function getDetailsJson($id)
     {

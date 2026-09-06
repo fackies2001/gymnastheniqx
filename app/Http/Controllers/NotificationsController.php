@@ -17,7 +17,7 @@ class NotificationsController extends Controller
         try {
             $user = Auth::user();
 
-            // ✅ Guard: check if user model uses Notifiable trait
+            //  Guard: check if user model uses Notifiable trait
             if (!method_exists($user, 'unreadNotifications')) {
                 return response()->json([
                     'count'         => 0,

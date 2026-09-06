@@ -9,7 +9,7 @@ class GymEquipment extends Model
 {
     use HasFactory;
 
-    protected $table = 'gym_equipments'; // ✅ DAGDAG ITO!
+    protected $table = 'gym_equipments'; 
 
     protected $fillable = [
         'name',

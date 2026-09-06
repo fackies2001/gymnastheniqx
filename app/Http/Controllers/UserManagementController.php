@@ -14,7 +14,7 @@ use App\Models\Warehouse;
 class UserManagementController extends Controller
 {
     /**
-     * ✅ Display User Management Page
+     *  Display User Management Page
      */
     public function index()
     {
@@ -30,14 +30,14 @@ class UserManagementController extends Controller
     }
 
     /**
-     * ✅ Store New Employee
+     *  Store New Employee
      */
     public function store(Request $request)
     {
         $validated = $request->validate([
             'full_name'      => 'required|string|max:255',
 
-            // ✅ FIX 2: Gmail only
+            //  FIX 2: Gmail only
             'email'          => [
                 'required',
                 'email',
@@ -55,7 +55,7 @@ class UserManagementController extends Controller
             'profile_photo'  => 'nullable|image|max:2048',
             'password'       => ['required', 'string', 'confirmed', Password::defaults()],
         ], [
-            // ✅ Custom error message para mas clear sa user
+            //  Custom error message para mas clear sa user
             'email.regex' => 'Only Gmail addresses are allowed (e.g. example@gmail.com).',
         ]);
 
@@ -64,7 +64,7 @@ class UserManagementController extends Controller
                 ->store('profile_photos', 'public');
         }
 
-        // ✅ FIX 1: Auto-generate username para hindi mag-SQL error
+        //  FIX 1: Auto-generate username para hindi mag-SQL error
         $validated['username'] = strtolower(str_replace(' ', '.', $request->full_name))
             . rand(100, 999);
 
@@ -80,7 +80,7 @@ class UserManagementController extends Controller
         ]);
     }
     /**
-     * ✅ Update Existing Employee
+     *  Update Existing Employee
      */
     public function update(Request $request)
     {
@@ -90,7 +90,7 @@ class UserManagementController extends Controller
         $validated = $request->validate([
             'full_name'      => 'required|string|max:255',
 
-            // ✅ FIX 2: Gmail only sa update din
+            //  FIX 2: Gmail only sa update din
             'email'          => [
                 'required',
                 'email',
@@ -135,7 +135,7 @@ class UserManagementController extends Controller
     }
 
     /**
-     * ✅ Delete Employee
+     *  Delete Employee
      */
     public function destroy($id)
     {
@@ -161,7 +161,7 @@ class UserManagementController extends Controller
     }
 
     /**
-     * ✅ Admin Reset PIN
+     *  Admin Reset PIN
      */
     public function resetPin(Request $request)
     {
@@ -188,7 +188,7 @@ class UserManagementController extends Controller
     }
 
     /**
-     * ✅ Verify PIN on login (6 digits)
+     *  Verify PIN on login (6 digits)
      */
     public function verifyPin(Request $request)
     {
@@ -204,7 +204,7 @@ class UserManagementController extends Controller
             session(['pin_verified' => true]);
             session()->forget(['show_pin_modal', 'pin_mode']);
 
-            Log::info('✅ PIN Verified Successfully', [
+            Log::info(' PIN Verified Successfully', [
                 'user_id'   => $user->id,
                 'user_name' => $user->full_name,
             ]);
@@ -215,7 +215,7 @@ class UserManagementController extends Controller
             ]);
         }
 
-        Log::warning('❌ PIN Verification Failed', [
+        Log::warning(' PIN Verification Failed', [
             'user_id'   => $user->id,
             'user_name' => $user->full_name,
         ]);
@@ -227,7 +227,7 @@ class UserManagementController extends Controller
     }
 
     /**
-     * ✅ Update/Set PIN for first time or change (6 digits)
+     *  Update/Set PIN for first time or change (6 digits)
      */
     public function updatePin(Request $request)
     {
@@ -245,7 +245,7 @@ class UserManagementController extends Controller
         session(['pin_verified' => true]);
         session()->forget(['show_pin_modal', 'pin_mode']);
 
-        Log::info('✅ PIN Set/Updated Successfully', [
+        Log::info(' PIN Set/Updated Successfully', [
             'user_id'   => $user->id,
             'user_name' => $user->full_name,
             'is_new_pin' => session('pin_mode') === 'set',
@@ -258,7 +258,7 @@ class UserManagementController extends Controller
     }
 
     /**
-     * ✅ Admin Reset Password — i-reset pabalik sa 'password123'
+     *  Admin Reset Password — i-reset pabalik sa 'password123'
      */
 
     public function resetPassword(Request $request)

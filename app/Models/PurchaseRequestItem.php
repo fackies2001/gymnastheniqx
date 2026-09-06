@@ -11,7 +11,7 @@ class PurchaseRequestItem extends Model
 
     protected $fillable = [
         'purchase_request_id',
-        'product_id', // ✅ This is the ONLY column in your DB (references supplier_product.id)
+        'product_id', //  This is the ONLY column in your DB (references supplier_product.id)
         'quantity',
         'unit_cost',
         'subtotal',
@@ -22,13 +22,13 @@ class PurchaseRequestItem extends Model
         'subtotal' => 'decimal:2',
     ];
 
-    // ✅ MAIN RELATIONSHIP - product_id → supplier_product.id
+    //  MAIN RELATIONSHIP - product_id → supplier_product.id
     public function supplierProduct(): BelongsTo
     {
         return $this->belongsTo(SupplierProduct::class, 'product_id', 'id');
     }
 
-    // ✅ ALIAS for convenience (same as supplierProduct)
+    // ALIAS for convenience (same as supplierProduct)
     public function product(): BelongsTo
     {
         return $this->supplierProduct();
@@ -39,13 +39,13 @@ class PurchaseRequestItem extends Model
         return $this->belongsTo(PurchaseRequest::class, 'purchase_request_id');
     }
 
-    // ✅ ACCESSOR: Direct access to product name
+    //  ACCESSOR: Direct access to product name
     public function getProductNameAttribute()
     {
         return $this->supplierProduct->name ?? 'Unknown Product';
     }
 
-    // ✅ ACCESSOR: Direct access to SKU
+    //  ACCESSOR: Direct access to SKU
     public function getSkuAttribute()
     {
         return $this->supplierProduct->system_sku ??

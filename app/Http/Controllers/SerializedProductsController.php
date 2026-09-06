@@ -48,14 +48,14 @@ class SerializedProductsController extends Controller
 
     public function indexTable()
     {
-        // ✅ NEW: Show ALL products in the inventory summary
+        //  NEW: Show ALL products in the inventory summary
         $query = SupplierProduct::with(['supplier']);
 
         return $this->datatableServices->get_serialized_products_summary_table($query);
     }
 
     // =========================================================
-    // ✅ PINALITAN — show()
+    // PINALITAN — show()
     // DATI: Naglo-load lang ng view at nagpapasa ng product info
     // NGAYON: Dagdag na ang $stock (ConsumableStock) para
     //         ma-display ang current quantity at low stock status
@@ -70,7 +70,7 @@ class SerializedProductsController extends Controller
             ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
             ->first();
 
-        // ✅ DAGDAG — kung non-consumable, kuha sa serialized_product
+        //  DAGDAG — kung non-consumable, kuha sa serialized_product
         $currentStock = $stock?->current_qty ?? SerializedProduct::where('product_id', $id)
             ->where('status', 1)
             ->count();
@@ -80,19 +80,19 @@ class SerializedProductsController extends Controller
             'product_name'        => $product->name,
             'product'             => $product,
             'stock'               => $stock,
-            'current_stock'       => $currentStock, // ✅ DAGDAG
+            'current_stock'       => $currentStock, //  DAGDAG
         ]);
     }
 
     // =========================================================
-    // ✅ PINALITAN — showTable()
+    //  PINALITAN — showTable()
     // DATI: Nagbabalik ng SRN (serial number) list
     // NGAYON: Nagbabalik ng stock movement history
     //         Para gamitin ng DataTable sa show.blade.php
     // =========================================================
     public function showTable($id = null)
     {
-        // ✅ Kung walang id, ibalik ng empty data
+        //  Kung walang id, ibalik ng empty data
         if (!$id) {
             return response()->json(['data' => []]);
         }
@@ -106,7 +106,7 @@ class SerializedProductsController extends Controller
             ->get()
             ->map(function ($m) {
 
-                // ✅ Color coding per movement type
+                //  Color coding per movement type
                 $typeColors = [
                     'in'         => 'success',
                     'out'        => 'primary',
@@ -115,7 +115,6 @@ class SerializedProductsController extends Controller
                     'adjustment' => 'secondary',
                 ];
 
-                // ✅ Icons per type
                 $typeIcons = [
                     'in'         => '➕',
                     'out'        => '➖',
@@ -127,7 +126,7 @@ class SerializedProductsController extends Controller
                 $color = $typeColors[$m->type] ?? 'secondary';
                 $icon  = $typeIcons[$m->type] ?? '';
 
-                // ✅ Quantity display — IN at positive ADJUSTMENT ay may + sign
+                //  Quantity display — IN at positive ADJUSTMENT ay may + sign
                 $isPositive = $m->type === 'in' ||
                     ($m->type === 'adjustment' && $m->quantity >= 0);
 
@@ -135,7 +134,7 @@ class SerializedProductsController extends Controller
                     ? '<span class="text-success font-weight-bold">+' . abs($m->quantity) . ' pcs</span>'
                     : '<span class="text-danger font-weight-bold">−' . abs($m->quantity) . ' pcs</span>';
 
-                // ✅ Reference — PO or Retailer Order
+                //  Reference — PO or Retailer Order
                 $reference = '—';
                 if ($m->purchase_order_id) {
                     $reference = '<span class="badge badge-light">PO #' . $m->purchase_order_id . '</span>';
@@ -162,7 +161,7 @@ class SerializedProductsController extends Controller
     }
 
     // =========================================================
-    // ✅ HINDI BINAGO — store()
+    //  HINDI BINAGO — store()
     // Para sa non-consumable / gym equipment serialization
     // =========================================================
     public function store(StoreSerializationRequest $request)
@@ -232,7 +231,7 @@ class SerializedProductsController extends Controller
     }
 
     // =========================================================
-    // ✅ HINDI BINAGO — overview()
+    //  HINDI BINAGO — overview()
     // Para sa non-consumable SRN overview page
     // =========================================================
     public function overview($serial_number = null)
@@ -290,7 +289,7 @@ class SerializedProductsController extends Controller
     }
 
     // =========================================================
-    // ✅ HINDI BINAGO — private helpers
+    //  HINDI BINAGO — private helpers
     // =========================================================
     private function generateProductPlaceholder($productName)
     {
@@ -337,7 +336,7 @@ class SerializedProductsController extends Controller
     }
 
     // =========================================================
-    // ✅ HINDI BINAGO — datatable methods
+    //  HINDI BINAGO — datatable methods
     // =========================================================
     public function serialized_products_table(Request $request)
     {
@@ -350,7 +349,7 @@ class SerializedProductsController extends Controller
     }
 
     // =========================================================
-    // ✅ HINDI BINAGO — updateStatus()
+    //  HINDI BINAGO — updateStatus()
     // Para sa non-consumable status updates
     // =========================================================
     public function updateStatus(Request $request, $id)
@@ -425,7 +424,7 @@ class SerializedProductsController extends Controller
     }
 
     // =========================================================
-    // ✅ NEW: reportIncident()
+    //  NEW: reportIncident()
     // Restored logic to report damage, loss, or theft
     // =========================================================
     public function reportIncident(Request $request)
@@ -445,7 +444,7 @@ class SerializedProductsController extends Controller
         try {
             DB::beginTransaction();
 
-            // ✅ Check kung may sapat na stock
+            //  Check kung may sapat na stock
             $stock = ConsumableStock::where('product_id', $productId)
                 ->where('warehouse_id', $warehouseId)
                 ->first();
@@ -457,7 +456,7 @@ class SerializedProductsController extends Controller
                 ], 400);
             }
 
-            // ✅ StockMovement::record() na ang mag-de-deduct ng current_qty
+            //  StockMovement::record() na ang mag-de-deduct ng current_qty
             StockMovement::record([
                 'product_id'   => $productId,
                 'warehouse_id' => $warehouseId,
@@ -485,7 +484,7 @@ class SerializedProductsController extends Controller
 
 
     // =========================================================
-    // ✅ NEW: adjust()
+    // NEW: adjust()
     // Restored logic for manual inventory adjustments
     // =========================================================
     public function adjust(Request $request)
@@ -538,7 +537,7 @@ class SerializedProductsController extends Controller
     }
 
     // =========================================================
-    // ✅ NEW: setMinStock()
+    //  NEW: setMinStock()
     // Restored logic to set low-stock alert thresholds
     // =========================================================
     public function setMinStock(Request $request)

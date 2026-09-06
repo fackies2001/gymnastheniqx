@@ -1,5 +1,4 @@
 <?php
-// 📁 app/Http/Controllers/RetailerOrderController.php
 
 namespace App\Http\Controllers;
 
@@ -33,15 +32,6 @@ class RetailerOrderController extends Controller
         return $user && ($user->hasPrivilegedAccess() || $user->isViewOnlyStaff());
     }
 
-    // ============================================================
-    //  INDEX — Role-based filtering
-    //    Admin / Manager → sees ALL orders
-    //    Staff           → sees only their own orders
-    //
-    //  FIX: Staff filter now uses BOTH created_by_user_id AND
-    //    created_by name as fallback — fixes cases where older
-    //    orders had null created_by_user_id
-    // ============================================================
     public function index(Request $request)
     {
         $user           = Auth::user();
@@ -95,7 +85,6 @@ class RetailerOrderController extends Controller
             }
         };
 
-        //  FIX: Staff filter — check BOTH user_id AND name as fallback
         // This fixes orders created before created_by_user_id was added
         $baseQuery = RetailerOrder::query()
             ->when(!$seeAllOrders, function ($query) use ($user) {
@@ -138,7 +127,6 @@ class RetailerOrderController extends Controller
             ->where('status', 'Completed')
             ->count();
 
-        // ✅ Pre-compute NET defective quantities for consumables:
         // = total damaged - already sold (Completed defective orders) - already reserved (Pending/Approved)
         $rawDamageQtys = \App\Models\StockMovement::where('type', \App\Models\StockMovement::TYPE_DAMAGE)
             ->selectRaw('product_id, SUM(quantity) as total_damaged')
@@ -227,7 +215,7 @@ class RetailerOrderController extends Controller
 
         $condition = $request->input('product_condition', 'Standard');
 
-        // ✅ FIX — Stock validation based on product type AND condition
+        //  FIX — Stock validation based on product type AND condition
         if ($product->is_consumable) {
             if ($condition === 'Defective') {
                 // Gross defective = total damage reported
@@ -261,11 +249,11 @@ class RetailerOrderController extends Controller
         }
 
         if ($availableStock === 0) {
-            return back()->with('error', '❌ Order failed! No available ' . strtolower($condition) . ' stock for this product.');
+            return back()->with('error', ' Order failed! No available ' . strtolower($condition) . ' stock for this product.');
         }
 
         if ($request->quantity > $availableStock) {
-            return back()->with('error', "❌ Insufficient stock! Available: {$availableStock} {$condition} units only. You ordered: {$request->quantity} units.");
+            return back()->with('error', " Insufficient stock! Available: {$availableStock} {$condition} units only. You ordered: {$request->quantity} units.");
         }
 
         $order = RetailerOrder::create([
@@ -275,7 +263,7 @@ class RetailerOrderController extends Controller
             'quantity'           => $request->quantity,
             'unit_price'         => $request->unit_price,
             'total_amount'       => $request->quantity * $request->unit_price,
-            'product_condition'  => $request->input('product_condition', 'Standard'), // ✅ NEW
+            'product_condition'  => $request->input('product_condition', 'Standard'),
             'status'             => 'Pending',
             'sku'                => $product->supplier_sku ?? $product->system_sku ?? 'N/A',
             'created_by'         => Auth::user()->full_name ?? 'Unknown User',
@@ -314,7 +302,7 @@ class RetailerOrderController extends Controller
             return back()->with('info', 'This order has already been approved.');
         }
 
-        // ✅ Block approve kung below cost (EXCEPT for Defective items)
+        //  Block approve kung below cost (EXCEPT for Defective items)
         $product = SupplierProduct::find($order->product_id);
         if ($product && $product->cost_price > 0 && $order->unit_price < $product->cost_price) {
             if ($order->product_condition !== 'Defective') {
@@ -338,7 +326,7 @@ class RetailerOrderController extends Controller
 
         DB::beginTransaction();
         try {
-            // ✅ Phase 4: Pull from the correct stock pool
+            //  Phase 4: Pull from the correct stock pool
             $statusToPull = ($order->product_condition === 'Defective') ? 4 : 1;
 
             $serializedProducts = SerializedProduct::where('product_id', $product->id)
@@ -363,14 +351,11 @@ class RetailerOrderController extends Controller
                 'allocated_serial_numbers' => json_encode($serialNumbers),
             ]);
 
-            // ✅ Record stock movement for consumable products
             if ($product && $product->is_consumable) {
                 $warehouseId = \App\Models\ConsumableStock::where('product_id', $product->id)
                     ->value('warehouse_id') ?? 9;
 
                 if ($order->product_condition === 'Defective') {
-                    // ✅ Defective stock is already deducted from current_qty when damage was reported.
-                    // We only log the sale for reporting — no double deduction.
                     \App\Models\StockMovement::create([
                         'product_id'        => $product->id,
                         'warehouse_id'      => $warehouseId,
@@ -382,7 +367,7 @@ class RetailerOrderController extends Controller
                         'created_by'        => auth()->id(),
                     ]);
                 } else {
-                    // ✅ Standard stock — deduct from current_qty via StockMovement::record()
+
                     \App\Models\StockMovement::record([
                         'product_id'        => $product->id,
                         'warehouse_id'      => $warehouseId,
@@ -491,7 +476,7 @@ class RetailerOrderController extends Controller
                     throw new \Exception("Product '{$order->product_name}' not found in inventory");
                 }
 
-                // ✅ Phase 4: Respect condition in fallback query
+                //  Phase 4: Respect condition in fallback query
                 $statusToPull = ($order->product_condition === 'Defective') ? 4 : 1;
 
                 $serialNumbers = SerializedProduct::where('product_id', $product->id)

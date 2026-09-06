@@ -25,7 +25,7 @@ class ReportsController extends Controller
 {
 
     // =========================================================
-    // ✅ FUNCTION 1: dailyIndex()
+    //  FUNCTION 1: dailyIndex()
     // CONSUMABLES ONLY — tinanggal na ang non-consumable branches
     // =========================================================
 
@@ -64,7 +64,7 @@ class ReportsController extends Controller
         };
 
         // ─── LOW STOCK ───────────────────────────────────────
-        // ✅ Unified: Group by product to avoid duplicates
+        //  Unified: Group by product to avoid duplicates
         $lowStockCount = ConsumableStock::select('product_id')
             ->selectRaw('SUM(current_qty) as total_qty')
             ->selectRaw('MIN(min_stock_level) as min_level')
@@ -80,7 +80,7 @@ class ReportsController extends Controller
         $newArrivals = $receivedQ->count();
 
         // ─── OUTFLOW ─────────────────────────────────────────
-        // ✅ FIX: Bawat ROW sa RetailerOrder = 1 product line
+        //  FIX: Bawat ROW sa RetailerOrder = 1 product line
         // Kaya count() = bilang ng product lines, hindi bilang ng orders
         $outflowQ = RetailerOrder::whereIn('status', ['Approved', 'Completed']);
         $dateFilter($outflowQ);
@@ -94,7 +94,7 @@ class ReportsController extends Controller
 
         $products = SupplierProduct::with(['supplier', 'category'])->get();
 
-        // ✅ FIX: I-log para ma-debug mo kung may zero pa rin
+        //  FIX: I-log para ma-debug mo kung may zero pa rin
         \Log::info('=== DAILY INDEX CARD COUNTS ===', [
             'date'          => $date,
             'filter_type'   => $filterType,
@@ -117,12 +117,12 @@ class ReportsController extends Controller
     }
 
     // =========================================================
-    // ✅ FUNCTION 2: getDailyData()
+    //  FUNCTION 2: getDailyData()
     // CONSUMABLES ONLY — tinanggal na ang non-consumable branches
     // =========================================================
     public function getDailyData(Request $request)
     {
-        $filterType = $request->get('filter_type', 'today'); // ✅ FIX: 'today' na ang default, hindi null
+        $filterType = $request->get('filter_type', 'today'); //  FIX: 'today' na ang default, hindi null
         $customDate = $request->get('custom_date', null);
         $type       = $request->get('type', null);
 
@@ -165,11 +165,11 @@ class ReportsController extends Controller
         } elseif ($filterType === 'custom' && $customDate) {
             $date = $customDate;
         } else {
-            // ✅ FIX: fallback = today palagi, hindi null/all_time
+            //  FIX: fallback = today palagi, hindi null/all_time
             $date = $now->toDateString();
         }
 
-        // ✅ FIX: Same fallback logic para in-sync sa dailyIndex()
+        //  FIX: Same fallback logic para in-sync sa dailyIndex()
         $warehouseId = auth()->user()->assigned_at
             ?? auth()->user()->warehouse_id
             ?? null;
@@ -407,7 +407,7 @@ class ReportsController extends Controller
                         ];
                     }
 
-                    // ✅ DAGDAG — foreach loop para sa serialized products
+                    //  DAGDAG — foreach loop para sa serialized products
                     foreach ($serializedLowStock as $product) {
                         $availableCount = SerializedProduct::where('product_id', $product->id)
                             ->where('status', 1)
@@ -451,7 +451,7 @@ class ReportsController extends Controller
     }
 
     // =========================================================
-    // ✅ HINDI BINAGO — weeklyIndex()
+    //  HINDI BINAGO — weeklyIndex()
     // =========================================================
     public function weeklyIndex(Request $request)
     {
@@ -498,7 +498,7 @@ class ReportsController extends Controller
         $products          = SupplierProduct::all();
 
         foreach ($products as $prod) {
-            // ✅ Dual-source stock count
+            //  Dual-source stock count
             if ($prod->is_consumable) {
                 $warehouseId  = auth()->user()->assigned_at;
                 $currentStock = ConsumableStock::where('product_id', $prod->id)
@@ -562,7 +562,7 @@ class ReportsController extends Controller
     }
 
     // =========================================================
-    // ✅ HINDI BINAGO — monthlyIndex()
+    //  HINDI BINAGO — monthlyIndex()
     // =========================================================
     public function monthlyIndex(Request $request)
     {
@@ -585,7 +585,7 @@ class ReportsController extends Controller
         $warehouseId         = auth()->user()->assigned_at;
 
         foreach ($allProducts as $product) {
-            // ✅ Dual-source stock count para sa inventory value
+            //  Dual-source stock count para sa inventory value
             if ($product->is_consumable) {
                 $stockCount = ConsumableStock::where('product_id', $product->id)
                     ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
@@ -661,7 +661,7 @@ class ReportsController extends Controller
     }
 
     // =========================================================
-    // ✅ HINDI BINAGO — strategicIndex()
+    //  HINDI BINAGO — strategicIndex()
     // =========================================================
     public function strategicIndex(Request $request)
     {
@@ -715,7 +715,7 @@ class ReportsController extends Controller
         $deadStocks   = [];
 
         foreach ($allProducts as $prod) {
-            // ✅ Dual-source stock count para sa dead stocks
+            //  Dual-source stock count para sa dead stocks
             if ($prod->is_consumable) {
                 $stockCount = ConsumableStock::where('product_id', $prod->id)
                     ->when($warehouseId, fn($q) => $q->where('warehouse_id', $warehouseId))
@@ -791,7 +791,7 @@ class ReportsController extends Controller
     }
 
     // =========================================================
-    // ✅ HINDI BINAGO — lahat ng ibang methods
+    //  HINDI BINAGO — lahat ng ibang methods
     // =========================================================
     public function getWeeklyData(Request $request)
     {
@@ -832,7 +832,7 @@ class ReportsController extends Controller
             'remarks' => $request->remarks,
         ]);
 
-        // ✅ RECORD STOCK MOVEMENT — para lumabas sa Reports
+        //  RECORD STOCK MOVEMENT — para lumabas sa Reports
         StockMovement::create([
             'product_id'   => $serialNumber->product_id,
             'type'         => 'damage',

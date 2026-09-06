@@ -13,11 +13,11 @@ class Employee extends Model
 
     protected $fillable = [
         'full_name',
-        'email',        // ✅ Add this
+        'email',        
         'username',
-        'password',     // ✅ Add this
+        'password',     
         'role_id',
-        'department_id', // ✅ Add this if needed
+        'department_id', 
         'contact_number',
         'address',
         'date_hired',

@@ -29,14 +29,14 @@ class ConsumableStock extends Model
 
     // ─── SCOPES ──────────────────────────────────────────────
 
-    // ✅ Low stock items: current_qty <= min_stock_level
+    //  Low stock items: current_qty <= min_stock_level
     public function scopeLowStock($query)
     {
-        // ✅ Strictly LESS THAN — hindi lalabas kung exactly equal sa min
+        //  Strictly LESS THAN — hindi lalabas kung exactly equal sa min
         return $query->whereColumn('current_qty', '<', 'min_stock_level');
     }
 
-    // ✅ Filter by warehouse
+    //  Filter by warehouse
     public function scopeForWarehouse($query, $warehouseId)
     {
         return $query->where('warehouse_id', $warehouseId);
@@ -50,7 +50,7 @@ class ConsumableStock extends Model
     }
 
     /**
-     * ✅ ADDED: Phase 3 Stock Health
+     *  ADDED: Phase 3 Stock Health
      */
     public function getStockStatus()
     {

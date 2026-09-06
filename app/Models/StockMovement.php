@@ -117,7 +117,7 @@ class StockMovement extends Model
     // ─── STATIC HELPERS ──────────────────────────────────────
 
     /**
-     * ✅ Record a stock movement AND update the consumable_stocks table
+     *  Record a stock movement AND update the consumable_stocks table
      * Gamitin ito sa lahat ng stock changes — hindi direct insert sa DB
      *
      * @param array $data
@@ -154,7 +154,7 @@ class StockMovement extends Model
     }
 
     /**
-     * ✅ Daily summary for dashboard cards
+     *  Daily summary for dashboard cards
      * Returns: received, outflow, damaged_lost counts for today
      */
     public static function dailySummary($warehouseId = null): array

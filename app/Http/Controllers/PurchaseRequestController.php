@@ -33,7 +33,7 @@ class PurchaseRequestController extends Controller
     }
 
     // ============================================================
-    // ✅ HELPER: Get all admin users (for notifying admins)
+    //  HELPER: Get all admin users (for notifying admins)
     // ============================================================
     private function getAdmins()
     {
@@ -82,7 +82,7 @@ class PurchaseRequestController extends Controller
                 ->addColumn('id', fn($pr) => $pr->id)
                 ->addColumn('status_id', fn($pr) => $pr->status_id)
                 ->editColumn('created_at', fn($pr) => $pr->created_at->format('M d, Y'))
-                // ✅ FIX: filterColumn para sa search
+                //  FIX: filterColumn para sa search
                 ->filterColumn('requestor', function ($query, $keyword) {
                     $query->whereHas('user', function ($q) use ($keyword) {
                         $q->where('full_name', 'like', "%{$keyword}%");
@@ -99,7 +99,7 @@ class PurchaseRequestController extends Controller
                 ->filterColumn('created_at', function ($query, $keyword) {
                     $query->where('purchase_request.created_at', 'like', "%{$keyword}%");
                 })
-                // ✅ FIX: orderColumn para sa sorting
+                //  FIX: orderColumn para sa sorting
                 ->orderColumn('requestor', function ($query, $order) {
                     $query->join('employee as u_sort', 'purchase_request.user_id', '=', 'u_sort.id')
                         ->orderBy('u_sort.full_name', $order);
@@ -195,7 +195,7 @@ class PurchaseRequestController extends Controller
             DB::commit();
 
             // ============================================================
-            // ✅ NOTIFY ALL ADMINS: New Purchase Request submitted
+            //  NOTIFY ALL ADMINS: New Purchase Request submitted
             // ============================================================
             try {
                 $requesterName = $user->full_name ?? ($user->first_name . ' ' . $user->last_name);
@@ -346,7 +346,7 @@ class PurchaseRequestController extends Controller
             DB::commit();
 
             // ============================================================
-            // ✅ NOTIFY REQUESTER: PR approved
+            //  NOTIFY REQUESTER: PR approved
             // ============================================================
             try {
                 $approverName = auth()->user()->full_name
@@ -375,7 +375,7 @@ class PurchaseRequestController extends Controller
             }
 
             // ============================================================
-            // ✅ SEND EMAIL TO SUPPLIER
+            //  SEND EMAIL TO SUPPLIER
             // ============================================================
             try {
                 if ($po->supplier && !empty($po->supplier->email)) {

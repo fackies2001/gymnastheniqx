@@ -25,7 +25,7 @@ use App\Http\Controllers\{
     ManpowerController,
     GymEquipmentController,
     PincodeController,
-    ConsumableController  // ✅ DAGDAG — missing sa dati mong version
+    ConsumableController
 };
 use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Middleware\CheckPinStatus;
@@ -38,7 +38,7 @@ Route::get('/', function () {
 });
 
 // ─────────────────────────────────────────────
-// ✅ LOGOUT FORCED — OUTSIDE auth middleware
+//  LOGOUT FORCED — OUTSIDE auth middleware
 // (kailangan accessible kahit expired na session)
 // ─────────────────────────────────────────────
 Route::get('/logout-forced', function () {
@@ -51,13 +51,13 @@ Route::get('/logout-forced', function () {
 });
 
 // ─────────────────────────────────────────────
-// ✅ PIN VERIFICATION ROUTES
+//  PIN VERIFICATION ROUTES
 // ─────────────────────────────────────────────
 Route::middleware(['auth'])->group(function () {
     Route::post('/verify_pin', [UserManagementController::class, 'verifyPin'])->name('user.verify.pin');
     Route::put('/update_pin', [UserManagementController::class, 'updatePin'])->name('user.update.pin');
 
-    // ✅ Check session status — polling route
+    //  Check session status — polling route
     Route::get('/check-session-status', function () {
         if (!Auth::check()) {
             return response()->json(['valid' => false]);
@@ -72,7 +72,7 @@ Route::middleware(['auth'])->group(function () {
 });
 
 // ─────────────────────────────────────────────
-// ✅ AUTHENTICATED ROUTES WITH PIN + SESSION CHECK
+//  AUTHENTICATED ROUTES WITH PIN + SESSION CHECK
 // ─────────────────────────────────────────────
 Route::middleware(['auth', CheckPinStatus::class, 'check.session', 'view.only.staff'])->group(function () {
 
@@ -101,7 +101,7 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session', 'view.only.st
         ]);
     });
 
-    // ✅ TEMPORARY FIX ROUTE — tanggalin pagkatapos gamitin!
+    //  TEMPORARY FIX ROUTE — tanggalin pagkatapos gamitin!
     Route::get('/fix-stock-temp', function () {
         \App\Models\ConsumableStock::where('product_id', 21)
             ->update(['current_qty' => 9]);
@@ -123,7 +123,7 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session', 'view.only.st
     });
 
     // =========================================================
-    // ✅ USER MANAGEMENT — Admin & Manager
+    //  USER MANAGEMENT — Admin & Manager
     // =========================================================
     Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin')->group(function () {
         Route::get('/user-management', [UserManagementController::class, 'index'])->name('user.management');
@@ -137,7 +137,7 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session', 'view.only.st
     });
 
     // =========================================================
-    // ✅ PURCHASE ORDER + RETAILER APPROVALS — Admin, Manager, Account staff
+    //  PURCHASE ORDER + RETAILER APPROVALS — Admin, Manager, Account staff
     // =========================================================
     Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager,account staff,staff')->group(function () {
         Route::prefix('purchase-order')->group(function () {
@@ -159,13 +159,13 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session', 'view.only.st
         });
     });
 
-    // ✅ Retailer Orders — Admin & Manager
+    //  Retailer Orders — Admin & Manager
     Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager,account staff')->group(function () {
         Route::get('/retailer-orders/all', [RetailerOrderController::class, 'indexAll'])->name('retailer.orders.all');
     });
 
     // =========================================================
-    // ✅ PROFILE MANAGEMENT — All roles
+    //  PROFILE MANAGEMENT — All roles
     // =========================================================
     Route::controller(ProfileController::class)->group(function () {
         Route::get('/profile', 'edit')->name('profile.edit');
@@ -181,11 +181,11 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session', 'view.only.st
         Route::post('/read-all',  [NotificationsController::class, 'markAllRead'])->name('notifications.read-all');
     });
 
-    // // ✅ Staff pwede mag-scan
+    // //  Staff pwede mag-scan
     // Route::get('/scan', [ScanController::class, 'index'])->name('scan.index');
 
     // =========================================================
-    // ✅ ADMIN & MANAGER ONLY
+    //  ADMIN & MANAGER ONLY
     // =========================================================
     Route::middleware(\App\Http\Middleware\CheckRole::class . ':admin,manager,account staff')->group(function () {
 
@@ -219,7 +219,7 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session', 'view.only.st
             Route::get('/supplier_products/list/{supplier_id}', 'getProductsBySupplier');
             Route::delete('/supplier_products/{id}', 'destroy')->name('supplier_products.destroy');
 
-            // ✅ Defective Inventory — view only for all roles, restore for admin/manager only
+            //  Defective Inventory — view only for all roles, restore for admin/manager only
             Route::get('/inventory/defective', 'defectiveIndex')->name('inventory.defective');
             Route::get('/inventory/defective/data', 'defectiveDatatable')->name('inventory.defective.data');
         });
@@ -260,7 +260,7 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session', 'view.only.st
     }); // END ADMIN & MANAGER
 
     // =========================================================
-    // ✅ ALL AUTHENTICATED USERS
+    //  ALL AUTHENTICATED USERS
     // =========================================================
 
     Route::get('/suppliers/{id}/products', [PurchaseRequestController::class, 'getSupplierProducts'])->name('suppliers.products');
@@ -304,8 +304,8 @@ Route::middleware(['auth', CheckPinStatus::class, 'check.session', 'view.only.st
         Route::get('/_serialized_products', '_index')->name('serialized_products._index');
         Route::put('/serialized_products/update_status/{id}', 'updateStatus')->name('serialized_products.update_status');
 
-        // ✅ Restored Operations (Redirected from deleted ConsumableController)
-        Route::get('/inventory', 'index')->name('consumables.index'); // ✅ FIX: ginagamit sa manager dashboard
+        //  Restored Operations (Redirected from deleted ConsumableController)
+        Route::get('/inventory', 'index')->name('consumables.index'); //  FIX: ginagamit sa manager dashboard
         Route::post('/inventory/report-incident', 'reportIncident')->name('consumables.report-incident');
         Route::post('/inventory/adjust', 'adjust')->name('consumables.adjust');
         Route::post('/inventory/set-min-stock', 'setMinStock')->name('consumables.set-min-stock');

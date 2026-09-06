@@ -54,7 +54,7 @@ class SupplierProduct extends Model implements Auditable
         'images',
         'source_id',
         'pieces_per_box',
-        'min_stock_level', // ✅ ADDED: Phase 3 Color-coded stock
+        'min_stock_level', //  ADDED: Phase 3 Color-coded stock
     ];
 
     protected $casts = [
@@ -68,7 +68,7 @@ class SupplierProduct extends Model implements Auditable
     ];
 
     /**
-     * ✅ ADDED: Phase 3 - Generic 4-tier stock status
+     *  ADDED: Phase 3 - Generic 4-tier stock status
      */
     public function getStockStatus()
     {
@@ -189,7 +189,7 @@ class SupplierProduct extends Model implements Auditable
 
     public function getAvailableStockAttribute()
     {
-        // ✅ ALL products now use quantity-based tracking (ConsumableStock)
+        //  ALL products now use quantity-based tracking (ConsumableStock)
         return $this->consumableStocks()->sum('current_qty') ?? 0;
     }
 

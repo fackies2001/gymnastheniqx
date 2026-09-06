@@ -31,10 +31,10 @@ class SerializedProduct extends Model
     ];
 
     /* ========================================
-       ✅ RELATIONSHIPS - FIXED
+        RELATIONSHIPS - FIXED
        ======================================== */
 
-    // ✅ FIXED: Points to User model (which is employee table)
+    // FIXED: Points to User model (which is employee table)
     public function scannedBy()
     {
         return $this->belongsTo(User::class, 'scanned_by', 'id');
@@ -61,7 +61,7 @@ class SerializedProduct extends Model
     }
 
     /* ========================================
-       ✅ SCOPES
+       SCOPES
        ======================================== */
 
     public function scopeCountsPerStatus($query)

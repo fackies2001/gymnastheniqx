@@ -8,10 +8,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PurchaseOrder extends Model
 {
-    // ✅ TAMA: Singular table name based sa database mo
+    
     protected $table = 'purchase_order';
 
-    // ✅ FIXED: Added status, grand_total, and warehouse_id columns
+
     protected $fillable = [
         'po_number',
         'purchase_request_id',
@@ -22,10 +22,10 @@ class PurchaseOrder extends Model
         'delivery_date',
         'payment_terms',
         'remarks',
-        'status',               // ✅ Para sa status tracking
-        'grand_total',          // ✅ Para sa total amount
-        'warehouse_id',         // ✅ ADDED: Para sa warehouse filtering
-        'payment_status',       // ✅ ADDED: Phase 2 Liability tracking
+        'status',              
+        'grand_total',         
+        'warehouse_id',         
+        'payment_status',       
         'paid_at',
     ];
 
@@ -37,7 +37,7 @@ class PurchaseOrder extends Model
     ];
 
     /* ========================================
-       ✅ SCOPES FOR FILTERING
+        SCOPES FOR FILTERING
        ======================================== */
 
     /**
@@ -47,12 +47,6 @@ class PurchaseOrder extends Model
     {
         if (auth()->check()) {
             $isStudent = auth()->user()->is_student ?? false;
-
-            // Students might have different filtering logic
-            // Uncomment if you want to filter by user
-            // if ($isStudent) {
-            //     return $query->where('requested_by', auth()->id());
-            // }
         }
 
         return $query;
@@ -94,7 +88,7 @@ class PurchaseOrder extends Model
     }
 
     /* ========================================
-       ✅ RELATIONSHIPS
+        RELATIONSHIPS
        ======================================== */
 
     public function purchaseRequest(): BelongsTo
@@ -133,7 +127,7 @@ class PurchaseOrder extends Model
     }
 
     /**
-     * ✅ ADDED: Payment terms relationship
+     *  ADDED: Payment terms relationship
      */
     public function paymentTerms(): BelongsTo
     {

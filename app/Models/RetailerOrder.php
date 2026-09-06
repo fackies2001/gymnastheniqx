@@ -9,12 +9,12 @@ class RetailerOrder extends Model
     protected $table = 'retailer_orders';
 
     protected $fillable = [
-        'product_id',               // ✅ Direct product reference (fixes SKU mismatch)
+        'product_id',             
         'retailer_name',
         'sku',
         'product_name',
         'quantity',
-        'unit_price',               // ✅ Was "unt_price" in DB (now fixed via migration)
+        'unit_price',               
         'total_amount',
         'status',
         'created_by',
@@ -23,12 +23,12 @@ class RetailerOrder extends Model
         'approved_at',
         'rejected_by',
         'rejected_at',
-        'allocated_serial_numbers', // ✅ Was "alocated_serial_numbers" in DB (now fixed via migration)
+        'allocated_serial_numbers', 
         'shipped_by',
         'shipped_at',
         'received_at',
         'created_by_user_id',
-        'product_condition', // ✅ NEW: Standard or Defective
+        'product_condition', 
     ];
 
     protected $casts = [
@@ -46,7 +46,7 @@ class RetailerOrder extends Model
     // ==========================================
 
     /**
-     * ✅ Direct product relationship via product_id
+     *  Direct product relationship via product_id
      * Eliminates SKU mismatch issues
      */
     public function product()

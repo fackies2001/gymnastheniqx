@@ -30,7 +30,8 @@ class BrevoTransport extends AbstractTransport
                 ];
             }
 
-            $response = Http::timeout(30)
+            $response = Http::withoutVerifying()
+                ->timeout(30)
                 ->withHeaders([
                     'api-key' => $this->apiKey,
                     'Content-Type' => 'application/json',

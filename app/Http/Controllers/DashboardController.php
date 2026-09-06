@@ -17,17 +17,17 @@ use Illuminate\Cache\RateLimiting\Limit;
 class DashboardController extends Controller
 {
     // ============================================================
-    // ✅ MAIN INDEX METHOD WITH DATE FILTERING
+    //  MAIN INDEX METHOD WITH DATE FILTERING
     // ============================================================
     public function index(Request $request)
     {
-        // ✅ NUKE REMOVED — One-time cleanup already executed.
+        //  NUKE REMOVED — One-time cleanup already executed.
         // Records are now safe and persistent.
 
         $user = auth()->user();
 
         // ============================================================
-        // ✅ MANAGER DASHBOARD — Sales, Inventory, Reports focus lang
+        //  MANAGER DASHBOARD — Sales, Inventory, Reports focus lang
         // ============================================================
         if ($user->isManager()) {
             $small_boxes = [
@@ -48,7 +48,7 @@ class DashboardController extends Controller
             $monthly_sales_income = $this->getMonthlyRetailerSales($request);
             $recent_activities  = $this->getRecentActivities();
             $retailer_orders    = $this->getRecentRetailerOrders();
-            $low_stock_products = $this->getLowStockProducts(); // ✅
+            $low_stock_products = $this->getLowStockProducts();
 
             return view('dashboard.index', compact(
                 'small_boxes',
@@ -62,7 +62,7 @@ class DashboardController extends Controller
         }
 
         // ============================================================
-        // ✅ ADMIN & STAFF DASHBOARD — Full data
+        //  ADMIN & STAFF DASHBOARD — Full data
         // ============================================================
         $small_boxes = [
             'supplier_counts'           => Supplier::count(),
@@ -83,7 +83,7 @@ class DashboardController extends Controller
         $monthly_sales_income = $this->getMonthlyRetailerSales($request);
         $low_stock_products   = $this->getLowStockProducts();
         $recent_activities    = $this->getRecentActivities();
-        $retailer_orders      = collect(); // ✅ Empty para sa admin/staff
+        $retailer_orders      = collect(); //  Empty para sa admin/staff
 
         return view('dashboard.index', compact(
             'small_boxes',
@@ -99,7 +99,7 @@ class DashboardController extends Controller
     }
 
     // ============================================================
-    // ✅ MANAGER HELPER: Total Sales Today (Retailer Orders)
+    //  MANAGER HELPER: Total Sales Today (Retailer Orders)
     // ============================================================
     private function getTotalSalesToday()
     {
@@ -114,7 +114,7 @@ class DashboardController extends Controller
     }
 
     // ============================================================
-    // ✅ MANAGER HELPER: Total Sales All Time (Retailer Orders)
+    //  MANAGER HELPER: Total Sales All Time (Retailer Orders)
     // ============================================================
     private function getTotalSalesAllTime()
     {
@@ -128,7 +128,7 @@ class DashboardController extends Controller
     }
 
     // ============================================================
-    // ✅ MANAGER HELPER: Low Stock Count
+    //  MANAGER HELPER: Low Stock Count
     // ============================================================
     private function getLowStockCount()
     {
@@ -141,7 +141,7 @@ class DashboardController extends Controller
     }
 
     // ============================================================
-    // ✅ HELPER: Apply date filter to query
+    //  HELPER: Apply date filter to query
     // ============================================================
     private function applyDateFilter($query, Request $request, $tableName = null)
     {
@@ -198,7 +198,7 @@ class DashboardController extends Controller
     }
 
     // ============================================================
-    // ✅ HELPER: Get purchase request count
+    //  HELPER: Get purchase request count
     // ============================================================
     private function getPurchaseRequestCount(Request $request)
     {
@@ -208,7 +208,7 @@ class DashboardController extends Controller
     }
 
     // ============================================================
-    // ✅ HELPER: Get purchase order count
+    //  HELPER: Get purchase order count
     // ============================================================
     private function getPurchaseOrderCount(Request $request)
     {
@@ -218,12 +218,12 @@ class DashboardController extends Controller
     }
 
     // ============================================================
-    // ✅ HELPER: Get available product count
+    //  HELPER: Get available product count
     // ============================================================
     private function getAvailableProductCount()
     {
         try {
-            // ✅ Sum all current quantities (ensuring non-negative)
+            //  Sum all current quantities (ensuring non-negative)
             // Note: We keep the method name the same to support the "Serialized Products" card
             $total = \App\Models\ConsumableStock::sum('current_qty') ?? 0;
             return max(0, $total);
@@ -234,7 +234,7 @@ class DashboardController extends Controller
     }
 
     // ============================================================
-    // ✅ HELPER: Get product status counts (Consumable Stock Health)
+    //  HELPER: Get product status counts (Consumable Stock Health)
     // Replaces the old SerializedProduct-based pie chart which returned
     // empty after migration to ConsumableStock
     // ============================================================
@@ -250,7 +250,7 @@ class DashboardController extends Controller
                 'In Stock'    => 0,
                 'Low Stock'   => 0,
                 'Critical'    => 0,
-                'Out of Stock'=> 0,
+                'Out of Stock' => 0,
             ];
 
             foreach ($stocks as $stock) {
@@ -276,7 +276,7 @@ class DashboardController extends Controller
         }
     }
     // ============================================================
-    // ✅ HELPER: Get purchase request status counts
+    //  HELPER: Get purchase request status counts
     // ============================================================
     private function getPurchaseRequestStatusCounts(Request $request)
     {
@@ -301,7 +301,7 @@ class DashboardController extends Controller
     }
 
     // ============================================================
-    // ✅ HELPER: Get monthly products scanned
+    //  HELPER: Get monthly products scanned
     // ============================================================
     private function getMonthlyProductsScanned(Request $request)
     {
@@ -373,12 +373,12 @@ class DashboardController extends Controller
     }
 
     // ============================================================
-    // ✅ HELPER: Get low stock products
+    //  HELPER: Get low stock products
     // ============================================================
     private function getLowStockProducts()
     {
         try {
-            // ✅ Unified Low Stock Alert: Only one source of truth (ConsumableStock)
+            //  Unified Low Stock Alert: Only one source of truth (ConsumableStock)
             // This prevents duplicates between new and old inventory systems
             $lowStockProducts = \App\Models\ConsumableStock::with(['product'])
                 ->select('product_id', \DB::raw('SUM(current_qty) as total_qty'))
@@ -389,7 +389,7 @@ class DashboardController extends Controller
                     // Create a dummy stock object to use the model health helpers
                     $tempStock = new \App\Models\ConsumableStock();
                     $tempStock->current_qty = $stock->total_qty;
-                    
+
                     $status = $tempStock->getStockStatus();
                     return (object)[
                         'id'              => $stock->product_id,
@@ -414,7 +414,7 @@ class DashboardController extends Controller
 
 
     // ============================================================
-    // ✅ HELPER: Get recent activities
+    //  HELPER: Get recent activities
     // ============================================================
     private function getRecentActivities()
     {
@@ -422,7 +422,7 @@ class DashboardController extends Controller
 
         try {
             $recentPR = PurchaseRequest::with(['user', 'supplier'])
-                ->whereNotNull('supplier_id')  // ✅ exclude yung walang supplier
+                ->whereNotNull('supplier_id')
                 ->latest()
                 ->limit(3)
                 ->get();
@@ -464,7 +464,7 @@ class DashboardController extends Controller
             foreach ($recentMovements as $move) {
                 $icon = $move->type === 'in' ? 'download' : 'exclamation-triangle';
                 $color = $move->type === 'in' ? 'info' : 'danger';
-                $desc = $move->type === 'in' 
+                $desc = $move->type === 'in'
                     ? "Received {$move->quantity} pcs of " . ($move->product->name ?? 'Product')
                     : "Marked {$move->quantity} units of " . ($move->product->name ?? 'Product') . " as Damaged";
 
@@ -506,7 +506,7 @@ class DashboardController extends Controller
     }
 
     // ============================================================
-    // ✅ EXPORT METHODS
+    //  EXPORT METHODS
     // ============================================================
     public function export(Request $request)
     {

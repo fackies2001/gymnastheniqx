@@ -32,7 +32,7 @@ class SerialNumber extends Model implements Auditable
         'scanned_at' => 'datetime',
     ];
 
-    // ✅ FIXED: scannedBy points to User (which is employee table)
+    // FIXED: scannedBy points to User (which is employee table)
     public function scannedBy()
     {
         return $this->belongsTo(User::class, 'scanned_by', 'id');

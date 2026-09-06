@@ -11,7 +11,7 @@ class ManpowerController extends Controller
 {
     public function index()
     {
-        $warehouses = \App\Models\Warehouse::select('id', 'name')->get(); // ✅ DAGDAG
+        $warehouses = \App\Models\Warehouse::select('id', 'name')->get(); 
         return view('manpower.index', compact('warehouses'));
     }
 
@@ -24,7 +24,7 @@ class ManpowerController extends Controller
             'email',
             'address',
             'position',
-            'designated_area', // ✅ DAGDAG
+            'designated_area', 
             'date_hired',
             'status'
         ]);
@@ -42,7 +42,7 @@ class ManpowerController extends Controller
 
                 return $editBtn . ' ' . $deleteBtn;
             })
-            // ✅ FIX: orderColumn para gumana ang sorting
+            //  FIX: orderColumn para gumana ang sorting
             ->orderColumn('full_name', 'full_name $1')
             ->orderColumn('contact_no', 'contact_no $1')
             ->orderColumn('email', 'email $1')
@@ -63,7 +63,7 @@ class ManpowerController extends Controller
             'email'           => 'required|email|unique:coaches,email',
             'address'         => 'required|string',
             'position'        => 'required|string',
-            'designated_area' => 'nullable|string', // ✅ DAGDAG
+            'designated_area' => 'nullable|string', 
             'date_hired'      => 'required|date',
             'status'          => 'required|string',
         ]);
@@ -93,7 +93,7 @@ class ManpowerController extends Controller
         $request->validate([
             'full_name'  => 'required',
             'email'      => 'required|email|unique:coaches,email,' . $id,
-            'designated_area' => 'nullable|string', // ✅ DAGDAG    
+            'designated_area' => 'nullable|string',     
         ]);
 
         $coach = Coach::findOrFail($id);

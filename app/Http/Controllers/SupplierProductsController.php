@@ -77,7 +77,7 @@ class SupplierProductsController extends Controller
                 'success' => true,
                 'message' => 'Supplier product created successfully!',
                 'data' => [
-                    'DT_RowId'      => 'row_' . $product->id,  // ✅ IMPORTANT!
+                    'DT_RowId'      => 'row_' . $product->id,  
                     'supplier_name' => $product->supplier?->name ?? 'N/A',
                     'name'          => $product->name,
                     'system_sku'    => $product->system_sku,
@@ -181,7 +181,7 @@ class SupplierProductsController extends Controller
         }
 
         $request->merge(['supplier_id' => $supplier_id]);
-        return $this->datatableService->get_supplier_products_show_table($request); // ✅ WITH 'S'
+        return $this->datatableService->get_supplier_products_show_table($request); 
     }
 
     public function show($id)
@@ -200,7 +200,7 @@ class SupplierProductsController extends Controller
     }
 
     /**
-     * ✅ DELETE Supplier Product
+     * DELETE Supplier Product
      * Permanently removes the product from the database
      */
     public function destroy($id)
@@ -209,7 +209,7 @@ class SupplierProductsController extends Controller
             $product = SupplierProduct::findOrFail($id);
             $name    = $product->name;
 
-            // ✅ Check if may serialized products pa na naka-link
+            //  Check if may serialized products pa na naka-link
             $hasStock = \App\Models\SerializedProduct::where('product_id', $id)
                 ->where('status', 1) // available stock
                 ->count();
@@ -236,7 +236,7 @@ class SupplierProductsController extends Controller
         }
     }
     /**
-     * ✅ NEW: Phase 4 Defective Inventory Index
+     *  NEW: Phase 4 Defective Inventory Index
      */
     public function defectiveIndex()
     {
@@ -244,7 +244,7 @@ class SupplierProductsController extends Controller
     }
 
     /**
-     * ✅ NEW: Phase 4 Defective Inventory Datatable
+     *  NEW: Phase 4 Defective Inventory Datatable
      */
     public function defectiveDatatable()
     {
@@ -252,7 +252,7 @@ class SupplierProductsController extends Controller
     }
 
     /**
-     * ✅ NEW: Phase 4 Restore Defective Item to Available (Quantity-based)
+     *  NEW: Phase 4 Restore Defective Item to Available (Quantity-based)
      */
     public function restoreDefective($id)
     {

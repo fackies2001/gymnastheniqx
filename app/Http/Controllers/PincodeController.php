@@ -21,7 +21,7 @@ class PincodeController extends Controller
         $pin = implode('', $request->pin);
         $user = Auth::user();
 
-        // ✅ Case 1: User has NO PIN yet - SET IT
+        //  Case 1: User has NO PIN yet - SET IT
         if (empty($user->pin)) {
             $user->pin = Hash::make($pin);
             $user->save();
@@ -34,7 +34,7 @@ class PincodeController extends Controller
             ]);
         }
 
-        // ✅ Case 2: User has PIN - VERIFY IT
+        //  Case 2: User has PIN - VERIFY IT
         if (Hash::check($pin, $user->pin)) {
             session(['pin_verified' => true]);
 

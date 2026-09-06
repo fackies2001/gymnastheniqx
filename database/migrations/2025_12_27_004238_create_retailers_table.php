@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('retailers', function (Blueprint $table) {
             $table->id();
-            $table->string('name'); // Pangalan ng Store o Retailer
+            $table->string('name'); 
             $table->string('contact_person')->nullable();
             $table->string('address')->nullable();
             $table->timestamps();
