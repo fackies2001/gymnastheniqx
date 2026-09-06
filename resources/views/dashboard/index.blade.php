@@ -78,28 +78,14 @@
             text-decoration: underline;
         }
 
-        .stat-box-suppliers {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
-
-        .stat-box-pr {
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-        }
-
-        .stat-box-po {
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        }
-
-        .stat-box-stock {
-            background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-        }
-
-        .stat-box-sales-today {
-            background: linear-gradient(135deg, #f7971e 0%, #ffd200 100%);
-        }
-
+        .stat-box-suppliers,
+        .stat-box-pr,
+        .stat-box-po,
+        .stat-box-stock,
+        .stat-box-sales-today,
         .stat-box-sales-total {
-            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+            background: linear-gradient(145deg, #0b1120 0%, #162444 100%) !important;
+            border: 1px solid #1e293b !important;
         }
 
         .activity-item--clickable {
@@ -107,14 +93,14 @@
         }
 
         .activity-item--clickable:hover {
-            border-color: #667eea !important;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+            border-color: #ffffff !important;
+            box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
             transform: translateY(-1px);
             text-decoration: none;
         }
 
         .activity-item-link:focus {
-            outline: 2px solid rgba(102, 126, 234, 0.5);
+            outline: 2px solid rgba(255, 255, 255, 0.4);
             outline-offset: 1px;
         }
 
@@ -176,12 +162,13 @@
         }
 
         .shortcut-yearly {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(145deg, #0b1120 0%, #162444 100%) !important;
+            border: 1px solid #1e293b !important;
         }
 
         .activity-item {
             padding: 10px 12px;
-            border-left: 3px solid #667eea;
+            border-left: 3px solid #334155;
             margin-bottom: 10px;
             background: #f8f9fa;
             border-radius: 4px;
@@ -217,9 +204,9 @@
             width: 48px;
             height: 48px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            background: #0b1120;
+            border: 1px solid #334155;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
             cursor: pointer;
             z-index: 9999;
             display: flex;
@@ -230,7 +217,8 @@
 
         .dark-mode-toggle:hover {
             transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+            border-color: #ffffff;
         }
 
         .dark-mode-toggle i {
@@ -331,7 +319,7 @@
 
     {{-- DATE FILTER BAR --}}
     <div class="card shadow mb-3 no-print">
-        <div class="card-header bg-gradient-primary">
+        <div class="card-header" style="background: linear-gradient(135deg, #0b1120 0%, #162444 100%); border-bottom: 1px solid #1e293b;">
             <h3 class="card-title font-weight-bold text-white">
                 <i class="fas fa-filter"></i> FILTER BY DATE
             </h3>

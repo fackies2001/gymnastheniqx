@@ -18,7 +18,7 @@
             </div>
         </div>
         <div class="col-md-4">
-            <div class="small-box bg-warning shadow text-dark">
+            <div class="small-box bg-warning shadow">
                 <div class="inner">
                     <h3>{{ $pendingOrders }}</h3>
                     <p>Pending Approvals</p>
@@ -610,8 +610,43 @@
 
 @push('css')
     <style>
+        .small-box {
+            background: linear-gradient(145deg, #0b1120 0%, #162444 100%) !important;
+            border: 1px solid #1e293b !important;
+            border-radius: 12px !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+        }
+
+        .small-box .inner h3 {
+            color: #ffffff !important;
+            font-size: 2.2rem !important;
+            font-weight: 700 !important;
+        }
+
+        .small-box .inner p {
+            color: #e2e8f0 !important;
+            font-size: 0.95rem !important;
+            font-weight: 500 !important;
+        }
+
+        .small-box .icon {
+            color: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        .small-box:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35) !important;
+            transition: all 0.3s;
+        }
+
+        .small-box:hover .icon {
+            color: rgba(255, 255, 255, 0.2) !important;
+        }
+
         .bg-gradient-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0b1120 0%, #162444 100%) !important;
+            border-bottom: 1px solid #1e293b !important;
         }
 
         #inp_price.border-success {

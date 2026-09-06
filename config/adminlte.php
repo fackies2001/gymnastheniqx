@@ -201,7 +201,7 @@ return [
     */
 
     'classes_body' => '',
-    'classes_brand' => 'bg-purple',
+    'classes_brand' => '',
     'classes_brand_text' => '',
     'classes_content_wrapper' => '',
     'classes_content_header' => '',

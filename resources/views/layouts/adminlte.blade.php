@@ -69,10 +69,67 @@
 @section('css')
     <link rel="icon" type="image/png" href="{{ asset('logo.png') }}">
     <style>
-        /* PIN MODAL */
+        /* PIN MODAL - MIDNIGHT NAVY & PURE WHITE */
         .pin-digit:focus {
-            border-color: #764ba2 !important;
-            box-shadow: 0 0 0 0.2rem rgba(118, 75, 162, 0.25) !important;
+            border-color: #ffffff !important;
+            box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.25) !important;
+            background-color: #162444 !important;
+        }
+
+        #pincodeModal .modal-content {
+            background-color: #0f172a !important;
+            border: 1px solid #1e293b !important;
+            border-radius: 16px !important;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6) !important;
+            color: #ffffff !important;
+        }
+
+        #pincodeModal .modal-header {
+            background: linear-gradient(135deg, #0b1120 0%, #162444 100%) !important;
+            border-bottom: 1px solid #1e293b !important;
+            border-radius: 15px 15px 0 0 !important;
+        }
+
+        #pincodeModal .modal-body {
+            background-color: #0f172a !important;
+            border-radius: 0 0 15px 15px !important;
+        }
+
+        #pincodeModal .pin-digit {
+            background-color: #111e38 !important;
+            color: #ffffff !important;
+            border: 2px solid #334155 !important;
+            border-radius: 10px !important;
+        }
+
+        #pincodeModal #savePincodeBtn {
+            background: #ffffff !important;
+            color: #0b1120 !important;
+            border: none !important;
+            border-radius: 10px !important;
+            font-weight: 700 !important;
+            transition: all 0.2s ease !important;
+        }
+
+        #pincodeModal #savePincodeBtn:hover {
+            background: #f1f5f9 !important;
+            box-shadow: 0 4px 16px rgba(255, 255, 255, 0.3) !important;
+            transform: translateY(-1px);
+        }
+
+        #pincodeModal .text-muted {
+            color: #94a3b8 !important;
+        }
+
+        /* BRAND LINK UNIVERSAL */
+        .brand-link {
+            background-color: #0b1120 !important;
+            border-bottom: 1px solid #1e293b !important;
+            color: #ffffff !important;
+        }
+
+        .brand-link .brand-text {
+            color: #ffffff !important;
         }
 
         .gap-2 {
@@ -89,10 +146,11 @@
         }
 
         .user-menu-dropdown .dropdown-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #0b1120 0%, #162444 100%);
             color: white;
             padding: 15px;
             text-align: center;
+            border-bottom: 1px solid #1e293b;
         }
 
         .user-menu-dropdown .dropdown-header img {
@@ -108,7 +166,7 @@
         }
 
         .user-menu-dropdown .dropdown-item:hover {
-            background-color: rgba(102, 126, 234, 0.1);
+            background-color: rgba(255, 255, 255, 0.08);
             padding-left: 25px;
         }
 
@@ -127,7 +185,7 @@
         }
 
         #notificationBellWrapper .nav-link:hover {
-            color: #667eea !important;
+            color: #ffffff !important;
         }
 
         #notifBadge {
@@ -135,12 +193,12 @@
         }
 
         .notif-item:hover {
-            background-color: rgba(102, 126, 234, 0.08) !important;
+            background-color: rgba(255, 255, 255, 0.08) !important;
         }
 
         .notif-item.unread {
-            background-color: rgba(102, 126, 234, 0.05);
-            border-left: 3px solid #667eea !important;
+            background-color: rgba(255, 255, 255, 0.05);
+            border-left: 3px solid #ffffff !important;
         }
 
         .notif-item.unread.notif-bell-pr-created {
@@ -311,6 +369,29 @@
             background-color: #242526 !important;
             border-top: 1px solid #393a3b !important;
             color: #b0b3b8 !important;
+        }
+
+        body.dark-mode .small-box {
+            background: linear-gradient(145deg, #0b1120 0%, #162444 100%) !important;
+            border: 1px solid #1e293b !important;
+            border-radius: 12px !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+        }
+
+        body.dark-mode .small-box .inner h3,
+        body.dark-mode .small-box .inner p {
+            color: #ffffff !important;
+        }
+
+        body.dark-mode .small-box .icon {
+            color: rgba(255, 255, 255, 0.12) !important;
+        }
+
+        body.dark-mode .small-box .small-box-footer {
+            background: rgba(0, 0, 0, 0.25) !important;
+            color: #ffffff !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
         }
 
         /* Tables & DataTables */
@@ -693,9 +774,8 @@
     @auth
         <div class="modal fade" id="pincodeModal" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog">
             <div class="modal-dialog modal-dialog-centered" role="document">
-                <div class="modal-content" style="border-radius:15px; border:none; box-shadow:0 10px 40px rgba(0,0,0,0.2);">
-                    <div class="modal-header"
-                        style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); border-radius:15px 15px 0 0; border:none;">
+                <div class="modal-content">
+                    <div class="modal-header">
                         <h5 class="modal-title text-white font-weight-bold">
                             <i class="fas fa-lock mr-2"></i>
                             @if (Auth::user()->pin)
@@ -722,13 +802,13 @@
                             <div class="d-flex justify-content-center gap-2 mb-4">
                                 @for ($i = 0; $i < 6; $i++)
                                     <input type="password" class="pin-digit form-control text-center" name="pin[]"
-                                        style="width:55px; height:55px; font-size:22px; font-weight:bold; border:2px solid #667eea; border-radius:10px;"
+                                        style="width:55px; height:55px; font-size:22px; font-weight:bold;"
                                         required autocomplete="off" inputmode="numeric">
                                 @endfor
                             </div>
 
-                            <button type="submit" id="savePincodeBtn" class="btn btn-primary btn-lg btn-block"
-                                style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); border:none; border-radius:10px; font-weight:bold;">
+                            <button type="submit" id="savePincodeBtn" class="btn btn-lg btn-block"
+                                style="padding: 12px; font-size: 16px;">
                                 <i class="fas fa-lock mr-2"></i>
                                 @if (Auth::user()->pin)
                                     Verify PIN
@@ -761,11 +841,11 @@
         {{-- ✅ SESSION TIMEOUT MODAL --}}
         <div class="modal fade" id="sessionWarningModal" tabindex="-1" role="dialog" style="z-index:99999;">
             <div class="modal-dialog modal-dialog-centered" role="document">
-                <div class="modal-content" style="border-radius:15px; border:none; box-shadow:0 10px 40px rgba(0,0,0,0.2);">
+                <div class="modal-content" style="background:#0f172a; border:1px solid #1e293b; border-radius:15px; color:#ffffff; box-shadow:0 10px 40px rgba(0,0,0,0.6);">
                     <div class="modal-header"
-                        style="background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); border-radius:15px 15px 0 0; border:none;">
+                        style="background:linear-gradient(135deg,#0b1120 0%,#162444 100%); border-radius:15px 15px 0 0; border-bottom:1px solid #1e293b;">
                         <h5 class="modal-title text-white font-weight-bold">
-                            <i class="fas fa-exclamation-triangle mr-2"></i> Session Expiring Soon!
+                            <i class="fas fa-exclamation-triangle mr-2 text-warning"></i> Session Expiring Soon!
                         </h5>
                     </div>
                     <div class="modal-body text-center py-4">

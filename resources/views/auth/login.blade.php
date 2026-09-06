@@ -147,15 +147,24 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: rgba(14, 165, 233, 0.12);
-            border: 1px solid rgba(14, 165, 233, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 100px;
             padding: 6px 14px;
             font-size: 11px;
             letter-spacing: 2px;
             text-transform: uppercase;
-            color: #38bdf8;
+            color: #ffffff;
             margin-bottom: 28px;
+        }
+
+        .brand-middle .tag .tag-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #ffffff;
+            box-shadow: 0 0 8px #ffffff;
+            animation: pulse-dot 2s infinite;
         }
 
         .brand-middle h1 {
@@ -169,9 +178,8 @@
 
         .brand-middle h1 em {
             font-style: normal;
-            background: linear-gradient(135deg, #38bdf8 0%, #f59e0b 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+            color: #ffffff;
+            -webkit-text-fill-color: #ffffff;
         }
 
         .brand-middle p {
