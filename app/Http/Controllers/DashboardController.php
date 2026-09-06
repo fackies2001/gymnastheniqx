@@ -223,10 +223,9 @@ class DashboardController extends Controller
     private function getAvailableProductCount()
     {
         try {
-            //  Sum all current quantities (ensuring non-negative)
-            // Note: We keep the method name the same to support the "Serialized Products" card
-            $total = \App\Models\ConsumableStock::sum('current_qty') ?? 0;
-            return max(0, $total);
+            $consumableTotal = (int) (\App\Models\ConsumableStock::sum('current_qty') ?? 0);
+            $serializedTotal = (int) \App\Models\SerializedProduct::where('status', 1)->count();
+            return max(0, $consumableTotal + $serializedTotal);
         } catch (\Exception $e) {
             \Log::error('Error counting available products: ' . $e->getMessage());
             return 0;
@@ -234,32 +233,35 @@ class DashboardController extends Controller
     }
 
     // ============================================================
-    //  HELPER: Get product status counts (Consumable Stock Health)
-    // Replaces the old SerializedProduct-based pie chart which returned
-    // empty after migration to ConsumableStock
+    //  HELPER: Get product status counts (Stock Health)
+    // Supports both Consumable and Serialized products
     // ============================================================
     private function getSerializedProductStatusCounts(Request $request)
     {
         try {
-            $stocks = \App\Models\ConsumableStock::with('product')
-                ->select('product_id', DB::raw('SUM(current_qty) as total_qty'), DB::raw('MIN(min_stock_level) as min_level'))
-                ->groupBy('product_id')
-                ->get();
+            $products = SupplierProduct::all();
 
             $counts = [
-                'In Stock'    => 0,
-                'Low Stock'   => 0,
-                'Critical'    => 0,
+                'In Stock'     => 0,
+                'Low Stock'    => 0,
+                'Critical'     => 0,
                 'Out of Stock' => 0,
             ];
 
-            foreach ($stocks as $stock) {
-                $qty   = (int) $stock->total_qty;
-                $min   = (int) ($stock->min_level ?? 20);
+            foreach ($products as $product) {
+                if ($product->is_consumable) {
+                    $qty = (int) (\App\Models\ConsumableStock::where('product_id', $product->id)->sum('current_qty') ?? 0);
+                    $min = (int) (\App\Models\ConsumableStock::where('product_id', $product->id)->min('min_stock_level') ?? 20);
+                } else {
+                    $qty = (int) \App\Models\SerializedProduct::where('product_id', $product->id)
+                        ->where('status', 1)
+                        ->count();
+                    $min = (int) ($product->min_stock_level ?? 20);
+                }
 
                 if ($qty <= 0) {
                     $counts['Out of Stock']++;
-                } elseif ($qty <= ($min * 0.25)) {
+                } elseif ($qty <= 5) {
                     $counts['Critical']++;
                 } elseif ($qty < $min) {
                     $counts['Low Stock']++;
@@ -378,29 +380,34 @@ class DashboardController extends Controller
     private function getLowStockProducts()
     {
         try {
-            //  Unified Low Stock Alert: Only one source of truth (ConsumableStock)
-            // This prevents duplicates between new and old inventory systems
-            $lowStockProducts = \App\Models\ConsumableStock::with(['product'])
-                ->select('product_id', \DB::raw('SUM(current_qty) as total_qty'))
-                ->groupBy('product_id')
-                ->havingRaw('SUM(current_qty) < 25')
-                ->get()
-                ->map(function ($stock) {
-                    // Create a dummy stock object to use the model health helpers
-                    $tempStock = new \App\Models\ConsumableStock();
-                    $tempStock->current_qty = $stock->total_qty;
+            $products = SupplierProduct::with(['supplier'])->get();
+            $lowStockProducts = collect();
 
+            foreach ($products as $product) {
+                if ($product->is_consumable) {
+                    $available = (int) (\App\Models\ConsumableStock::where('product_id', $product->id)->sum('current_qty') ?? 0);
+                } else {
+                    $available = (int) \App\Models\SerializedProduct::where('product_id', $product->id)
+                        ->where('status', 1)
+                        ->count();
+                }
+
+                if ($available < 25) {
+                    $tempStock = new \App\Models\ConsumableStock();
+                    $tempStock->current_qty = $available;
                     $status = $tempStock->getStockStatus();
-                    return (object)[
-                        'id'              => $stock->product_id,
-                        'name'            => $stock->product->name ?? 'Unknown',
-                        'system_sku'      => $stock->product->system_sku ?? 'N/A',
-                        'available_count' => (int) $stock->total_qty,
+
+                    $lowStockProducts->push((object)[
+                        'id'              => $product->id,
+                        'name'            => $product->name ?? 'Unknown',
+                        'system_sku'      => $product->system_sku ?? 'N/A',
+                        'available_count' => $available,
                         'status_label'    => $status->label,
                         'status_color'    => $status->color,
                         'status_icon'     => $status->icon,
-                    ];
-                });
+                    ]);
+                }
+            }
 
             return $lowStockProducts
                 ->sortBy('available_count')
