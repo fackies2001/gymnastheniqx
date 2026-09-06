@@ -149,9 +149,54 @@
             color: #a0aec0;
         }
 
-        .no-suppliers i {
-            font-size: 3.5rem;
-            margin-bottom: 18px;
+        /* Dark Mode for Suppliers */
+        body.dark-mode .supplier-card {
+            background: #242526 !important;
+            border-color: #393a3b !important;
+        }
+
+        body.dark-mode .supplier-card:hover {
+            border-color: #4e4f50 !important;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4) !important;
+        }
+
+        body.dark-mode .supplier-card-header {
+            background: #18191a !important;
+            border-bottom: 1px solid #393a3b !important;
+        }
+
+        body.dark-mode .supplier-header {
+            background: #242526 !important;
+            border: 1px solid #393a3b !important;
+        }
+
+        body.dark-mode .search-sort-container {
+            background: #242526 !important;
+            border-color: #393a3b !important;
+        }
+
+        body.dark-mode .search-input,
+        body.dark-mode .sort-select {
+            background: #3a3b3c !important;
+            border-color: #3e4042 !important;
+            color: #e4e6eb !important;
+        }
+
+        body.dark-mode .supplier-info {
+            color: #b0b3b8 !important;
+        }
+
+        body.dark-mode .supplier-info i {
+            color: #8a8d91 !important;
+        }
+
+        body.dark-mode .supplier-footer {
+            background: #1e1f20 !important;
+            border-top: 1px solid #393a3b !important;
+        }
+
+        body.dark-mode .date-added {
+            color: #b0b3b8 !important;
         }
     </style>
 @endpush

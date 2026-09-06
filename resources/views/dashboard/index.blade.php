@@ -327,10 +327,7 @@
 
 @section('content_body')
 
-    {{-- DARK MODE TOGGLE --}}
-    <button class="dark-mode-toggle" id="darkModeToggle" title="Toggle Dark/Light Mode">
-        <i class="fas fa-moon" id="darkModeIcon"></i>
-    </button>
+
 
     {{-- DATE FILTER BAR --}}
     <div class="card shadow mb-3 no-print">

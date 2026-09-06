@@ -14,6 +14,7 @@
         },
 
         enable() {
+            document.documentElement.classList.add('dark-mode');
             document.body.classList.add('dark-mode');
             localStorage.setItem('darkMode', 'enabled');
             this._setIcon(true);
@@ -21,6 +22,7 @@
         },
 
         disable() {
+            document.documentElement.classList.remove('dark-mode');
             document.body.classList.remove('dark-mode');
             localStorage.setItem('darkMode', 'disabled');
             this._setIcon(false);
@@ -35,33 +37,13 @@
         },
 
         init() {
-            // Apply stored preference immediately
             if (this.isEnabled()) {
+                document.documentElement.classList.add('dark-mode');
                 document.body.classList.add('dark-mode');
                 this._setIcon(true);
             } else {
                 this._setIcon(false);
             }
-
-            const btn = document.getElementById('darkModeToggle');
-            if (!btn) {
-                console.warn('[DarkMode] Toggle button not found!');
-                return;
-            }
-
-            // ✅ Guard: prevent duplicate event binding on Vite HMR re-runs
-            if (btn.dataset.darkModeInit === '1') {
-                console.log('[DarkMode] Already initialized, skipping.');
-                return;
-            }
-            btn.dataset.darkModeInit = '1';
-
-            btn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                this.isEnabled() ? this.disable() : this.enable();
-            });
-
-            console.log('[DarkMode] Initialized ✅');
         }
     };
 
