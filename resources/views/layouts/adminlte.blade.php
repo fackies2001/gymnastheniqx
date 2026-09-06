@@ -650,9 +650,72 @@
             color: #facc15 !important;
         }
 
-        /* SESSION MODAL Z-INDEX */
+        /* SESSION WARNING MODAL (Navy Header + White Lower Body) */
         #sessionWarningModal {
             z-index: 99999 !important;
+        }
+
+        #sessionWarningModal .modal-content,
+        body.dark-mode #sessionWarningModal .modal-content {
+            background-color: #ffffff !important;
+            border: 1px solid rgba(0, 0, 0, 0.15) !important;
+            border-radius: 16px !important;
+            color: #0f172a !important;
+            overflow: hidden !important;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45) !important;
+        }
+
+        #sessionWarningModal .modal-header,
+        body.dark-mode #sessionWarningModal .modal-header {
+            background: #001f3f !important;
+            color: #ffffff !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+            border-radius: 15px 15px 0 0 !important;
+            padding: 16px 20px !important;
+        }
+
+        #sessionWarningModal .modal-header .modal-title,
+        body.dark-mode #sessionWarningModal .modal-header .modal-title {
+            color: #ffffff !important;
+            font-weight: 700 !important;
+        }
+
+        #sessionWarningModal .modal-body,
+        body.dark-mode #sessionWarningModal .modal-body {
+            background-color: #ffffff !important;
+            color: #0f172a !important;
+            padding: 30px 24px !important;
+        }
+
+        #sessionWarningModal .modal-body p,
+        body.dark-mode #sessionWarningModal .modal-body p {
+            color: #1e293b !important;
+        }
+
+        #sessionWarningModal .modal-body .session-expire-text,
+        body.dark-mode #sessionWarningModal .modal-body .session-expire-text {
+            color: #0f172a !important;
+            font-size: 1.1rem !important;
+            font-weight: 600 !important;
+        }
+
+        #sessionWarningModal .modal-body #countdown,
+        body.dark-mode #sessionWarningModal .modal-body #countdown {
+            color: #dc3545 !important;
+            font-weight: 800 !important;
+        }
+
+        #sessionWarningModal .modal-body .session-subtext,
+        body.dark-mode #sessionWarningModal .modal-body .session-subtext {
+            color: #64748b !important;
+        }
+
+        #sessionWarningModal .modal-footer,
+        body.dark-mode #sessionWarningModal .modal-footer {
+            background-color: #f8fafc !important;
+            border-top: 1px solid #e2e8f0 !important;
+            border-radius: 0 0 15px 15px !important;
+            padding: 14px 20px !important;
         }
 
         /* ✅ SESSION HIJACK MODAL */
@@ -825,25 +888,25 @@
         {{-- ✅ SESSION TIMEOUT MODAL --}}
         <div class="modal fade" id="sessionWarningModal" tabindex="-1" role="dialog" style="z-index:99999;">
             <div class="modal-dialog modal-dialog-centered" role="document">
-                <div class="modal-content" style="background:#0f172a; border:1px solid #1e293b; border-radius:15px; color:#ffffff; box-shadow:0 10px 40px rgba(0,0,0,0.6);">
+                <div class="modal-content" style="background:#ffffff !important; border:1px solid rgba(0,0,0,0.15); border-radius:16px; color:#0f172a; box-shadow:0 20px 60px rgba(0,0,0,0.45); overflow:hidden;">
                     <div class="modal-header"
-                        style="background:linear-gradient(135deg,#0b1120 0%,#162444 100%); border-radius:15px 15px 0 0; border-bottom:1px solid #1e293b;">
-                        <h5 class="modal-title text-white font-weight-bold">
+                        style="background:#001f3f !important; border-radius:15px 15px 0 0; border-bottom:1px solid rgba(255,255,255,0.12); padding:16px 20px;">
+                        <h5 class="modal-title text-white font-weight-bold mb-0">
                             <i class="fas fa-exclamation-triangle mr-2 text-warning"></i> Session Expiring Soon!
                         </h5>
                     </div>
-                    <div class="modal-body text-center py-4">
-                        <p class="mb-1">Your session will expire in</p>
-                        <h2 class="font-weight-bold text-danger"><span id="countdown">60</span>s</h2>
-                        <p class="text-muted small">Click "Stay Logged In" to continue your session.</p>
+                    <div class="modal-body text-center py-4" style="background:#ffffff !important; color:#0f172a !important;">
+                        <p class="mb-1 session-expire-text font-weight-bold" style="color:#0f172a !important; font-size:1.1rem;">Your session will expire in</p>
+                        <h2 class="font-weight-bold text-danger my-2" style="font-size:2.4rem;"><span id="countdown">60</span>s</h2>
+                        <p class="session-subtext small mb-0" style="color:#64748b !important;">Click "Stay Logged In" to continue your session.</p>
                     </div>
-                    <div class="modal-footer justify-content-center">
-                        <button type="button" class="btn btn-success px-4" id="stayLoggedIn">
+                    <div class="modal-footer justify-content-center" style="background:#f8fafc !important; border-top:1px solid #e2e8f0 !important; border-radius:0 0 15px 15px;">
+                        <button type="button" class="btn btn-success px-4 font-weight-bold shadow-sm" id="stayLoggedIn">
                             <i class="fas fa-check mr-1"></i> Stay Logged In
                         </button>
                         <form action="{{ route('logout') }}" method="POST" class="d-inline">
                             @csrf
-                            <button type="submit" class="btn btn-danger px-4">
+                            <button type="submit" class="btn btn-danger px-4 font-weight-bold shadow-sm">
                                 <i class="fas fa-sign-out-alt mr-1"></i> Logout Now
                             </button>
                         </form>
