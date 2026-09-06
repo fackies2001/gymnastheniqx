@@ -50,9 +50,9 @@
             min-height: 100vh;
         }
 
-        /* ── LEFT PANEL (same as login/forgot) ── */
+        /* ── LEFT: BRAND PANEL ── */
         .brand-panel {
-            background: var(--accent);
+            background: linear-gradient(150deg, #0b1120 0%, #0f172a 45%, #162444 100%);
             position: relative;
             display: flex;
             flex-direction: column;
@@ -61,6 +61,7 @@
             overflow: hidden;
         }
 
+        /* Decorative circles */
         .brand-panel::before {
             content: '';
             position: absolute;
@@ -69,7 +70,7 @@
             width: 480px;
             height: 480px;
             border-radius: 50%;
-            background: rgba(255, 255, 255, 0.03);
+            background: radial-gradient(circle, rgba(14, 165, 233, 0.12) 0%, transparent 70%);
         }
 
         .brand-panel::after {
@@ -80,7 +81,7 @@
             width: 320px;
             height: 320px;
             border-radius: 50%;
-            background: rgba(184, 224, 0, 0.08);
+            background: radial-gradient(circle, rgba(245, 158, 11, 0.1) 0%, transparent 70%);
         }
 
         .grid-lines {
@@ -138,36 +139,51 @@
             display: inline-flex;
             align-items: center;
             gap: 8px;
-            background: rgba(184, 224, 0, 0.15);
-            border: 1px solid rgba(184, 224, 0, 0.3);
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.2);
             border-radius: 100px;
             padding: 6px 14px;
             font-size: 11px;
             letter-spacing: 2px;
             text-transform: uppercase;
-            color: var(--lime);
+            color: #ffffff;
             margin-bottom: 28px;
+        }
+
+        .brand-middle .tag .tag-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #ffffff;
+            box-shadow: 0 0 8px #ffffff;
+            animation: pulse-dot 2s infinite;
+        }
+
+        @keyframes pulse-dot {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
         }
 
         .brand-middle h1 {
             font-family: 'Bebas Neue', sans-serif;
-            font-size: clamp(48px, 5vw, 76px);
+            font-size: clamp(52px, 5.5vw, 80px);
             line-height: 0.92;
             letter-spacing: 2px;
-            color: #fff;
+            color: #ffffff;
             margin-bottom: 24px;
         }
 
         .brand-middle h1 em {
             font-style: normal;
-            color: var(--lime);
+            color: #ffffff;
+            -webkit-text-fill-color: #ffffff;
         }
 
         .brand-middle p {
             font-size: 14px;
-            color: rgba(255, 255, 255, 0.45);
+            color: rgba(255, 255, 255, 0.6);
             line-height: 1.75;
-            max-width: 300px;
+            max-width: 320px;
         }
 
         /* Password requirements hint */
@@ -183,27 +199,28 @@
             list-style: none;
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: 12px;
         }
 
         .req-list li {
             display: flex;
             align-items: center;
-            gap: 10px;
-            font-size: 12px;
-            color: rgba(255, 255, 255, 0.35);
+            gap: 12px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.75);
         }
 
         .req-list li i {
-            width: 18px;
-            height: 18px;
-            background: rgba(255, 255, 255, 0.05);
+            width: 20px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 9px;
-            color: rgba(184, 224, 0, 0.5);
+            font-size: 10px;
+            color: #ffffff;
         }
 
         /* ── RIGHT PANEL ── */
@@ -492,7 +509,7 @@
                 <span class="brand-name-text">INVENTUS</span>
             </div>
             <div class="brand-middle">
-                <div class="tag"><i class="fas fa-circle" style="font-size:6px"></i> New Password</div>
+                <div class="tag"><span class="tag-dot"></span> New Password</div>
                 <h1>SECURE YOUR<br><em>ACCOUNT.</em></h1>
                 <p>Choose a strong password that you haven't used before to keep your account safe.</p>
             </div>

@@ -24,7 +24,7 @@ class WeeklyReportExport implements FromCollection, WithHeadings, WithMapping, W
     public function headings(): array
     {
         return [
-            ['GYMNASTHENIQX - WEEKLY SALES PERFORMANCE'],
+            ['INVENTUS - WEEKLY SALES PERFORMANCE'],
             ['Period: ' . Carbon::now()->subDays(7)->format('M d') . ' to ' . Carbon::now()->format('M d, Y')],
             [''],
             ['TRANSACTION DATE', 'RETAILER NAME', 'PRODUCT NAME', 'QTY', 'UNIT PRICE', 'TOTAL AMOUNT']

@@ -30,7 +30,7 @@ class DailyInventoryExport implements FromCollection, WithHeadings, WithMapping,
 
     public function title(): string
     {
-        return 'GYMNASTHENIQX Daily Report';
+        return 'INVENTUS Daily Report';
     }
 
     public function collection()
@@ -130,7 +130,7 @@ class DailyInventoryExport implements FromCollection, WithHeadings, WithMapping,
     public function headings(): array
     {
         return [
-            ['GYMNASTHENIQX INVENTORY SYSTEM'],
+            ['INVENTUS INVENTORY SYSTEM'],
             ['DAILY OPERATIONAL & TRACEABILITY REPORT'],
             ['Warehouse:', auth()->user()->adminlte_warehouse() ?? 'Main Warehouse'],
             ['Generated Date:', now()->format('F d, Y h:i A')],

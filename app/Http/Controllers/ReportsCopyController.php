@@ -352,7 +352,7 @@ class ReportsController extends Controller
     {
         try {
             $date = $request->get('date', Carbon::today()->toDateString());
-            return Excel::download(new DailyInventoryExport($date), "GYMNASTHENIQX_Daily_Report_{$date}.xlsx");
+            return Excel::download(new DailyInventoryExport($date), "Inventus_Daily_Report_{$date}.xlsx");
         } catch (\Exception $e) {
             return back()->with('error', 'Export error: ' . $e->getMessage());
         }
