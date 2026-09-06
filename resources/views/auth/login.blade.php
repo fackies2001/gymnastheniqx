@@ -16,22 +16,22 @@
     <style>
         :root {
             --white: #ffffff;
-            --off-white: #f7f8fc;
-            --surface: #f0f2f8;
-            --border: #e2e5f0;
-            --border-focus: #1a1a2e;
-            --text-dark: #0f0f1a;
-            --text-mid: #4a4a6a;
-            --text-light: #9a9ab0;
-            --accent: #0f172a;
+            --off-white: #0b1120;
+            --surface: #0f172a;
+            --border: #1e293b;
+            --border-focus: #0ea5e9;
+            --text-dark: #ffffff;
+            --text-mid: #94a3b8;
+            --text-light: #64748b;
+            --accent: #0284c7;
             --accent-cyan: #0ea5e9;
-            --accent-hover: #1e293b;
+            --accent-hover: #0369a1;
             --accent-gold: #f59e0b;
             --danger: #ef4444;
-            --input-bg: #ffffff;
-            --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
-            --shadow-md: 0 4px 20px rgba(15, 23, 42, 0.08);
-            --shadow-lg: 0 12px 48px rgba(15, 23, 42, 0.12);
+            --input-bg: #0f172a;
+            --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+            --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.4);
+            --shadow-lg: 0 12px 48px rgba(0, 0, 0, 0.6);
         }
 
         *,
@@ -197,7 +197,7 @@
         .stat-num {
             font-family: 'Bebas Neue', sans-serif;
             font-size: 36px;
-            color: var(--accent-lime);
+            color: #ffffff !important;
             letter-spacing: 1px;
             line-height: 1;
         }
@@ -206,7 +206,7 @@
             font-size: 11px;
             letter-spacing: 2px;
             text-transform: uppercase;
-            color: rgba(255, 255, 255, 0.35);
+            color: rgba(255, 255, 255, 0.7) !important;
             margin-top: 4px;
         }
 
@@ -216,7 +216,8 @@
             align-items: center;
             justify-content: center;
             padding: 60px 80px;
-            background: var(--off-white);
+            background: #0b1120;
+            border-left: 1px solid #1e293b;
         }
 
         .form-box {
@@ -314,34 +315,36 @@
         input.form-control {
             width: 100%;
             padding: 13px 14px 13px 40px;
-            background: var(--white);
-            border: 1.5px solid var(--border);
+            background: #0f172a;
+            border: 1.5px solid #1e293b;
             border-radius: 10px;
             font-family: 'Plus Jakarta Sans', sans-serif;
             font-size: 14px;
-            color: var(--text-dark);
+            color: #ffffff;
             outline: none;
             transition: border-color 0.25s, box-shadow 0.25s;
             box-shadow: var(--shadow-sm);
         }
 
         input.form-control::placeholder {
-            color: var(--text-light);
+            color: #64748b;
         }
 
         input.form-control:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 4px rgba(26, 26, 46, 0.07);
+            border-color: #0ea5e9;
+            background: #0f172a;
+            color: #ffffff;
+            box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15);
         }
 
         input.form-control:focus~.input-icon,
         .input-wrap:focus-within .input-icon {
-            color: var(--accent);
+            color: #0ea5e9;
         }
 
         input.form-control.is-invalid {
             border-color: var(--danger);
-            box-shadow: 0 0 0 4px rgba(229, 62, 62, 0.07);
+            box-shadow: 0 0 0 4px rgba(229, 62, 62, 0.15);
         }
 
         .invalid-msg {
@@ -365,7 +368,7 @@
         }
 
         .pass-toggle:hover {
-            color: var(--text-dark);
+            color: #ffffff;
         }
 
         /* ── META ROW ── */
@@ -399,13 +402,13 @@
 
         .forgot {
             font-size: 13px;
-            color: var(--text-light);
+            color: #0ea5e9;
             text-decoration: none;
             transition: color 0.25s;
         }
 
         .forgot:hover {
-            color: var(--accent);
+            color: #38bdf8;
         }
 
         /* ── SUBMIT ── */

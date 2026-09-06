@@ -248,6 +248,15 @@
             color: #e4e6eb !important;
         }
 
+        .brand-link .brand-image,
+        .brand-link img {
+            background: transparent !important;
+            background-color: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+            object-fit: contain !important;
+        }
+
         body.dark-mode .brand-text {
             color: #e4e6eb !important;
             font-weight: 600;
@@ -422,6 +431,25 @@
         body.dark-mode .modal-header {
             background-color: #18191a !important;
             border-bottom: 1px solid #393a3b !important;
+        }
+
+        body.dark-mode .modal-body {
+            background-color: #18191a !important;
+            color: #e4e6eb !important;
+        }
+
+        body.dark-mode .modal-body .border-bottom,
+        body.dark-mode .modal-body .border-top,
+        body.dark-mode .modal-body .border {
+            border-color: #393a3b !important;
+        }
+
+        body.dark-mode .modal-body .text-muted {
+            color: #b0b3b8 !important;
+        }
+
+        body.dark-mode .modal-body #receipt_customer_name {
+            color: #ffffff !important;
         }
 
         body.dark-mode .modal-footer {

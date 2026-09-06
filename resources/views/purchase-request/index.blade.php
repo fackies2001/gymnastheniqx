@@ -213,13 +213,13 @@
                 </div>
 
                 {{-- Body --}}
-                <div class="modal-body p-4" style="background-color: #fafafa;">
+                <div class="modal-body p-4">
 
                     {{-- Customer Name Header --}}
                     <div class="text-center mb-4 pb-3 border-bottom">
                         <p class="text-uppercase text-muted small mb-1" style="letter-spacing: 1px;">PURCHASE REQUEST OF
                         </p>
-                        <h4 class="font-weight-bold text-danger mb-0" id="receipt_customer_name">LOADING...</h4>
+                        <h4 class="font-weight-bold text-white mb-0" id="receipt_customer_name">LOADING...</h4>
                     </div>
 
                     {{-- PR Number + Status --}}

@@ -13,6 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->encryptCookies(except: [
+            'darkMode',
+        ]);
+
         $middleware->alias([
             'role' => \App\Http\Middleware\CheckRole::class,
             'check.session' => \App\Http\Middleware\CheckSessionToken::class, // ✅ IDAGDAG

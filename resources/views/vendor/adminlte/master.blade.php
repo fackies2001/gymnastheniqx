@@ -1,5 +1,5 @@
 @php
-    $isDark = request()->cookie('darkMode') === 'enabled';
+    $isDark = (request()->cookie('darkMode') === 'enabled') || (($_COOKIE['darkMode'] ?? '') === 'enabled');
 @endphp
 <!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="{{ $isDark ? 'dark-mode' : '' }}" style="{{ $isDark ? 'background-color: #18191a; color-scheme: dark;' : '' }}">
@@ -25,7 +25,7 @@
         })();
     </script>
     <style>
-        html.dark-mode, html.dark-mode body, html.dark-mode .wrapper {
+        html.dark-mode, html.dark-mode body, html.dark-mode .wrapper, html.dark-mode .content-wrapper, html.dark-mode .main-header, html.dark-mode .main-sidebar {
             background-color: #18191a !important;
             color-scheme: dark;
         }
