@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Department;
 use App\Models\Employee;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class EmployeeSeeder extends Seeder
 {
@@ -53,6 +54,7 @@ class EmployeeSeeder extends Seeder
             Employee::updateOrCreate(
                 ['email' => $data['email']],
                 array_merge($data, [
+                    'password' => Hash::make('password123'),
                     'department_id' => Department::query()->inRandomOrder()->first()?->id,
                     'contact_number' => '09123456789',
                     'address' => 'Default Address',
