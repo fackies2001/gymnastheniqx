@@ -121,14 +121,75 @@
             color: #94a3b8 !important;
         }
 
-        /* BRAND LINK UNIVERSAL */
+        /* BRAND LINK UNIVERSAL - NAVY BLUE #001f3f */
         .brand-link {
-            background-color: #0b1120 !important;
-            border-bottom: 1px solid #1e293b !important;
+            background-color: #001f3f !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
             color: #ffffff !important;
         }
 
         .brand-link .brand-text {
+            color: #ffffff !important;
+        }
+
+        /* NAVY BLUE BUTTONS (#001f3f) IN GENERAL ACROSS INVENTORY */
+        .btn-primary,
+        .btn-navy {
+            background-color: #001f3f !important;
+            border-color: #001f3f !important;
+            color: #ffffff !important;
+            box-shadow: 0 2px 6px rgba(0, 31, 63, 0.25);
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary:hover,
+        .btn-primary:focus,
+        .btn-primary:active,
+        .btn-primary.active,
+        .show > .btn-primary.dropdown-toggle,
+        .btn-navy:hover,
+        .btn-navy:focus {
+            background-color: #001428 !important;
+            border-color: #001428 !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 12px rgba(0, 31, 63, 0.35) !important;
+        }
+
+        .btn-primary:disabled,
+        .btn-primary.disabled {
+            background-color: #001f3f !important;
+            border-color: #001f3f !important;
+            opacity: 0.65;
+        }
+
+        .btn-outline-primary {
+            color: #001f3f !important;
+            border-color: #001f3f !important;
+            background-color: transparent !important;
+        }
+
+        .btn-outline-primary:hover,
+        .btn-outline-primary:focus,
+        .btn-outline-primary:active {
+            background-color: #001f3f !important;
+            border-color: #001f3f !important;
+            color: #ffffff !important;
+        }
+
+        body.dark-mode .btn-outline-primary {
+            color: #ffffff !important;
+            border-color: rgba(255, 255, 255, 0.3) !important;
+        }
+
+        body.dark-mode .btn-outline-primary:hover {
+            background-color: #001f3f !important;
+            border-color: #001f3f !important;
+            color: #ffffff !important;
+        }
+
+        .page-item.active .page-link {
+            background-color: #001f3f !important;
+            border-color: #001f3f !important;
             color: #ffffff !important;
         }
 
@@ -301,8 +362,8 @@
         }
 
         body.dark-mode .brand-link {
-            background-color: #0b1120 !important;
-            border-bottom: 1px solid #1e293b !important;
+            background-color: #001f3f !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
             color: #ffffff !important;
         }
 
