@@ -2,7 +2,7 @@
     $isDark = (request()->cookie('darkMode') === 'enabled') || (($_COOKIE['darkMode'] ?? '') === 'enabled');
 @endphp
 <!DOCTYPE html>
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="{{ $isDark ? 'dark-mode' : '' }}" style="{{ $isDark ? 'background-color: #18191a; color-scheme: dark;' : '' }}">
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" class="{{ $isDark ? 'dark-mode' : '' }}" style="{{ $isDark ? 'background-color: #0f172a; color-scheme: dark;' : '' }}">
 
 <head>
     {{-- Anti-Blink Early Initialization Script --}}
@@ -16,7 +16,7 @@
             } catch(e) {}
             if (isDark) {
                 document.documentElement.classList.add('dark-mode');
-                document.documentElement.style.backgroundColor = '#18191a';
+                document.documentElement.style.backgroundColor = '#0f172a';
                 document.documentElement.style.colorScheme = 'dark';
                 if (document.cookie.indexOf('darkMode=') === -1) {
                     document.cookie = "darkMode=enabled; path=/; max-age=31536000; SameSite=Lax";
@@ -26,7 +26,7 @@
     </script>
     <style>
         html.dark-mode, html.dark-mode body, html.dark-mode .wrapper, html.dark-mode .content-wrapper, html.dark-mode .main-header, html.dark-mode .main-sidebar {
-            background-color: #18191a !important;
+            background-color: #0f172a !important;
             color-scheme: dark;
         }
     </style>

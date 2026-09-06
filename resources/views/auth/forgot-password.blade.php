@@ -217,8 +217,8 @@
             align-items: center;
             justify-content: center;
             padding: 60px 80px;
-            background: #0b1120;
-            border-left: 1px solid #1e293b;
+            background: #ffffff;
+            border-left: 1px solid #e2e8f0;
         }
 
         .form-box {
@@ -236,28 +236,28 @@
             align-items: center;
             gap: 6px;
             font-size: 12px;
-            color: #0ea5e9;
+            color: #64748b;
             text-decoration: none;
             margin-bottom: 28px;
             transition: color 0.25s;
         }
 
         .back-link:hover {
-            color: #38bdf8;
+            color: #0f172a;
         }
 
         .form-box-header h2 {
             font-family: 'Bebas Neue', sans-serif;
             font-size: 40px;
             letter-spacing: 2px;
-            color: #ffffff;
+            color: #0f172a;
             line-height: 1;
             margin-bottom: 10px;
         }
 
         .form-box-header p {
             font-size: 13px;
-            color: #94a3b8;
+            color: #64748b;
             line-height: 1.65;
         }
 
@@ -299,7 +299,7 @@
             font-size: 12px;
             font-weight: 600;
             letter-spacing: 0.5px;
-            color: var(--text-mid);
+            color: #0f172a;
             margin-bottom: 8px;
         }
 
@@ -312,7 +312,7 @@
             left: 14px;
             top: 50%;
             transform: translateY(-50%);
-            color: var(--text-light);
+            color: #94a3b8;
             font-size: 13px;
             pointer-events: none;
             transition: color 0.25s;
@@ -321,30 +321,30 @@
         input.form-control {
             width: 100%;
             padding: 13px 14px 13px 40px;
-            background: #0f172a;
-            border: 1.5px solid #1e293b;
+            background: #f8fafc;
+            border: 1.5px solid #cbd5e1;
             border-radius: 10px;
             font-family: 'Plus Jakarta Sans', sans-serif;
             font-size: 14px;
-            color: #ffffff;
+            color: #0f172a;
             outline: none;
-            transition: border-color 0.25s, box-shadow 0.25s;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+            transition: border-color 0.25s, box-shadow 0.25s, background-color 0.25s;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
         }
 
         input.form-control::placeholder {
-            color: #64748b;
+            color: #94a3b8;
         }
 
         input.form-control:focus {
-            border-color: #0ea5e9;
-            background: #0f172a;
-            color: #ffffff;
-            box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15);
+            border-color: #0f172a;
+            background: #ffffff;
+            color: #0f172a;
+            box-shadow: 0 0 0 4px rgba(15, 23, 42, 0.1);
         }
 
         .input-wrap:focus-within .input-icon {
-            color: #0ea5e9;
+            color: #0f172a;
         }
 
         input.form-control.is-invalid {
@@ -362,8 +362,8 @@
         .btn-submit {
             width: 100%;
             padding: 14px;
-            background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-            color: #fff;
+            background: linear-gradient(135deg, #0b1120 0%, #162444 100%);
+            color: #ffffff;
             font-family: 'Bebas Neue', sans-serif;
             font-size: 18px;
             letter-spacing: 3px;
@@ -371,16 +371,16 @@
             border-radius: 10px;
             cursor: pointer;
             transition: background 0.25s, transform 0.15s, box-shadow 0.25s;
-            box-shadow: 0 4px 16px rgba(2, 132, 199, 0.35);
+            box-shadow: 0 4px 16px rgba(11, 17, 32, 0.35);
             position: relative;
             overflow: hidden;
             opacity: 0;
         }
 
         .btn-submit:hover {
-            background: linear-gradient(135deg, #0369a1 0%, #075985 100%);
+            background: linear-gradient(135deg, #162444 0%, #1e293b 100%);
             transform: translateY(-1px);
-            box-shadow: 0 6px 22px rgba(2, 132, 199, 0.5);
+            box-shadow: 0 6px 22px rgba(11, 17, 32, 0.45);
         }
 
         .btn-submit:active {
