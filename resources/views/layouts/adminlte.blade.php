@@ -128,7 +128,27 @@
             color: #ffffff !important;
         }
 
-        .brand-link .brand-text {
+        .brand-link,
+        .brand-link .brand-text,
+        .brand-link b,
+        .brand-link .text-light,
+        body.dark-mode .brand-link,
+        body.dark-mode .brand-link .brand-text,
+        body.dark-mode .brand-link b,
+        body.dark-mode .brand-link .text-light {
+            color: #ffffff !important;
+            font-weight: 700 !important;
+            letter-spacing: 1px !important;
+            text-shadow: none !important;
+        }
+
+        ::selection {
+            background-color: #001f3f !important;
+            color: #ffffff !important;
+        }
+
+        ::-moz-selection {
+            background-color: #001f3f !important;
             color: #ffffff !important;
         }
 

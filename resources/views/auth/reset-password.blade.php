@@ -22,8 +22,8 @@
             --text-dark: #ffffff;
             --text-mid: #94a3b8;
             --text-light: #64748b;
-            --accent: #0284c7;
-            --lime: #0ea5e9;
+            --accent: #001f3f;
+            --lime: #002b56;
             --input-bg: #0f172a;
             --danger: #ef4444;
         }
@@ -453,7 +453,7 @@
         }
 
         .form-note a {
-            color: #0ea5e9;
+            color: #001f3f;
             font-weight: 600;
             text-decoration: none;
             transition: color 0.25s;

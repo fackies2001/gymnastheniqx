@@ -19,13 +19,13 @@
             --off-white: #0b1120;
             --surface: #0f172a;
             --border: #1e293b;
-            --border-focus: #0ea5e9;
+            --border-focus: #001f3f;
             --text-dark: #ffffff;
             --text-mid: #94a3b8;
             --text-light: #64748b;
-            --accent: #0284c7;
-            --accent-cyan: #0ea5e9;
-            --accent-hover: #0369a1;
+            --accent: #001f3f;
+            --accent-cyan: #002b56;
+            --accent-hover: #001428;
             --accent-gold: #f59e0b;
             --danger: #ef4444;
             --input-bg: #0f172a;
