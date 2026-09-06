@@ -150,8 +150,8 @@
 
     {{-- HEADER --}}
     <div class="report-header">
-        <h1>GYMNASTHENIQX WAREHOUSE</h1>
-        <p style="font-size: 11px; text-transform: uppercase;">WAREHOUSE: GYMNASTHENIQX</p>
+        <h1>INVENTUS WAREHOUSE</h1>
+        <p style="font-size: 11px; text-transform: uppercase;">WAREHOUSE: INVENTUS</p>
         <h2>GYM EQUIPMENT INVENTORY REPORT</h2>
         <div class="meta">
             Report Date: {{ now()->format('F d, Y') }} |

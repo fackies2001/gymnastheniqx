@@ -257,7 +257,7 @@
     <div id="printArea" style="display:none;">
         <div style="font-family: 'Courier New', monospace; padding: 20px; color: black;">
             <div style="text-align:center; margin-bottom:20px;">
-                <h2 style="font-weight:bold; margin:0;">GYMNASTHENIQX INVENTORY SYSTEM</h2>
+                <h2 style="font-weight:bold; margin:0;">INVENTUS INVENTORY SYSTEM</h2>
                 <p style="margin:4px 0; text-transform:uppercase;">Warehouse:
                     {{ auth()->user()->adminlte_warehouse() ?? 'Main Warehouse' }}</p>
                 <h4

@@ -1,7 +1,7 @@
 <div id="printArea" class="d-none d-print-block" style="font-family: 'Courier New', Courier, monospace;">
     {{-- Header ng Report --}}
     <div class="text-center mb-4">
-        <h2 class="font-weight-bold mb-0">GYMNASTHENIQX INVENTORY SYSTEM</h2>
+        <h2 class="font-weight-bold mb-0">INVENTUS INVENTORY SYSTEM</h2>
         <p class="mb-0" id="printWarehouseName">WAREHOUSE: {{ auth()->user()->warehouse_info->name ?? 'ALL BRANCHES' }}
         </p>
         <h4 class="mt-2 text-uppercase" id="printTitle" style="border-bottom: 2px solid #000; display: inline-block;"></h4>

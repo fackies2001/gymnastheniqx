@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GYMNASTHENIQX — Gym Inventory System</title>
+    <title>INVENTUS — Gym Inventory System</title>
 
     <link
         href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap"
@@ -821,9 +821,9 @@
     <nav id="mainNav">
         <a href="{{ url('/') }}" class="nav-brand">
             <div class="nav-logo">
-                <img src="{{ asset('logo.png') }}" alt="Gymnastheniqx Logo">
+                <img src="{{ asset('logo.png') }}" alt="Inventus Logo">
             </div>
-            <span class="nav-wordmark">GYMNASTHENIQX</span>
+            <span class="nav-wordmark">INVENTUS</span>
         </a>
 
         <ul class="nav-links">
@@ -860,7 +860,7 @@
             </h1>
 
             <p class="hero-sub">
-                GYMNASTHENIQX is a complete inventory management platform built for gyms and fitness centers — from
+                INVENTUS is a complete inventory management platform built for gyms and fitness centers — from
                 equipment tracking to purchase orders, all in one place.
             </p>
 
@@ -909,7 +909,7 @@
                 <div class="section-tag">Core Features</div>
                 <h2 class="section-title">EVERYTHING YOU NEED TO RUN YOUR GYM</h2>
             </div>
-            <p class="section-sub">From serialized product tracking to supplier management — GYMNASTHENIQX handles every
+            <p class="section-sub">From serialized product tracking to supplier management — INVENTUS handles every
                 layer of your gym operations.</p>
         </div>
 
@@ -1058,7 +1058,7 @@
     {{-- ════ CTA ════ --}}
     <section class="cta-section">
         <h2>READY TO TAKE CONTROL?</h2>
-        <p>Sign in to your GYMNASTHENIQX account and manage your gym inventory today.</p>
+        <p>Sign in to your INVENTUS account and manage your gym inventory today.</p>
         <a href="{{ url('login') }}" class="cta-btn">
             <i class="fas fa-sign-in-alt"></i>
             ACCESS THE SYSTEM
@@ -1070,11 +1070,11 @@
     <footer>
         <div class="footer-brand">
             <div class="footer-logo">
-                <img src="{{ asset('logo.png') }}" alt="Gymnastheniqx Logo">
+                <img src="{{ asset('logo.png') }}" alt="Inventus Logo">
             </div>
-            <span class="footer-name">GYMNASTHENIQX</span>
+            <span class="footer-name">INVENTUS</span>
         </div>
-        <span class="footer-copy">&copy; {{ date('Y') }} Gymnastheniqx. All rights reserved.</span>
+        <span class="footer-copy">&copy; {{ date('Y') }} Inventus. All rights reserved.</span>
         <a href="{{ url('login') }}" class="footer-link">Sign In →</a>
     </footer>
 

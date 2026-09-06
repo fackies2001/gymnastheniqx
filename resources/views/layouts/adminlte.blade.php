@@ -628,45 +628,26 @@
             border-bottom: 1px solid #1e293b !important;
         }
 
-        /* FLOATING DARK MODE TOGGLE BUTTON */
-        .dark-mode-toggle {
-            position: fixed;
-            bottom: 24px;
-            right: 24px;
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: #10192e;
-            border: 1px solid #1e293b;
-            box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4);
-            cursor: pointer;
-            z-index: 99999;
+        /* NAVBAR DARK MODE TOGGLE */
+        #darkModeNavWrapper .nav-link {
+            padding: 0.5rem 0.75rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.25s ease;
+            transition: color 0.2s ease, transform 0.2s ease;
         }
 
-        body:not(.dark-mode) .dark-mode-toggle {
-            background: #ffffff;
-            border: 1px solid #ced4da;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        #darkModeNavWrapper .nav-link:hover {
+            transform: scale(1.15);
         }
 
-        .dark-mode-toggle:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5);
-            border-color: #ffffff;
-        }
-
-        .dark-mode-toggle i {
-            font-size: 19px;
-            color: #ffffff;
+        #darkModeNavWrapper #darkModeIcon {
+            font-size: 1.15rem;
             transition: transform 0.3s ease;
         }
 
-        body:not(.dark-mode) .dark-mode-toggle i {
-            color: #10192e;
+        body.dark-mode #darkModeNavWrapper #darkModeIcon {
+            color: #facc15 !important;
         }
 
         /* SESSION MODAL Z-INDEX */
@@ -914,11 +895,6 @@
         }
     </style>
 
-    {{-- ✅ GLOBAL FLOATING DARK MODE TOGGLE (Available on ALL pages) --}}
-    <button class="dark-mode-toggle" id="darkModeToggle" title="Toggle Dark/Light Mode" aria-label="Toggle Dark Mode">
-        <i class="fas fa-moon" id="darkModeIcon"></i>
-    </button>
-
     {{-- ✅ GLOBAL DARK MODE LOGIC --}}
     <script>
         (function() {
@@ -971,16 +947,18 @@
                 var currentDark = localStorage.getItem('darkMode') === 'enabled' || document.cookie.indexOf('darkMode=enabled') !== -1;
                 updateDarkUI(currentDark);
 
-                var btn = document.getElementById('darkModeToggle');
-                if (btn && btn.dataset.bound !== '1') {
-                    btn.dataset.bound = '1';
-                    btn.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        var current = localStorage.getItem('darkMode') === 'enabled' || document.cookie.indexOf('darkMode=enabled') !== -1;
-                        setDarkMode(!current);
-                    });
-                }
+                var btns = document.querySelectorAll('#darkModeToggle, .dark-mode-toggle');
+                btns.forEach(function(btn) {
+                    if (btn && btn.dataset.bound !== '1') {
+                        btn.dataset.bound = '1';
+                        btn.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            var current = localStorage.getItem('darkMode') === 'enabled' || document.cookie.indexOf('darkMode=enabled') !== -1;
+                            setDarkMode(!current);
+                        });
+                    }
+                });
             });
         })();
     </script>

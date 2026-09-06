@@ -65,7 +65,7 @@
 
         {{-- PRINT HEADER --}}
         <div class="d-none d-print-block text-center mb-4" id="weeklyPrintHeader">
-            <h1 class="font-weight-bold text-uppercase m-0">GYMNASTHENIQX WAREHOUSE</h1>
+            <h1 class="font-weight-bold text-uppercase m-0">INVENTUS WAREHOUSE</h1>
             <h4 class="text-uppercase">Weekly Inventory & Sales Performance Report</h4>
             <p class="mb-0"><strong>Period:</strong> {{ $startDate->format('F d, Y') }} -
                 {{ $endDate->format('F d, Y') }}</p>

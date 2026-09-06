@@ -4,7 +4,7 @@
 
     {{-- Dito natin kukunin ang title na sine-set natin sa bawat page --}}
     @section('title')
-        @yield('title', config('adminlte.title', 'Gymnastheniqx'))
+        @yield('title', config('adminlte.title', 'Inventus'))
     @stop
 
     {{-- Dito papasok ang "Header" ng dashboard (yung may Breadcrumbs) --}}

@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GYMNASTHENIQX — Reset Password</title>
+    <title>INVENTUS — Reset Password</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <link
@@ -487,9 +487,9 @@
             <div class="grid-lines"></div>
             <div class="brand-top">
                 <div class="logo-badge">
-                    <img src="{{ asset('logo.png') }}" alt="Gymnastheniqx Logo">
+                    <img src="{{ asset('logo.png') }}" alt="Inventus Logo">
                 </div>
-                <span class="brand-name-text">GYMNASTHENIQX</span>
+                <span class="brand-name-text">INVENTUS</span>
             </div>
             <div class="brand-middle">
                 <div class="tag"><i class="fas fa-circle" style="font-size:6px"></i> New Password</div>

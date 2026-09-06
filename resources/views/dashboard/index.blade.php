@@ -84,8 +84,9 @@
         .stat-box-stock,
         .stat-box-sales-today,
         .stat-box-sales-total {
-            background: linear-gradient(145deg, #0b1120 0%, #162444 100%) !important;
-            border: 1px solid #1e293b !important;
+            background: #001f3f !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            box-shadow: 0 4px 12px rgba(0, 31, 63, 0.25) !important;
         }
 
         .activity-item--clickable {
@@ -162,8 +163,8 @@
         }
 
         .shortcut-yearly {
-            background: linear-gradient(145deg, #0b1120 0%, #162444 100%) !important;
-            border: 1px solid #1e293b !important;
+            background: #001f3f !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
         }
 
         .activity-item {
@@ -195,35 +196,6 @@
             font-size: 0.72rem;
             opacity: 0.7;
             margin-top: 2px;
-        }
-
-        .dark-mode-toggle {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 48px;
-            height: 48px;
-            border-radius: 50%;
-            background: #0b1120;
-            border: 1px solid #334155;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-            cursor: pointer;
-            z-index: 9999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.3s ease;
-        }
-
-        .dark-mode-toggle:hover {
-            transform: scale(1.1);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
-            border-color: #ffffff;
-        }
-
-        .dark-mode-toggle i {
-            font-size: 18px;
-            color: white;
         }
 
         /* ========== FONT SIZE BOOST ========== */
@@ -319,7 +291,7 @@
 
     {{-- DATE FILTER BAR --}}
     <div class="card shadow mb-3 no-print">
-        <div class="card-header" style="background: linear-gradient(135deg, #0b1120 0%, #162444 100%); border-bottom: 1px solid #1e293b;">
+        <div class="card-header" style="background: #001f3f; border-bottom: 1px solid rgba(255, 255, 255, 0.15);">
             <h3 class="card-title font-weight-bold text-white">
                 <i class="fas fa-filter"></i> FILTER BY DATE
             </h3>

@@ -26,7 +26,7 @@
                 <li><strong>Order Date:</strong> {{ \Carbon\Carbon::parse($po->order_date)->format('M d, Y') }}</li>
                 <li><strong>Estimated Delivery:</strong> {{ \Carbon\Carbon::parse($po->delivery_date)->format('M d, Y') }}</li>
                 <li><strong>Payment Terms:</strong> {{ ucwords(str_replace('_', ' ', $po->payment_terms ?? 'cash_on_delivery')) }}</li>
-                <li><strong>Requested By:</strong> {{ $po->requestedBy->full_name ?? 'Gymnastheniqx Corp.' }}</li>
+                <li><strong>Requested By:</strong> {{ $po->requestedBy->full_name ?? 'Inventus Corp.' }}</li>
             </ul>
 
             <table class="table">
@@ -62,7 +62,7 @@
             <p>Please confirm receipt of this order. If you have any questions, feel free to reply to this email.</p>
         </div>
         <div class="footer">
-            <p>This is an automated message from Gymnastheniqx Inventory System.</p>
+            <p>This is an automated message from Inventus Inventory System.</p>
         </div>
     </div>
 </body>

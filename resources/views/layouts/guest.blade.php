@@ -20,7 +20,7 @@
     <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-violet-100">
         <div>
             <a href="/">
-                <img src="{{ asset('logo-md.png') }}" alt="gymnastheniqx-logo" width="100"
+                <img src="{{ asset('logo-md.png') }}" alt="inventus-logo" width="100"
                     style="border-radius: 100%; box-shadow: rgba(50, 50, 93, 0.25) 0px 30px 60px -12px, rgba(0, 0, 0, 0.3) 0px 18px 36px -18px;">
             </a>
             {{-- <a href="/">

@@ -16,7 +16,7 @@ return [
     |
     */
 
-    'title' => 'Gymnastheniqx',
+    'title' => 'Inventus',
     'title_prefix' => '',
     'title_postfix' => '',
 
@@ -29,6 +29,7 @@ return [
     |
     | For detailed instructions you can look the favicon section here:
     | https://github.com/jeroennoten/Laravel-AdminLTE/wiki/Basic-Configuration
+    |
     |
     */
 
@@ -65,7 +66,7 @@ return [
     |
     */
 
-    'logo' => '<b class="text-light">GYMNASTHENIQX</b> ',
+    'logo' => '<b class="text-light">INVENTUS</b> ',
     'logo_img' => 'logo.png',
     'logo_img_class' => 'brand-image img-circle elevation-3 text-sm',
     'logo_img_xl' => null,

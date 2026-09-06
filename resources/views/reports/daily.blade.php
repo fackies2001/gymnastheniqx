@@ -2,7 +2,59 @@
 
 @section('subtitle', 'Daily Report')
 @section('content_header_title', 'Reports')
-@section('content_header_subtitle', 'Daily Report')
+@push('css')
+    <style>
+        .small-box {
+            background: #001f3f !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            border-radius: 12px !important;
+            color: #ffffff !important;
+            box-shadow: 0 4px 12px rgba(0, 31, 63, 0.25) !important;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .small-box:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0, 31, 63, 0.4) !important;
+        }
+
+        .small-box .inner h3 {
+            color: #ffffff !important;
+            font-size: 2.2rem !important;
+            font-weight: 700 !important;
+        }
+
+        .small-box .inner p {
+            color: #e2e8f0 !important;
+            font-size: 0.95rem !important;
+            font-weight: 500 !important;
+        }
+
+        .small-box .icon {
+            color: rgba(255, 255, 255, 0.15) !important;
+        }
+
+        .small-box:hover .icon {
+            color: rgba(255, 255, 255, 0.25) !important;
+        }
+
+        .small-box .small-box-footer {
+            background: rgba(0, 0, 0, 0.15) !important;
+            color: #ffffff !important;
+            border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+
+        .small-box .small-box-footer:hover {
+            background: rgba(0, 0, 0, 0.3) !important;
+            color: #ffffff !important;
+        }
+
+        .card-header.bg-navy-custom {
+            background: #001f3f !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+        }
+    </style>
+@endpush
 
 @section('content_body')
     <div class="container-fluid">
@@ -58,7 +110,7 @@
 
         {{-- DATE FILTER --}}
         <div class="card shadow mb-4 no-print">
-            <div class="card-header bg-gradient-primary">
+            <div class="card-header bg-navy-custom">
                 <h3 class="card-title font-weight-bold text-white">
                     <i class="fas fa-filter"></i> FILTER BY DATE
                 </h3>
@@ -180,7 +232,7 @@
             style="font-family: 'Courier New', Courier, monospace; color: black; padding: 10px;">
 
             <div class="text-center mb-4">
-                <h2 class="font-weight-bold mb-0">GYMNASTHENIQX INVENTORY SYSTEM</h2>
+                <h2 class="font-weight-bold mb-0">INVENTUS INVENTORY SYSTEM</h2>
                 <p class="mb-0 text-uppercase">Warehouse: {{ auth()->user()->adminlte_warehouse() ?? 'Main Warehouse' }}
                 </p>
                 <h4 class="mt-2 text-uppercase font-weight-bold"

@@ -283,7 +283,7 @@
     <div id="printArea" style="display:none;">
         <div style="font-family: 'Courier New', monospace; padding: 20px; color: black;">
             <div style="text-align:center; margin-bottom:20px;">
-                <h2 style="font-weight:bold; margin:0;">GYMNASTHENIQX INVENTORY SYSTEM</h2>
+                <h2 style="font-weight:bold; margin:0;">INVENTUS INVENTORY SYSTEM</h2>
                 <p style="margin:4px 0; text-transform:uppercase;">Warehouse:
                     {{ auth()->user()->adminlte_warehouse() ?? 'Main Warehouse' }}</p>
                 <h4
@@ -611,11 +611,11 @@
 @push('css')
     <style>
         .small-box {
-            background: linear-gradient(145deg, #0b1120 0%, #162444 100%) !important;
-            border: 1px solid #1e293b !important;
+            background: #001f3f !important;
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
             border-radius: 12px !important;
             color: #ffffff !important;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
+            box-shadow: 0 4px 12px rgba(0, 31, 63, 0.25) !important;
         }
 
         .small-box .inner h3 {
@@ -631,22 +631,22 @@
         }
 
         .small-box .icon {
-            color: rgba(255, 255, 255, 0.1) !important;
+            color: rgba(255, 255, 255, 0.15) !important;
         }
 
         .small-box:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.35) !important;
+            box-shadow: 0 8px 25px rgba(0, 31, 63, 0.4) !important;
             transition: all 0.3s;
         }
 
         .small-box:hover .icon {
-            color: rgba(255, 255, 255, 0.2) !important;
+            color: rgba(255, 255, 255, 0.25) !important;
         }
 
         .bg-gradient-primary {
-            background: linear-gradient(135deg, #0b1120 0%, #162444 100%) !important;
-            border-bottom: 1px solid #1e293b !important;
+            background: #001f3f !important;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
         }
 
         #inp_price.border-success {

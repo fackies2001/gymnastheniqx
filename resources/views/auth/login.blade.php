@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GYMNASTHENIQX — Sign In</title>
+    <title>INVENTUS — Sign In</title>
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <link
@@ -544,9 +544,9 @@
 
             <div class="brand-top">
                 <div class="logo-badge">
-                    <img src="{{ asset('logo.png') }}" alt="Gymnastheniqx Logo">
+                    <img src="{{ asset('logo.png') }}" alt="Inventus Logo">
                 </div>
-                <span class="brand-name-text">GYMNASTHENIQX</span>
+                <span class="brand-name-text">INVENTUS</span>
             </div>
 
             <div class="brand-middle">
@@ -653,7 +653,7 @@
 
                 <div class="form-note">
                     Authorized personnel only &mdash;
-                    <a href="{{ url('/') }}">GYMNASTHENIQX</a>
+                    <a href="{{ url('/') }}">INVENTUS</a>
                 </div>
             </div>
         </div>

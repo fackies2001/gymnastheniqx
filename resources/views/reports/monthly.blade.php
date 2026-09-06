@@ -61,7 +61,7 @@
 
         {{-- PRINT HEADER --}}
         <div class="d-none d-print-block text-center mb-4">
-            <h1 class="font-weight-bold text-uppercase m-0">GYMNASTHENIQX WAREHOUSE</h1>
+            <h1 class="font-weight-bold text-uppercase m-0">INVENTUS WAREHOUSE</h1>
             <h4 class="text-uppercase">Monthly Financial & Planning Report</h4>
             <p class="mb-0"><strong>Period:</strong> {{ $selectedDate->format('F Y') }}</p>
             <p class="small text-muted">Generated on: {{ \Carbon\Carbon::now()->format('F d, Y h:i A') }}</p>

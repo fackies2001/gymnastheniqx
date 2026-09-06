@@ -15,6 +15,13 @@
     @php($logout_url = $logout_url ? url($logout_url) : '')
 @endif
 
+{{-- ✅ DARK MODE TOGGLE (IN NAVBAR) --}}
+<li class="nav-item" id="darkModeNavWrapper">
+    <a class="nav-link" href="#" id="darkModeToggle" role="button" title="Toggle Dark/Light Mode" aria-label="Toggle Dark Mode" style="cursor: pointer;">
+        <i class="fas fa-moon" id="darkModeIcon" style="font-size:1.15rem;"></i>
+    </a>
+</li>
+
 {{-- ✅ NOTIFICATION BELL --}}
 <li class="nav-item" id="notificationBellWrapper">
     <a class="nav-link" href="#" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
