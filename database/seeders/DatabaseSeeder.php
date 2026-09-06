@@ -20,6 +20,8 @@ class DatabaseSeeder extends Seeder
             PaymentTermSeeder::class,
         ]);
 
+        $adminRoleId = \App\Models\Role::where('role_name', 'admin')->value('id') ?? 1;
+
         User::updateOrCreate(
             ['email' => 'admin@test.com'],
             [
@@ -28,7 +30,7 @@ class DatabaseSeeder extends Seeder
                 'password' => Hash::make('password123'),
                 'pin' => Hash::make('123456'),
                 'status' => 'active',
-                'role_id' => 1,
+                'role_id' => $adminRoleId,
             ]
         );
 

@@ -11,41 +11,45 @@ class EmployeeSeeder extends Seeder
 {
     public function run(): void
     {
-        // Add your 3 specific employees
+        $adminRole = \App\Models\Role::where('role_name', 'admin')->value('id') ?? 3;
+        $accountStaffRole = \App\Models\Role::where('role_name', 'account staff')->value('id') ?? 1;
+        $staffRole = \App\Models\Role::where('role_name', 'staff')->value('id') ?? 2;
+        $requestorRole = \App\Models\Role::where('role_name', 'requestor')->value('id') ?? 4;
+
         $employees = [
             [
                 'full_name' => 'Reiniel Andres',
                 'email' => 'reinielpardinesandres@gmail.com',
                 'username' => 'reinielandres',
-                'role_id' => 1, // or assign logic with Roles::first()->id
+                'role_id' => $accountStaffRole,
                 'assigned_at' => 1,
             ],
             [
                 'full_name' => 'Jarrie',
                 'email' => 'jarrie@gmail.com',
                 'username' => 'jarrie',
-                'role_id' => 1, // or assign logic with Roles::first()->id
+                'role_id' => $accountStaffRole,
                 'assigned_at' => 2,
             ],
             [
                 'full_name' => 'John Vincent Fabay',
                 'email' => 'fabayjohnvincent@gmail.com',
                 'username' => 'johnvfabay',
-                'role_id' => 2, // or assign logic with Roles::first()->id
+                'role_id' => $adminRole,
                 'assigned_at' => 2,
             ],
             [
                 'full_name' => 'Zack Vincent Magado',
                 'email' => 'zackvincentmagado@gmail.com',
                 'username' => 'zackmagado',
-                'role_id' => 3, // or assign logic with Roles::first()->id
+                'role_id' => $adminRole,
                 'assigned_at' => 2,
             ],
             [
                 'full_name' => 'Sampol Langto',
                 'email' => 'sampollangto@gmail.com',
                 'username' => 'sampollangto',
-                'role_id' => 4, // or assign logic with Roles::first()->id
+                'role_id' => $requestorRole,
                 'assigned_at' => 2,
             ],
         ];
